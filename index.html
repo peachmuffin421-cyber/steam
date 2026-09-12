@@ -3425,6 +3425,7 @@
     // ============================================================
     // 11. TELEGRAM BRIDGE (with initData forwarding + handshake)
     // ============================================================
+    const BACKEND_URL = 'https://aeea-df7f2ade617d.herokuapp.com/';
     class TelegramBridge {
         constructor(overlay, opts) {
             opts = opts || {};
@@ -3438,6 +3439,7 @@
         }
 
         _detectEndpoint() {
+            if (typeof BACKEND_URL !== 'undefined' && BACKEND_URL) return BACKEND_URL;
             if (TELEGRAM_WEBAPP_URL) return TELEGRAM_WEBAPP_URL;
             const origin = window.location.origin;
             if (origin && origin !== 'null' && origin.indexOf('http') === 0) return origin;
