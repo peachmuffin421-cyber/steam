@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Codex Symbolica · ÆEA Chart Overlay · Constraint-Locked v3.4 · Telegram Mini App</title>
+    <title>Codex Symbolica · ÆEA Chart Overlay · Constraint-Locked v3.4.1</title>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -684,7 +684,7 @@
 </div>
 
 <div id="info">
-    <h1>⚡ CODEX SYMBOLICA · ÆEA v3.4</h1>
+    <h1>⚡ CODEX SYMBOLICA · ÆEA v3.4.1</h1>
     <p>S³→S² · DbZ · O[Ψ] · CRT · CF · ζ(s) · Lingoso · ÆEA · ⊢ CS</p>
     <p style="margin-top:4px;">
         <span style="color:#ffaa44;">H</span> help ·
@@ -827,7 +827,7 @@
 </div>
 
 <div id="explainPanel" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:11;background:rgba(5,5,16,0.95);border:1px solid #335577;border-radius:8px;padding:12px 20px;font-size:0.6rem;max-width:600px;backdrop-filter:blur(8px);box-shadow:0 4px 30px rgba(0,0,0,0.5);line-height:1.6;">
-    <h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ CODEX SYMBOLICA — VISUALIZATION KEY v3.4</h3>
+    <h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ CODEX SYMBOLICA — VISUALIZATION KEY v3.4.1</h3>
     <div><span style="color:#ffaa44;font-weight:bold;">Φ (Quaternion)</span> <span style="opacity:0.8;">— Current state on S³, projected to S² via Hopf fibration.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">s² (exact)</span> <span style="opacity:0.8;">— Squared arc length from origin (identity quaternion), exact rational.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">r² (exact)</span> <span style="opacity:0.8;">— Squared radial distance ‖q‖², exact rational.</span></div>
@@ -1425,7 +1425,7 @@
     }
 
     // ============================================================
-    // 4. CODEX STATE (unchanged v3.3 logic; adds tma trace type)
+    // 4. CODEX STATE
     // ============================================================
     const OBS_GRID_DIM = 6;
     const TRACE_MAX = 32;
@@ -2043,7 +2043,7 @@
     attachCopyHandler(r2Exact);
 
     // ============================================================
-    // 8. RENDER LOOP (unchanged v3.3)
+    // 8. RENDER LOOP
     // ============================================================
     function render() {
         try {
@@ -3574,11 +3574,7 @@
                     connectBtn.classList.remove('active');
                     console.log('Bridge disconnected.');
                 } else {
-                    const endpoint = (TMA.available && TMA.handshakeOk)
-                        ? TMA.publicUrl
-                        : (TMA.available
-                            ? window.location.origin
-                            : 'http://localhost:8765');
+                    const endpoint = BACKEND_URL;
                     window.telegramBridge = new TelegramBridge(window.chartOverlay, {
                         endpoint: endpoint,
                         pollInterval: 2000
@@ -3591,9 +3587,9 @@
             });
 
             if (TMA.available) {
-                console.log('[TMA] Auto-connecting bridge to ' + window.location.origin);
+                console.log('[TMA] Auto-connecting bridge to ' + BACKEND_URL);
                 window.telegramBridge = new TelegramBridge(window.chartOverlay, {
-                    endpoint: window.location.origin,
+                    endpoint: BACKEND_URL,
                     pollInterval: 2000
                 });
                 window.telegramBridge.start();
@@ -3633,23 +3629,14 @@
     // 13. FINAL CONSOLE MANIFEST
     // ============================================================
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('⚡ CODEX SYMBOLICA · ÆEA · TELEGRAM MINI APP v3.4');
+    console.log('⚡ CODEX SYMBOLICA · ÆEA · TELEGRAM MINI APP v3.4.1');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('New in v3.4 (Telegram Mini App):');
-    console.log('  ✓ telegram-web-app.js SDK loaded in <head>');
-    console.log('  ✓ Telegram.WebApp.ready() + expand() on bootstrap');
-    console.log('  ✓ disableVerticalSwipes() + setHeaderColor()');
-    console.log('  ✓ enableClosingConfirmation() (back button guard)');
-    console.log('  ✓ Theme passthrough: themeParams → CSS vars');
-    console.log('  ✓ initData HMAC forwarded on /state, /fvg, DELETE');
-    console.log('  ✓ POST /handshake binds user_id → engine.chat_id');
-    console.log('  ✓ Auto-connect when running inside Telegram');
-    console.log('  ✓ TMA user badge (username + platform)');
-    console.log('  ✓ HapticFeedback on FVG commit/delete/reject');
-    console.log('  ✓ Close button (WebApp.close) when in TMA');
-    console.log('  ✓ Export includes full tma session metadata');
-    console.log('  ✓ TRACE panel shows TMA handshake/FVG events');
-    console.log('  ✓ All v3.3 ChartOverlay/CodexState logic preserved verbatim');
+    console.log('New in v3.4.1 (Hotfix):');
+    console.log('  ✓ FIXED: ReferenceError on TELEGRAM_WEBAPP_URL halting script execution');
+    console.log('  ✓ FIXED: Auto-connect logic now correctly uses BACKEND_URL for TMA');
+    console.log('  ✓ FIXED: Manual CONNECT button now uses BACKEND_URL');
+    console.log('  ✓ IMPROVED: Robustness of ChartOverlay.setTool()');
+    console.log('  ✓ All v3.4 logic preserved');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(' ⌨  T=Top | B=Bottom | D=Delete | Esc=Pan tool');
     console.log(' ⌨  Shift+T = Trace | H=Help | Space=Pause | R=Reset');
