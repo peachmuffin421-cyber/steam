@@ -2,37 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Codex Symbolica · ÆEA Chart Overlay · Constraint-Locked v3.4.1</title>
-
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Codex Symbolica · Autological Visualization · Constraint-Locked v3.2</title>
     <style>
-        :root {
-            --tma-bg: #050510;
-            --tma-bg-secondary: #0a0a20;
-            --tma-text: #aaccff;
-            --tma-hint: #4488ff;
-            --tma-link: #44ffcc;
-            --tma-button: #2a4a6a;
-            --tma-button-text: #ffffff;
-            --tma-accent: #00ffcc;
-            --tma-destructive: #ff4466;
-            --tma-header: #050510;
-        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
+        body {
             overflow: hidden;
-            background: var(--tma-bg);
+            background: #050510;
             font-family: 'Courier New', monospace;
-            color: var(--tma-text);
+            color: #aaccff;
             height: 100vh;
             width: 100vw;
             user-select: none;
             -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            overscroll-behavior: none;
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
         #mainCanvas {
             position: absolute;
@@ -44,20 +26,6 @@
             z-index: 1;
             touch-action: none;
         }
-        #chartCanvas {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 46vw;
-            min-width: 480px;
-            height: 100vh;
-            display: block;
-            z-index: 2;
-            touch-action: none;
-            cursor: crosshair;
-            background: rgba(5, 5, 16, 0.85);
-            border-left: 1px solid #1a2a3a;
-        }
         #info {
             position: absolute;
             top: 20px;
@@ -65,7 +33,7 @@
             background: rgba(5,5,16,0.9);
             padding: 12px 20px;
             border-radius: 8px;
-            border-left: 4px solid var(--tma-accent);
+            border-left: 4px solid #00ffcc;
             z-index: 10;
             pointer-events: none;
             backdrop-filter: blur(8px);
@@ -73,30 +41,20 @@
             max-width: 400px;
             box-shadow: 0 4px 30px rgba(0,0,0,0.5);
         }
-        #info h1 { font-size: 0.9rem; font-weight: 300; color: var(--tma-accent); letter-spacing: 2px; }
+        #info h1 { font-size: 0.9rem; font-weight: 300; color: #00ffcc; letter-spacing: 2px; }
         #info p { font-size: 0.6rem; opacity: 0.6; margin-top: 2px; line-height: 1.4; }
-        #info .tma-badge {
-            display: inline-block;
-            background: var(--tma-button);
-            color: var(--tma-button-text);
-            padding: 1px 6px;
-            border-radius: 3px;
-            font-size: 0.5rem;
-            margin-left: 4px;
-            letter-spacing: 1px;
-        }
         #metrics {
             position: absolute;
-            top: 130px;
-            left: 20px;
+            top: 20px;
+            right: 20px;
             background: rgba(5,5,16,0.9);
             padding: 10px 16px;
             border-radius: 6px;
-            border-left: 4px solid #ffaa44;
+            border-right: 4px solid #ffaa44;
             z-index: 10;
             pointer-events: none;
             font-size: 0.6rem;
-            text-align: left;
+            text-align: right;
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
             min-width: 300px;
@@ -130,18 +88,18 @@
         #controls {
             position: absolute;
             bottom: 20px;
-            left: 20px;
+            right: 20px;
             z-index: 10;
             display: flex;
             gap: 6px;
             flex-wrap: wrap;
-            max-width: 46vw;
-            justify-content: flex-start;
+            max-width: 360px;
+            justify-content: flex-end;
         }
         .btn {
             background: rgba(20,30,50,0.9);
             border: 1px solid #4488aa;
-            color: var(--tma-text);
+            color: #aaccff;
             padding: 5px 12px;
             border-radius: 4px;
             cursor: pointer;
@@ -152,12 +110,7 @@
             -webkit-backdrop-filter: blur(4px);
         }
         .btn:hover { background: #224466; border-color: #88ddff; color: #fff; transform: scale(1.05); }
-        .btn.active { background: #2a4a6a; border-color: var(--tma-accent); }
-        .btn.tma-primary {
-            background: var(--tma-button);
-            color: var(--tma-button-text);
-            border-color: var(--tma-accent);
-        }
+        .btn.active { background: #2a4a6a; border-color: #00ffcc; }
         #legend {
             position: absolute;
             bottom: 20px;
@@ -267,7 +220,6 @@
         #proofTrace .pt-norm { color: #aa66ff; }
         #proofTrace .pt-zeta { color: #44aaff; }
         #proofTrace .pt-ts { color: #4488ff; opacity: 0.6; }
-        #proofTrace .pt-tma { color: #44ffcc; font-weight: bold; }
         #errorDisplay {
             position: absolute;
             bottom: 200px;
@@ -299,7 +251,7 @@
             border: 2px solid #ff4466;
         }
         #fallback h2 { color: #ff6688; }
-        #fallback p { color: var(--tma-text); font-size: 0.9rem; }
+        #fallback p { color: #aaccff; font-size: 0.9rem; }
         #timeSeriesPanel {
             position: absolute;
             bottom: 180px;
@@ -400,302 +352,16 @@
         }
         #zetaPanel .label { opacity: 0.5; }
         #zetaPanel .value { color: #44aaff; font-weight: bold; }
-
-        #chartPanel {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 46vw;
-            min-width: 480px;
-            height: 100vh;
-            z-index: 3;
-            pointer-events: none;
-        }
-        #chartHUD {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(5,5,16,0.92);
-            padding: 10px 14px;
-            border-radius: 6px;
-            border-right: 4px solid #4488ff;
-            z-index: 12;
-            pointer-events: none;
-            font-size: 0.6rem;
-            text-align: right;
-            min-width: 280px;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 30px rgba(0,0,0,0.5);
-            line-height: 1.6;
-        }
-        #chartHUD .label { opacity: 0.5; }
-        #chartHUD .value { color: #4488ff; font-weight: bold; }
-        #chartHUD .value.bid { color: #00ff88; }
-        #chartHUD .value.ask { color: #ff4466; }
-        #chartHUD .value.regime { color: #ffaa44; }
-        #chartHUD .badge {
-            display: inline-block;
-            padding: 1px 6px;
-            border-radius: 3px;
-            font-size: 0.55rem;
-            font-weight: bold;
-            margin-left: 4px;
-        }
-        #chartHUD .badge.sRange { background: #4488ff; color: #fff; }
-        #chartHUD .badge.sVolatile { background: #ff66aa; color: #fff; }
-        #chartHUD .badge.sTrend { background: #ffaa44; color: #000; }
-        #chartHUD .badge.Stable { background: #00ff88; color: #000; }
-        #chartHUD .badge.tRange { background: #224466; color: var(--tma-text); }
-        #chartHUD .badge.tVolatile { background: #6a2a5a; color: #ffccdd; }
-        #chartHUD .badge.tTrend { background: #6a4a22; color: #ffeecc; }
-        #chartHUD .badge.Unknown { background: #1a2a3a; color: #6688aa; }
-        #chartHUD .conn-ok { color: #00ff88; }
-        #chartHUD .conn-err { color: #ff4466; }
-        #chartHUD .conn-wait { color: #ffaa44; }
-
-        #fvgPanel {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 44vw;
-            min-width: 420px;
-            max-width: 620px;
-            z-index: 11;
-            background: rgba(5,5,16,0.92);
-            border: 1px solid #224466;
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 0.55rem;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 30px rgba(0,0,0,0.5);
-            pointer-events: auto;
-            max-height: 200px;
-            overflow-y: auto;
-            line-height: 1.5;
-        }
-        #fvgPanel .fvg-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: #44ffcc;
-            font-weight: bold;
-            margin-bottom: 4px;
-            letter-spacing: 1px;
-            font-size: 0.6rem;
-        }
-        #fvgPanel .fvg-header .count {
-            color: #ffaa44;
-            font-weight: bold;
-        }
-        #fvgPanel .fvg-empty { color: #4466aa; opacity: 0.7; font-style: italic; }
-        #fvgPanel .fvg-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 2px 4px;
-            border-radius: 3px;
-            margin-bottom: 1px;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-        #fvgPanel .fvg-row:hover { background: rgba(68,136,255,0.15); }
-        #fvgPanel .fvg-row.top { border-left: 3px solid #4488ff; }
-        #fvgPanel .fvg-row.bott { border-left: 3px solid #ff4466; }
-        #fvgPanel .fvg-row .fvg-type { font-weight: bold; }
-        #fvgPanel .fvg-row.top .fvg-type { color: #4488ff; }
-        #fvgPanel .fvg-row.bott .fvg-type { color: #ff4466; }
-        #fvgPanel .fvg-row .fvg-price { color: #44ffcc; font-family: monospace; }
-        #fvgPanel .fvg-row .fvg-price-exact { color: #88ffdd; font-size: 0.5rem; opacity: 0.7; margin-left: 4px; }
-        #fvgPanel .fvg-row .fvg-del {
-            color: #ff6688;
-            font-weight: bold;
-            padding: 0 6px;
-            cursor: pointer;
-            border-radius: 2px;
-        }
-        #fvgPanel .fvg-row .fvg-del:hover { background: rgba(255,68,102,0.3); color: #fff; }
-        #fvgPanel .fvg-row .fvg-status {
-            font-size: 0.5rem;
-            padding: 1px 4px;
-            border-radius: 2px;
-            margin-left: 4px;
-        }
-        #fvgPanel .fvg-row .fvg-status.coherent { background: #004422; color: #00ff88; }
-        #fvgPanel .fvg-row .fvg-status.dev { background: #442200; color: #ffaa44; }
-        #fvgPanel .fvg-row .fvg-user { color: #aa66ff; font-size: 0.5rem; margin-left: 4px; opacity: 0.7; }
-
-        #toolPalette {
-            position: absolute;
-            top: 220px;
-            right: 12px;
-            z-index: 12;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            background: rgba(5,5,16,0.92);
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid #224466;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 30px rgba(0,0,0,0.5);
-            pointer-events: auto;
-        }
-        #toolPalette .tool-label {
-            font-size: 0.5rem;
-            color: #4488ff;
-            text-align: center;
-            letter-spacing: 1px;
-            margin-bottom: 2px;
-            opacity: 0.7;
-        }
-        #toolPalette .tool-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 6px;
-            border: 2px solid #224466;
-            background: rgba(20,30,50,0.9);
-            color: var(--tma-text);
-            font-size: 1.1rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            font-family: 'Courier New', monospace;
-        }
-        #toolPalette .tool-btn:hover {
-            border-color: #88ddff;
-            transform: scale(1.08);
-        }
-        #toolPalette .tool-btn.active-top {
-            border-color: #4488ff;
-            background: rgba(68,136,255,0.2);
-            box-shadow: 0 0 15px rgba(68,136,255,0.6);
-        }
-        #toolPalette .tool-btn.active-bott {
-            border-color: #ff4466;
-            background: rgba(255,68,102,0.2);
-            box-shadow: 0 0 15px rgba(255,68,102,0.6);
-        }
-        #toolPalette .tool-btn.active-del {
-            border-color: #ffaa44;
-            background: rgba(255,170,68,0.2);
-            box-shadow: 0 0 15px rgba(255,170,68,0.6);
-        }
-
-        #continuityBadge {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            z-index: 12;
-            pointer-events: none;
-            font-size: 0.55rem;
-            padding: 4px 10px;
-            border-radius: 4px;
-            background: rgba(5,5,16,0.92);
-            border: 1px solid #224466;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 2px 15px rgba(0,0,0,0.4);
-        }
-        #continuityBadge.coherent { border-color: #00ff88; color: #00ff88; }
-        #continuityBadge.deviant { border-color: #ff4466; color: #ff4466; }
-        #continuityBadge.waiting { border-color: #ffaa44; color: #ffaa44; }
-
-        #tmaHeader {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 0;
-            z-index: 20;
-            pointer-events: none;
-        }
-
-        #tmaUserBadge {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 13;
-            pointer-events: none;
-            display: none;
-            align-items: center;
-            gap: 6px;
-            background: rgba(5,5,16,0.92);
-            border: 1px solid var(--tma-accent);
-            border-radius: 20px;
-            padding: 3px 12px;
-            font-size: 0.55rem;
-            color: var(--tma-accent);
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 30px rgba(0,255,204,0.25);
-        }
-        #tmaUserBadge.visible { display: flex; }
-        #tmaUserBadge .avatar {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: var(--tma-button);
-            display: inline-block;
-            text-align: center;
-            line-height: 14px;
-            font-size: 0.5rem;
-            color: #fff;
-            font-weight: bold;
-        }
-
-        @media (max-width: 1100px) {
-            #chartCanvas, #chartPanel { width: 55vw; min-width: 320px; }
-            #fvgPanel { width: 55vw; min-width: 320px; }
-            #chartHUD { min-width: 200px; font-size: 0.55rem; }
-            #toolPalette { top: 180px; right: 6px; }
-        }
-        @media (max-width: 700px) {
-            #chartCanvas, #chartPanel {
-                width: 100vw;
-                min-width: unset;
-                height: 50vh;
-                top: auto;
-                bottom: 0;
-                border-left: none;
-                border-top: 1px solid #1a2a3a;
-            }
-            #fvgPanel { bottom: auto; top: 52vh; max-height: 120px; width: 100vw; min-width: unset; right: 0; }
-            #metrics { display: none; }
-            #info { max-width: 60vw; font-size: 0.55rem; }
-            #controls { max-width: 60vw; }
-            #lingosoPanel, #aeaePanel, #observerPanel, #zetaPanel,
-            #timeSeriesPanel, #spiralLegend { display: none; }
-        }
     </style>
 </head>
 <body>
 
 <canvas id="mainCanvas"></canvas>
-<canvas id="chartCanvas"></canvas>
-
-<div id="tmaHeader"></div>
-
-<div id="tmaUserBadge">
-    <span class="avatar" id="tmaAvatar">?</span>
-    <span id="tmaUsername">Telegram User</span>
-    <span style="opacity:0.5;">·</span>
-    <span id="tmaPlatform">web</span>
-</div>
 
 <div id="info">
-    <h1>⚡ CODEX SYMBOLICA · ÆEA v3.4.1</h1>
+    <h1>⚡ CODEX SYMBOLICA · CONSTRAINT-LOCKED v3.2</h1>
     <p>S³→S² · DbZ · O[Ψ] · CRT · CF · ζ(s) · Lingoso · ÆEA · ⊢ CS</p>
-    <p style="margin-top:4px;">
-        <span style="color:#ffaa44;">H</span> help ·
-        <span style="color:#ffaa44;">Drag</span> rotate ·
-        <span style="color:#ffaa44;">Scroll</span> zoom ·
-        <span style="color:#4488ff;">T</span> top ·
-        <span style="color:#ff4466;">B</span> bottom ·
-        <span style="color:#ffaa44;">D</span> delete ·
-        <span style="color:#44ffcc;">Esc</span> clear tool
-        <span class="tma-badge" id="tmaModeBadge" style="display:none;">TMA</span>
-    </p>
+    <p style="margin-top:4px;"><span style="color:#ffaa44;">H</span> = help · <span style="color:#ffaa44;">Drag</span> = rotate · <span style="color:#ffaa44;">Scroll</span> = zoom</p>
 </div>
 
 <div id="metrics">
@@ -729,8 +395,6 @@
     <button class="btn" id="modeBtn">FULL</button>
     <button class="btn" id="exportBtn">EXPORT</button>
     <button class="btn" id="traceBtn">TRACE</button>
-    <button class="btn" id="connectBtn">CONNECT</button>
-    <button class="btn tma-primary" id="tmaActionBtn" style="display:none;">✕ CLOSE</button>
     <button class="btn" id="helpBtn">?</button>
 </div>
 
@@ -827,100 +491,20 @@
 </div>
 
 <div id="explainPanel" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:11;background:rgba(5,5,16,0.95);border:1px solid #335577;border-radius:8px;padding:12px 20px;font-size:0.6rem;max-width:600px;backdrop-filter:blur(8px);box-shadow:0 4px 30px rgba(0,0,0,0.5);line-height:1.6;">
-    <h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ CODEX SYMBOLICA — VISUALIZATION KEY v3.4.1</h3>
+    <h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ CODEX SYMBOLICA — VISUALIZATION KEY v3.2</h3>
     <div><span style="color:#ffaa44;font-weight:bold;">Φ (Quaternion)</span> <span style="opacity:0.8;">— Current state on S³, projected to S² via Hopf fibration.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">s² (exact)</span> <span style="opacity:0.8;">— Squared arc length from origin (identity quaternion), exact rational.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">r² (exact)</span> <span style="opacity:0.8;">— Squared radial distance ‖q‖², exact rational.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">Δ = s² − r²</span> <span style="opacity:0.8;">— Deviation from Arc-Length Axiom (s=r). Zero → coherence.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">O[Ψ] (4D)</span> <span style="opacity:0.8;">— Observer Operator: 4D numerical integration ∫ ψ†Φψ d⁴q.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">O[Ψ] (4D)</span> <span style="opacity:0.8;">— Observer Operator: 4D numerical integration ∫ ψ†Φψ d⁴q with Padé-approximated coherent wavefunction.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">‖ψ‖² (L²)</span> <span style="opacity:0.8;">— True L² norm of the coherent wavefunction over the 4D grid.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">ζ(½+it)</span> <span style="opacity:0.8;">— Riemann zeta function evaluated on the critical line.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">ζ(½+it)</span> <span style="opacity:0.8;">— Riemann zeta function evaluated on the critical line using exact rational CF/Taylor approximations.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">DbZ Branch</span> <span style="opacity:0.8;">— Re[Ψ] > 0 → critical line; Re[Ψ] ≤ 0 → Natalia fibration.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">ÆEA δ</span> <span style="opacity:0.8;">— Kronecker delta δ(m−n−2). Market topology parity.</span></div>
-    <div style="margin-top:8px;border-top:1px solid #224466;padding-top:6px;">
-        <span style="color:#4488ff;font-weight:bold;">▲ TOP (T)</span>
-        <span style="opacity:0.8;">— Click chart to draw a blue premium FVG line (maps to æea.mq4 Top()).</span>
-    </div>
-    <div>
-        <span style="color:#ff4466;font-weight:bold;">▼ BOTTOM (B)</span>
-        <span style="opacity:0.8;">— Click chart to draw a red discount FVG line (maps to æea.mq4 Bott()).</span>
-    </div>
-    <div>
-        <span style="color:#ffaa44;font-weight:bold;">✖ DELETE (D)</span>
-        <span style="opacity:0.8;">— Click an existing line to remove it (maps to æea.mq4 Deleter()).</span>
-    </div>
-    <div>
-        <span style="color:#44ffcc;font-weight:bold;">ESC</span>
-        <span style="opacity:0.8;">— Clear active tool, return to rotate/zoom mode.</span>
-    </div>
-    <div style="margin-top:8px;border-top:1px solid #224466;padding-top:6px;opacity:0.8;">
-        <span style="color:#44ffcc;font-weight:bold;">🌐 TELEGRAM MINI APP MODE</span>
-        — When launched inside Telegram, this UI automatically:
-        verifies your identity via <code>initData</code> HMAC-SHA256,
-        binds your Telegram <code>user_id</code> to the bot's <code>chat_id</code>,
-        so signal alerts route to the same account.
-        Theme colors, viewport, and vertical swipe suppression are applied via
-        <code>Telegram.WebApp</code> API.
-    </div>
-    <div style="margin-top:6px;opacity:0.6;">Press <span style="color:#ffaa44;">H</span> to toggle this panel. Press <span style="color:#ffaa44;">Shift+T</span> to toggle TRACE.</div>
-</div>
-
-<div id="chartPanel">
-    <div id="chartHUD">
-        <div>
-            <span class="label">SYM</span>
-            <span class="value" id="hud-symbol">BTC-USD</span>
-            <span class="badge Unknown" id="hud-regime">Unknown</span>
-        </div>
-        <div>
-            <span class="label">BID</span>
-            <span class="value bid" id="hud-bid">0.00000</span>
-            <span class="label" style="margin-left:6px;">ASK</span>
-            <span class="value ask" id="hud-ask">0.00000</span>
-        </div>
-        <div>
-            <span class="label">SIG</span>
-            <span class="value" id="hud-signal">0.00000</span>
-            <span class="label" style="margin-left:6px;">TICK</span>
-            <span class="value" id="hud-tick">0</span>
-        </div>
-        <div>
-            <span class="label">m</span>
-            <span class="value" id="hud-m">0</span>
-            <span class="label">n</span>
-            <span class="value" id="hud-n">0</span>
-            <span class="label">δ(m-n-2)</span>
-            <span class="value" id="hud-delta">0</span>
-        </div>
-        <div>
-            <span class="label">CONN</span>
-            <span class="conn-wait" id="hud-conn">DISCONNECTED</span>
-            <span class="label" style="margin-left:6px;">TMA</span>
-            <span class="conn-wait" id="hud-tma">OFF</span>
-        </div>
-    </div>
-
-    <div id="continuityBadge" class="waiting">
-        ● ARC-LENGTH: WAITING
-    </div>
-
-    <div id="toolPalette">
-        <div class="tool-label">TOOLS</div>
-        <button class="tool-btn" id="toolPan" title="Pan/Rotate (default)">✥</button>
-        <button class="tool-btn" id="toolTop" title="Draw Premium FVG (T)">▲</button>
-        <button class="tool-btn" id="toolBott" title="Draw Discount FVG (B)">▼</button>
-        <button class="tool-btn" id="toolDel" title="Delete FVG (D)">✖</button>
-    </div>
-
-    <div id="fvgPanel">
-        <div class="fvg-header">
-            <span>⊢ FVG TOPOLOGICAL ANCHORS</span>
-            <span class="count" id="fvg-count">0</span>
-        </div>
-        <div id="fvgList">
-            <div class="fvg-empty">No FVGs drawn. Select ▲ or ▼ and click the chart.</div>
-        </div>
-    </div>
+    <div><span style="color:#ffaa44;font-weight:bold;">⊢ CS</span> <span style="opacity:0.8;">— Self-reference closure: Codex Symbolica proves itself.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">TRACE</span> <span style="opacity:0.8;">— Full derivation trace of DbZ branch decisions, coherence steps, L² normalization events, and zeta evaluations.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">Lingoso</span> <span style="opacity:0.8;">— Phonosyllabic trajectory encoding via quaternionic arc-length.</span></div>
+    <div style="margin-top:6px;opacity:0.6;">Press <span style="color:#ffaa44;">H</span> to toggle this panel. Press <span style="color:#ffaa44;">T</span> to toggle TRACE.</div>
 </div>
 
 <div id="errorDisplay"></div>
@@ -933,152 +517,6 @@
 <script>
 (function() {
     'use strict';
-
-    // ============================================================
-    // 0. TELEGRAM WEB APP BOOTSTRAP
-    // ============================================================
-    const TelegramWebAppAPI = (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-
-    const TMA = {
-        available: !!TelegramWebAppAPI,
-        initData: '',
-        initDataUnsafe: null,
-        user: null,
-        chatId: null,
-        userId: null,
-        username: null,
-        platform: 'web',
-        version: '0.0',
-        colorScheme: 'dark',
-        themeParams: {},
-        viewportHeight: window.innerHeight,
-        viewportStableHeight: window.innerHeight,
-        handshakeOk: false,
-        publicUrl: null,
-        backendEndpoint: null,
-    };
-
-    function tmaLog(msg) {
-        if (TMA.available) {
-            try { TelegramWebAppAPI.sendData(JSON.stringify({ event: 'log', msg })); } catch (_) {}
-        }
-        console.log('[TMA]', msg);
-    }
-
-    function bootstrapTelegram() {
-        if (!TMA.available) {
-            tmaLog('SDK not present — running as plain web page');
-            return;
-        }
-        const tg = TelegramWebAppAPI;
-        TMA.initData = tg.initData || '';
-        TMA.initDataUnsafe = tg.initDataUnsafe || null;
-        TMA.user = (TMA.initDataUnsafe && TMA.initDataUnsafe.user) || null;
-        TMA.userId = TMA.user ? TMA.user.id : null;
-        TMA.username = TMA.user ? (TMA.user.username || TMA.user.first_name) : null;
-        TMA.platform = tg.platform || 'web';
-        TMA.version = tg.version || '0.0';
-        TMA.colorScheme = tg.colorScheme || 'dark';
-
-        try {
-            tg.ready();
-            tg.expand();
-            if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
-            if (typeof tg.setHeaderColor === 'function') {
-                tg.setHeaderColor('#050510');
-            }
-            if (typeof tg.setBackgroundColor === 'function') {
-                tg.setBackgroundColor('#050510');
-            }
-            if (typeof tg.enableClosingConfirmation === 'function') {
-                tg.enableClosingConfirmation();
-            }
-        } catch (e) {
-            console.warn('[TMA] bootstrap call failed:', e);
-        }
-
-        if (tg.themeParams) {
-            TMA.themeParams = tg.themeParams;
-            applyTelegramTheme(tg.themeParams);
-        }
-
-        TMA.viewportHeight = tg.viewportHeight || window.innerHeight;
-        TMA.viewportStableHeight = tg.viewportStableHeight || window.innerHeight;
-
-        if (typeof tg.onEvent === 'function') {
-            try {
-                tg.onEvent('themeChanged', function() {
-                    if (tg.themeParams) {
-                        TMA.themeParams = tg.themeParams;
-                        applyTelegramTheme(tg.themeParams);
-                    }
-                });
-                tg.onEvent('viewportChanged', function() {
-                    TMA.viewportHeight = tg.viewportHeight || window.innerHeight;
-                    TMA.viewportStableHeight = tg.viewportStableHeight || window.innerHeight;
-                    if (typeof window.__aei_resize === 'function') window.__aei_resize();
-                });
-            } catch (e) {
-                console.warn('[TMA] onEvent registration failed:', e);
-            }
-        }
-
-        tmaLog('Bootstrap OK: platform=' + TMA.platform + ' version=' + TMA.version + ' user=' + TMA.username);
-        showTmaBadge();
-    }
-
-    function applyTelegramTheme(tp) {
-        const root = document.documentElement;
-        const bg = tp.bg_color || '#050510';
-        const text = tp.text_color || '#aaccff';
-        const hint = tp.hint_color || '#4488ff';
-        const link = tp.link_color || '#44ffcc';
-        const button = tp.button_color || '#2a4a6a';
-        const buttonText = tp.button_text_color || '#ffffff';
-        const header = tp.secondary_bg_color || '#050510';
-
-        root.style.setProperty('--tma-bg', bg);
-        root.style.setProperty('--tma-bg-secondary', header);
-        root.style.setProperty('--tma-text', text);
-        root.style.setProperty('--tma-hint', hint);
-        root.style.setProperty('--tma-link', link);
-        root.style.setProperty('--tma-button', button);
-        root.style.setProperty('--tma-button-text', buttonText);
-        root.style.setProperty('--tma-header', header);
-
-        try {
-            if (TelegramWebAppAPI && typeof TelegramWebAppAPI.setHeaderColor === 'function') {
-                TelegramWebAppAPI.setHeaderColor(header);
-            }
-        } catch (_) {}
-    }
-
-    function showTmaBadge() {
-        const badge = document.getElementById('tmaModeBadge');
-        if (badge) badge.style.display = 'inline-block';
-        const userBadge = document.getElementById('tmaUserBadge');
-        if (userBadge && TMA.userId) {
-            userBadge.classList.add('visible');
-            const avatar = document.getElementById('tmaAvatar');
-            const uname = document.getElementById('tmaUsername');
-            const plat = document.getElementById('tmaPlatform');
-            if (avatar) avatar.textContent = (TMA.username || '?').charAt(0).toUpperCase();
-            if (uname) uname.textContent = '@' + (TMA.username || ('user_' + TMA.userId));
-            if (plat) plat.textContent = TMA.platform;
-        }
-        const actionBtn = document.getElementById('tmaActionBtn');
-        if (actionBtn) {
-            actionBtn.style.display = 'inline-block';
-            actionBtn.addEventListener('click', function() {
-                try { TelegramWebAppAPI.close(); } catch (_) { window.close(); }
-            });
-        }
-        const hudTma = document.getElementById('hud-tma');
-        if (hudTma) {
-            hudTma.textContent = 'ON';
-            hudTma.className = 'conn-ok';
-        }
-    }
 
     // ============================================================
     // ERROR DISPLAY
@@ -1224,23 +662,6 @@
         static fromFloat(f) {
             const precision = 1000000;
             return new Fraction(Math.round(f * precision), precision);
-        }
-        static fromExactString(s) {
-            if (typeof s !== 'string') s = String(s);
-            s = s.trim();
-            if (s.indexOf('/') >= 0) {
-                const parts = s.split('/');
-                return new Fraction(parseInt(parts[0], 10), parseInt(parts[1], 10));
-            }
-            const dotIdx = s.indexOf('.');
-            if (dotIdx >= 0) {
-                const intPart = s.slice(0, dotIdx);
-                const fracPart = s.slice(dotIdx + 1);
-                const scale = Math.pow(10, fracPart.length);
-                const num = parseInt(intPart + fracPart, 10);
-                return new Fraction(num, scale);
-            }
-            return new Fraction(parseInt(s, 10), 1);
         }
     }
 
@@ -1425,7 +846,7 @@
     }
 
     // ============================================================
-    // 4. CODEX STATE
+    // 4. CODEX STATE (v3.2: Dynamic Natalia fibration convergence, symbolic zeta, L² norm)
     // ============================================================
     const OBS_GRID_DIM = 6;
     const TRACE_MAX = 32;
@@ -1502,8 +923,10 @@
         coherentWavefunction(qPoint) {
             const N = Math.min(6, this.quatHistory.length);
             if (N === 0) return { re: Fraction.zero(), im: Fraction.zero() };
+
             let reSum = Fraction.zero();
             let imSum = Fraction.zero();
+
             for (let i = 0; i < N; i++) {
                 const q_i = this.quatHistory[this.quatHistory.length - 1 - i];
                 const dq = qPoint.sub(q_i);
@@ -1515,6 +938,7 @@
                 reSum = reSum.add(weight.mul(phaseReal));
                 imSum = imSum.add(weight.mul(phaseImag));
             }
+
             const invN = Fraction.one().div(new Fraction(N, 1));
             return { re: reSum.mul(invN), im: imSum.mul(invN) };
         }
@@ -1889,10 +1313,8 @@
     // ============================================================
     const canvas = document.getElementById('mainCanvas');
     const ctx = canvas.getContext('2d');
-    const chartCanvas = document.getElementById('chartCanvas');
-    const chartCtx = chartCanvas.getContext('2d');
 
-    if (!ctx || !chartCtx) {
+    if (!ctx) {
         document.getElementById('fallback').style.display = 'block';
         throw new Error('Canvas 2D not supported');
     }
@@ -1900,8 +1322,6 @@
     let canvasWidth = 0;
     let canvasHeight = 0;
     let dpr = 1;
-    let chartWidth = 0;
-    let chartHeight = 0;
 
     function resizeCanvas() {
         try {
@@ -1916,19 +1336,6 @@
             canvas._width = canvasWidth;
             canvas._height = canvasHeight;
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-            const rect = chartCanvas.getBoundingClientRect();
-            chartWidth = rect.width;
-            chartHeight = rect.height;
-            chartCanvas.width = chartWidth * dpr;
-            chartCanvas.height = chartHeight * dpr;
-            chartCanvas.style.width = chartWidth + 'px';
-            chartCanvas.style.height = chartHeight + 'px';
-            chartCanvas._dpr = dpr;
-            chartCanvas._width = chartWidth;
-            chartCanvas._height = chartHeight;
-            chartCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
             hideError();
             return true;
         } catch (e) {
@@ -1941,12 +1348,8 @@
         if (!resizeCanvas()) return false;
         if (!canvas._width || !canvas._height) return false;
         if (canvas._width < 1 || canvas._height < 1) return false;
-        if (!chartCanvas._width || !chartCanvas._height) return false;
-        if (chartCanvas._width < 1 || chartCanvas._height < 1) return false;
         return true;
     }
-
-    window.__aei_resize = resizeCanvas;
 
     // ============================================================
     // 6. 3D PROJECTION
@@ -2014,7 +1417,7 @@
     const zetaImSpan = document.getElementById('zeta-im');
     const zetaMagSpan = document.getElementById('zeta-mag');
     const gaugeArc = document.getElementById('gaugeArc');
-    const gaugeLabel = document.getElementById('gauge-label') || document.getElementById('gaugeLabel');
+    const gaugeLabel = document.getElementById('gaugeLabel');
     const proofChain = document.getElementById('proofChain');
     const proofDetail = document.getElementById('proofDetail');
     const proofLatest = document.getElementById('proofLatest');
@@ -2613,7 +2016,7 @@
         document.getElementById('pauseBtn').textContent = '⏸';
         document.getElementById('pauseBtn').classList.remove('active');
         coherenceSpan.textContent = 'INITIALIZING';
-        coherenceSpan.style.color = 'var(--tma-text)';
+        coherenceSpan.style.color = '#aaccff';
         generationSpan.textContent = '0';
         deviationSpan.textContent = '0.0000';
         epsilonSpan.textContent = '1/100';
@@ -2670,17 +2073,8 @@
 
     document.getElementById('exportBtn').addEventListener('click', () => {
         const data = {
-            version: '3.4-tma',
+            version: '4.0',
             timestamp: Date.now(),
-            tma: {
-                available: TMA.available,
-                userId: TMA.userId,
-                username: TMA.username,
-                platform: TMA.platform,
-                version: TMA.version,
-                handshakeOk: TMA.handshakeOk,
-                publicUrl: TMA.publicUrl,
-            },
             time_exact: codex.time.toString(),
             generation: codex.gen,
             coherent: codex.coherent,
@@ -2696,6 +2090,7 @@
             obs_im_exact: codex.obsIm.toString(),
             obs_grid_count: codex.obsGridCount,
             psi_norm_sq_exact: codex.psiNormSq.toString(),
+            psi_norm_exact: codex.psiNormSq.sqrt(12).toString(),
             zeta_re_exact: codex.lastZetaRe.toString(),
             zeta_im_exact: codex.lastZetaIm.toString(),
             dbz: codex.dbz,
@@ -2710,21 +2105,22 @@
             activePhoneme: codex.activePhoneme,
             commutatorNorm_exact: codex.commutatorNorm.toString(),
             curlMagnitude_exact: codex.curlMagnitude.toString(),
-            fvgLines: (window.chartOverlay && window.chartOverlay.fvgLines) ? window.chartOverlay.fvgLines.map(l => ({
-                type: l.type, price_exact: l.price.toString(), idx: l.idx, user_id: l.user_id || null
-            })) : [],
             sHistory: codex.sHistory.slice(-200),
             rHistory: codex.rHistory.slice(-200),
             proofTrace: codex.proofTrace.slice(-32),
             trajectory: codex.traj.slice(-100).map(t => ({
                 x: t.x, y: t.y, z: t.z, coherent: t.coherent, dev: t.dev
+            })),
+            quatHistory_exact: codex.quatHistory.slice(-64).map(q => ({
+                a: q.a.toString(), b: q.b.toString(),
+                c: q.c.toString(), d: q.d.toString()
             }))
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `codex_symbolica_exact_v3.4_tma_${Date.now()}.json`;
+        a.download = `codex_symbolica_exact_v3.2_${Date.now()}.json`;
         a.click();
         URL.revokeObjectURL(url);
     });
@@ -2737,11 +2133,9 @@
 
     window.addEventListener('resize', () => {
         resizeCanvas();
-        if (window.chartOverlay) window.chartOverlay.resize();
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
         if (e.key === ' ' || e.key === 'Space') {
             e.preventDefault();
             document.getElementById('pauseBtn').click();
@@ -2759,20 +2153,7 @@
             document.getElementById('helpBtn').click();
         }
         if (e.key === 't' || e.key === 'T') {
-            if (e.shiftKey) {
-                document.getElementById('traceBtn').click();
-            } else {
-                if (window.chartOverlay) window.chartOverlay.setTool('top');
-            }
-        }
-        if (e.key === 'b' || e.key === 'B') {
-            if (window.chartOverlay) window.chartOverlay.setTool('bott');
-        }
-        if (e.key === 'd' || e.key === 'D') {
-            if (window.chartOverlay) window.chartOverlay.setTool('del');
-        }
-        if (e.key === 'Escape') {
-            if (window.chartOverlay) window.chartOverlay.setTool('pan');
+            document.getElementById('traceBtn').click();
         }
         if (e.key === 's' || e.key === 'S') {
             if (codex.mode !== 4) {
@@ -2794,754 +2175,14 @@
     });
 
     // ============================================================
-    // 10. CHART OVERLAY (with TMA initData forwarding)
+    // 10. INITIALIZATION (Pre-flight validated)
     // ============================================================
-    class ChartOverlay {
-        constructor(canvasEl, ctxEl, codexRef) {
-            this.canvas = canvasEl;
-            this.ctx = ctxEl;
-            this.codex = codexRef;
-
-            this.fvgLines = [];
-            this.fvgCounter = -1;
-            this.nextIdx = 0;
-
-            this.tool = 'pan';
-
-            this.candles = [];
-            this.maxCandles = 200;
-            this.lastPriceExact = Fraction.zero();
-            this.signalExact = Fraction.zero();
-
-            this.priceMin = null;
-            this.priceMax = null;
-            this.padX = 44;
-            this.padY = 24;
-            this.padBottom = 28;
-
-            this._dragging = false;
-            this._lastX = 0;
-
-            this.backendState = null;
-            this.connected = false;
-
-            this.hitTolerance = 8;
-
-            this._renderTick = 0;
-
-            this._bindEvents();
-        }
-
-        _bindEvents() {
-            const c = this.canvas;
-            c.addEventListener('mousedown', (e) => this._onDown(e));
-            c.addEventListener('mousemove', (e) => this._onMove(e));
-            window.addEventListener('mouseup', () => this._onUp());
-            c.addEventListener('click', (e) => this._onClick(e));
-            c.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                const rect = c.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const hit = this._hitTestFVG(x, y);
-                if (hit !== -1) this.removeFVG(hit);
-            });
-            c.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 1) {
-                    const rect = c.getBoundingClientRect();
-                    const t = e.touches[0];
-                    this._touchStart = { x: t.clientX - rect.left, y: t.clientY - rect.top, t: Date.now() };
-                }
-            }, { passive: true });
-            c.addEventListener('touchend', (e) => {
-                if (e.changedTouches.length === 1 && this._touchStart) {
-                    const rect = c.getBoundingClientRect();
-                    const t = e.changedTouches[0];
-                    const dx = (t.clientX - rect.left) - this._touchStart.x;
-                    const dy = (t.clientY - rect.top) - this._touchStart.y;
-                    const dt = Date.now() - this._touchStart.t;
-                    if (Math.abs(dx) < 8 && Math.abs(dy) < 8 && dt < 500) {
-                        const fake = { clientX: t.clientX, clientY: t.clientY, preventDefault: () => {} };
-                        this._onClick(fake);
-                    }
-                }
-                this._touchStart = null;
-            }, { passive: true });
-        }
-
-        resize() {}
-
-        setTool(tool) {
-            this.tool = tool;
-            const tPan = document.getElementById('toolPan');
-            const tTop = document.getElementById('toolTop');
-            const tBott = document.getElementById('toolBott');
-            const tDel = document.getElementById('toolDel');
-            if (!tPan) return;
-            tPan.classList.remove('active-top', 'active-bott', 'active-del');
-            tTop.classList.remove('active-top', 'active-bott', 'active-del');
-            tBott.classList.remove('active-top', 'active-bott', 'active-del');
-            tDel.classList.remove('active-top', 'active-bott', 'active-del');
-            if (tool === 'top') tTop.classList.add('active-top');
-            else if (tool === 'bott') tBott.classList.add('active-bott');
-            else if (tool === 'del') tDel.classList.add('active-del');
-            else tPan.classList.add('active-top');
-            this.canvas.style.cursor = (tool === 'pan') ? 'default' : 'crosshair';
-        }
-
-        ingestState(state) {
-            if (!state) return;
-            this.backendState = state;
-            this.connected = true;
-            if (state.endpoint) {
-                TMA.backendEndpoint = state.endpoint;
-            }
-            if (state.webapp_user_id && !TMA.handshakeOk) {
-                tmaLog('Backend reports webapp_user_id=' + state.webapp_user_id);
-            }
-            try {
-                if (state.price !== undefined) {
-                    this.lastPriceExact = Fraction.fromExactString(String(state.price));
-                }
-                if (state.signal !== undefined) {
-                    this.signalExact = Fraction.fromExactString(String(state.signal));
-                }
-                const bid = this.lastPriceExact.toFloat();
-                const sig = this.signalExact.toFloat();
-                const now = Date.now();
-                if (this.candles.length === 0 || now - this.candles[this.candles.length - 1].t > 5000) {
-                    this.candles.push({
-                        t: now,
-                        o: bid, h: Math.max(bid, sig), l: Math.min(bid, sig), c: bid,
-                        regime: state.regime || 'Unknown'
-                    });
-                } else {
-                    const c = this.candles[this.candles.length - 1];
-                    c.c = bid;
-                    c.h = Math.max(c.h, bid, sig);
-                    c.l = Math.min(c.l, bid, sig);
-                    c.regime = state.regime || c.regime;
-                }
-                if (this.candles.length > this.maxCandles) {
-                    this.candles.splice(0, this.candles.length - this.maxCandles);
-                }
-            } catch (err) {
-                console.error('ingestState error:', err);
-            }
-        }
-
-        updateFromCodex() {}
-
-        addFVG(type, priceFraction) {
-            const coherence = this._validateContinuity();
-            if (!coherence.coherent) {
-                console.warn('FVG rejected: arc-length deviation', coherence.dev.toFloat());
-                this._flashContinuityBadge(false);
-                if (TMA.available) {
-                    try { TelegramWebAppAPI.HapticFeedback.notificationOccurred('error'); } catch (_) {}
-                }
-                return false;
-            }
-            const idx = this.nextIdx++;
-            const line = {
-                type: type,
-                price: priceFraction,
-                idx: idx,
-                created: Date.now(),
-                coherent: true,
-                user_id: TMA.userId || null,
-            };
-            this.fvgLines.push(line);
-            this.fvgCounter++;
-            this._renderFVGList();
-            this._publishFVG(line);
-            this._flashContinuityBadge(true);
-            if (TMA.available) {
-                try { TelegramWebAppAPI.HapticFeedback.impactOccurred('light'); } catch (_) {}
-            }
-            return true;
-        }
-
-        removeFVG(idx) {
-            const pos = this.fvgLines.findIndex(l => l.idx === idx);
-            if (pos === -1) return;
-            this.fvgLines.splice(pos, 1);
-            this._renderFVGList();
-            this._deleteFVGOnBackend(idx);
-            if (TMA.available) {
-                try { TelegramWebAppAPI.HapticFeedback.impactOccurred('soft'); } catch (_) {}
-            }
-        }
-
-        clearAllFVG() {
-            this.fvgLines = [];
-            this.nextIdx = 0;
-            this.fvgCounter = -1;
-            this._renderFVGList();
-        }
-
-        enforceDecoherence() {
-            if (!this.backendState) return;
-            const currentPrice = this.lastPriceExact;
-            const regime = this.backendState.regime || 'Unknown';
-            const regimeIsTrend = (regime === 'sTrend' || regime === 'tTrend' || regime === 'sVolatile' || regime === 'tVolatile');
-            if (!regimeIsTrend) return;
-
-            for (let i = this.fvgLines.length - 1; i >= 0; i--) {
-                const line = this.fvgLines[i];
-                if (line.type === 'bott' && line.price.toFloat() <= currentPrice.toFloat()) {
-                    console.log('FVG decoherence: bottom crossed at', line.price.toString());
-                    this.removeFVG(line.idx);
-                }
-                if (line.type === 'top' && line.price.toFloat() >= currentPrice.toFloat()) {
-                    console.log('FVG decoherence: top crossed at', line.price.toString());
-                    this.removeFVG(line.idx);
-                }
-            }
-        }
-
-        _validateContinuity() {
-            const dev = this.codex.dev;
-            const thresh = new Fraction(2, 1000);
-            return {
-                coherent: dev.abs().toFloat() < thresh.toFloat(),
-                dev: dev
-            };
-        }
-
-        _flashContinuityBadge(ok) {
-            const badge = document.getElementById('continuityBadge');
-            if (!badge) return;
-            badge.classList.remove('coherent', 'deviant', 'waiting');
-            badge.classList.add(ok ? 'coherent' : 'deviant');
-            badge.textContent = ok
-                ? '● ARC-LENGTH: COHERENT (s²=r²)'
-                : '● ARC-LENGTH: DEVIATION (s²≠r²)';
-            setTimeout(() => {
-                const c = this._validateContinuity();
-                badge.classList.remove('coherent', 'deviant', 'waiting');
-                if (c.coherent) {
-                    badge.classList.add('coherent');
-                    badge.textContent = '● ARC-LENGTH: COHERENT (s²=r²)';
-                } else {
-                    badge.classList.add('deviant');
-                    badge.textContent = '● ARC-LENGTH: DEVIATION (s²≠r²)';
-                }
-            }, 900);
-        }
-
-        _authHeaders() {
-            const headers = { 'Content-Type': 'application/json' };
-            if (TMA.available && TMA.initData) {
-                headers['X-Telegram-Init-Data'] = TMA.initData;
-            }
-            return headers;
-        }
-
-        async _publishFVG(line) {
-            if (!this.backendState || !this.backendState.endpoint) return;
-            const url = this.backendState.endpoint.replace(/\/$/, '') + '/fvg';
-            try {
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: this._authHeaders(),
-                    body: JSON.stringify({
-                        type: line.type,
-                        price: line.price.toString(),
-                        idx: line.idx
-                    })
-                });
-                if (res.status === 422) {
-                    const err = await res.json();
-                    console.warn('FVG rejected by backend:', err.detail);
-                    this.codex.pushTrace({
-                        type: 'tma',
-                        t: this.codex.time.toFloat(),
-                        msg: `FVG 422: ${err.detail}`
-                    });
-                } else if (res.status === 201) {
-                    this.codex.pushTrace({
-                        type: 'tma',
-                        t: this.codex.time.toFloat(),
-                        msg: `FVG POST OK: ${line.type} @ ${line.price.toString()}`
-                    });
-                }
-            } catch (err) {
-                console.warn('FVG publish failed (offline):', err.message);
-            }
-        }
-
-        async _deleteFVGOnBackend(idx) {
-            if (!this.backendState || !this.backendState.endpoint) return;
-            const url = this.backendState.endpoint.replace(/\/$/, '') + '/fvg/' + idx;
-            try {
-                await fetch(url, {
-                    method: 'DELETE',
-                    headers: this._authHeaders()
-                });
-            } catch (err) {
-                console.warn('FVG delete failed (offline):', err.message);
-            }
-        }
-
-        _hitTestFVG(x, y) {
-            for (let i = this.fvgLines.length - 1; i >= 0; i--) {
-                const line = this.fvgLines[i];
-                const lineY = this._priceToY(line.price.toFloat());
-                if (Math.abs(y - lineY) <= this.hitTolerance) {
-                    return line.idx;
-                }
-            }
-            return -1;
-        }
-
-        _computePriceRange() {
-            if (this.candles.length === 0) {
-                const p = this.lastPriceExact.toFloat() || 1;
-                return { min: p * 0.98, max: p * 1.02 };
-            }
-            let mn = Infinity, mx = -Infinity;
-            for (const c of this.candles) {
-                if (c.l < mn) mn = c.l;
-                if (c.h > mx) mx = c.h;
-            }
-            for (const l of this.fvgLines) {
-                const p = l.price.toFloat();
-                if (p < mn) mn = p;
-                if (p > mx) mx = p;
-            }
-            const sig = this.signalExact.toFloat();
-            if (sig > 0) {
-                if (sig < mn) mn = sig;
-                if (sig > mx) mx = sig;
-            }
-            if (!isFinite(mn) || !isFinite(mx) || mn === mx) {
-                const p = this.lastPriceExact.toFloat() || 1;
-                mn = p * 0.98;
-                mx = p * 1.02;
-            }
-            const pad = (mx - mn) * 0.08;
-            return { min: mn - pad, max: mx + pad };
-        }
-
-        _priceToY(price) {
-            const range = this._computePriceRange();
-            const h = this.canvas._height || this.canvas.height;
-            const plotH = h - this.padY - this.padBottom;
-            if (range.max === range.min) return this.padY + plotH / 2;
-            const t = (range.max - price) / (range.max - range.min);
-            return this.padY + t * plotH;
-        }
-
-        _yToPrice(y) {
-            const range = this._computePriceRange();
-            const h = this.canvas._height || this.canvas.height;
-            const plotH = h - this.padY - this.padBottom;
-            const t = (y - this.padY) / plotH;
-            const clamped = Math.max(0, Math.min(1, t));
-            return range.max - clamped * (range.max - range.min);
-        }
-
-        _xToCandleIndex(x) {
-            const w = this.canvas._width || this.canvas.width;
-            const plotW = w - this.padX - 8;
-            const n = this.candles.length;
-            if (n === 0) return 0;
-            const idx = Math.floor(((x - this.padX) / plotW) * n);
-            return Math.max(0, Math.min(n - 1, idx));
-        }
-
-        _onDown(e) {
-            if (this.tool !== 'pan') return;
-            const rect = this.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            if (x < this.padX) {
-                this._dragging = true;
-                this._lastX = e.clientX;
-            }
-        }
-
-        _onMove(e) { if (this._dragging && this.tool === 'pan') { } }
-        _onUp() { this._dragging = false; }
-
-        _onClick(e) {
-            e.preventDefault();
-            const rect = this.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            if (x < this.padX || x > rect.width - 4) return;
-            if (y < this.padY || y > rect.height - this.padBottom) return;
-
-            if (this.tool === 'top' || this.tool === 'bott') {
-                const priceFloat = this._yToPrice(y);
-                const priceFrac = Fraction.fromFloat(priceFloat);
-                const ok = this.addFVG(this.tool === 'top' ? 'top' : 'bott', priceFrac);
-                if (ok) {
-                    console.log(`FVG[${this.tool}] added: price=${priceFrac.toString()}`);
-                }
-            } else if (this.tool === 'del') {
-                const hit = this._hitTestFVG(x, y);
-                if (hit !== -1) {
-                    this.removeFVG(hit);
-                    console.log('FVG deleted: idx=' + hit);
-                }
-            }
-        }
-
-        _renderFVGList() {
-            const container = document.getElementById('fvgList');
-            const countEl = document.getElementById('fvg-count');
-            if (!container) return;
-            if (countEl) countEl.textContent = this.fvgLines.length;
-            if (this.fvgLines.length === 0) {
-                container.innerHTML = '<div class="fvg-empty">No FVGs drawn. Select ▲ or ▼ and click the chart.</div>';
-                return;
-            }
-            const sorted = this.fvgLines.slice().sort((a, b) => b.price.toFloat() - a.price.toFloat());
-            let html = '';
-            for (const line of sorted) {
-                const cls = line.type === 'top' ? 'top' : 'bott';
-                const symbol = line.type === 'top' ? '▲ PREMIUM' : '▼ DISCOUNT';
-                const exactStr = line.price.toString();
-                const floatStr = line.price.toFloat().toFixed(6);
-                const userTag = line.user_id ? `<span class="fvg-user">u${line.user_id}</span>` : '';
-                html += `<div class="fvg-row ${cls}" data-idx="${line.idx}">` +
-                    `<span class="fvg-type">${symbol}</span>` +
-                    `<span class="fvg-price">${floatStr}<span class="fvg-price-exact">${exactStr}</span></span>` +
-                    `<span class="fvg-status coherent">s=r</span>` +
-                    `${userTag}` +
-                    `<span class="fvg-del" data-del="${line.idx}">✖</span>` +
-                    `</div>`;
-            }
-            container.innerHTML = html;
-
-            container.querySelectorAll('.fvg-del').forEach(el => {
-                el.addEventListener('click', (ev) => {
-                    ev.stopPropagation();
-                    const idx = parseInt(el.getAttribute('data-del'), 10);
-                    this.removeFVG(idx);
-                });
-            });
-        }
-
-        draw() {
-            const c = this.ctx;
-            const w = this.canvas._width || this.canvas.width;
-            const h = this.canvas._height || this.canvas.height;
-
-            c.clearRect(0, 0, w, h);
-
-            const bg = c.createLinearGradient(0, 0, 0, h);
-            bg.addColorStop(0, 'rgba(8, 12, 24, 0.95)');
-            bg.addColorStop(1, 'rgba(5, 5, 16, 0.95)');
-            c.fillStyle = bg;
-            c.fillRect(0, 0, w, h);
-
-            const plotW = w - this.padX - 8;
-            const plotH = h - this.padY - this.padBottom;
-
-            const range = this._computePriceRange();
-            c.strokeStyle = 'rgba(50, 80, 120, 0.18)';
-            c.lineWidth = 0.5;
-            const gridLines = 6;
-            for (let i = 0; i <= gridLines; i++) {
-                const t = i / gridLines;
-                const y = this.padY + t * plotH;
-                c.beginPath();
-                c.moveTo(this.padX, y);
-                c.lineTo(w - 8, y);
-                c.stroke();
-                const price = range.max - t * (range.max - range.min);
-                c.fillStyle = 'rgba(68, 136, 204, 0.55)';
-                c.font = '9px "Courier New", monospace';
-                c.textAlign = 'right';
-                c.textBaseline = 'middle';
-                c.fillText(price.toFixed(4), this.padX - 4, y);
-            }
-
-            const n = this.candles.length;
-            if (n > 0) {
-                const cw = Math.max(1, plotW / n);
-                for (let i = 0; i < n; i++) {
-                    const candle = this.candles[i];
-                    const x0 = this.padX + i * cw;
-                    const xMid = x0 + cw / 2;
-                    const bull = candle.c >= candle.o;
-
-                    let tint = 'rgba(80, 140, 200, 0.15)';
-                    if (candle.regime && candle.regime.indexOf('Volatile') >= 0) tint = 'rgba(255, 102, 170, 0.15)';
-                    else if (candle.regime && candle.regime.indexOf('Trend') >= 0) tint = 'rgba(255, 170, 68, 0.15)';
-                    else if (candle.regime && candle.regime.indexOf('Range') >= 0) tint = 'rgba(68, 136, 255, 0.15)';
-
-                    const yH = this._priceToY(candle.h);
-                    const yL = this._priceToY(candle.l);
-                    c.strokeStyle = bull ? 'rgba(0, 255, 136, 0.65)' : 'rgba(255, 68, 102, 0.65)';
-                    c.lineWidth = 1;
-                    c.beginPath();
-                    c.moveTo(xMid, yH);
-                    c.lineTo(xMid, yL);
-                    c.stroke();
-
-                    const yO = this._priceToY(candle.o);
-                    const yC = this._priceToY(candle.c);
-                    const bodyTop = Math.min(yO, yC);
-                    const bodyH = Math.max(1, Math.abs(yC - yO));
-                    c.fillStyle = bull ? tint.replace('0.15', '0.55') : 'rgba(255, 68, 102, 0.55)';
-                    c.fillRect(x0 + 1, bodyTop, Math.max(1, cw - 2), bodyH);
-                }
-            } else {
-                c.fillStyle = 'rgba(68, 136, 204, 0.5)';
-                c.font = '11px "Courier New", monospace';
-                c.textAlign = 'center';
-                c.textBaseline = 'middle';
-                c.fillText('Awaiting backend state…', w / 2, h / 2);
-            }
-
-            if (this.lastPriceExact.toFloat() > 0) {
-                const yP = this._priceToY(this.lastPriceExact.toFloat());
-                c.strokeStyle = 'rgba(0, 255, 200, 0.55)';
-                c.lineWidth = 1;
-                c.setLineDash([4, 4]);
-                c.beginPath();
-                c.moveTo(this.padX, yP);
-                c.lineTo(w - 8, yP);
-                c.stroke();
-                c.setLineDash([]);
-
-                const tag = this.lastPriceExact.toFloat().toFixed(4);
-                c.fillStyle = 'rgba(0, 255, 200, 0.85)';
-                c.fillRect(this.padX - 4, yP - 7, 44, 14);
-                c.fillStyle = '#050510';
-                c.font = 'bold 9px "Courier New", monospace';
-                c.textAlign = 'right';
-                c.textBaseline = 'middle';
-                c.fillText(tag, this.padX + 38, yP);
-            }
-
-            if (this.signalExact.toFloat() > 0) {
-                const yS = this._priceToY(this.signalExact.toFloat());
-                c.strokeStyle = 'rgba(255, 170, 68, 0.5)';
-                c.lineWidth = 1;
-                c.setLineDash([2, 6]);
-                c.beginPath();
-                c.moveTo(this.padX, yS);
-                c.lineTo(w - 8, yS);
-                c.stroke();
-                c.setLineDash([]);
-            }
-
-            for (const line of this.fvgLines) {
-                const y = this._priceToY(line.price.toFloat());
-                const isTop = line.type === 'top';
-                const color = isTop ? 'rgba(68, 136, 255, 0.85)' : 'rgba(255, 68, 102, 0.85)';
-                const glowColor = isTop ? 'rgba(68, 136, 255, 0.25)' : 'rgba(255, 68, 102, 0.25)';
-
-                c.strokeStyle = glowColor;
-                c.lineWidth = 6;
-                c.beginPath();
-                c.moveTo(this.padX, y);
-                c.lineTo(w - 8, y);
-                c.stroke();
-
-                c.strokeStyle = color;
-                c.lineWidth = 1.5;
-                c.beginPath();
-                c.moveTo(this.padX, y);
-                c.lineTo(w - 8, y);
-                c.stroke();
-
-                c.fillStyle = color;
-                c.font = 'bold 10px "Courier New", monospace';
-                c.textAlign = 'left';
-                c.textBaseline = 'middle';
-                c.fillText(isTop ? '▲' : '▼', this.padX + 2, y);
-
-                c.fillStyle = color;
-                c.font = 'bold 9px "Courier New", monospace';
-                c.textAlign = 'right';
-                const lbl = line.price.toFloat().toFixed(4);
-                c.fillText(lbl, w - 10, y);
-            }
-
-            if (this.tool !== 'pan') {
-                const labels = { top: '▲ DRAW PREMIUM', bott: '▼ DRAW DISCOUNT', del: '✖ DELETE FVG' };
-                c.fillStyle = 'rgba(0, 255, 204, 0.9)';
-                c.font = 'bold 10px "Courier New", monospace';
-                c.textAlign = 'left';
-                c.textBaseline = 'top';
-                c.fillText(labels[this.tool] || '', this.padX + 4, 6);
-            }
-
-            this._updateHUD();
-        }
-
-        _updateHUD() {
-            const hudSymbol = document.getElementById('hud-symbol');
-            const hudBid = document.getElementById('hud-bid');
-            const hudAsk = document.getElementById('hud-ask');
-            const hudSignal = document.getElementById('hud-signal');
-            const hudTick = document.getElementById('hud-tick');
-            const hudM = document.getElementById('hud-m');
-            const hudN = document.getElementById('hud-n');
-            const hudDelta = document.getElementById('hud-delta');
-            const hudRegime = document.getElementById('hud-regime');
-            const hudConn = document.getElementById('hud-conn');
-
-            if (this.backendState) {
-                if (hudSymbol) hudSymbol.textContent = this.backendState.symbol || 'BTC-USD';
-                if (hudBid) hudBid.textContent = this.backendState.price || '0.00000';
-                if (hudAsk) hudAsk.textContent = this.backendState.ask || this.backendState.price || '0.00000';
-                if (hudSignal) hudSignal.textContent = this.backendState.signal || '0.00000';
-                if (hudTick) hudTick.textContent = this.backendState.tick || '0';
-                if (hudM) hudM.textContent = this.backendState.m_count || '0';
-                if (hudN) hudN.textContent = this.backendState.n_count || '0';
-                if (hudDelta) hudDelta.textContent = (this.backendState.m_count - this.backendState.n_count - 2) || '0';
-                if (hudRegime) {
-                    const r = this.backendState.regime || 'Unknown';
-                    hudRegime.textContent = r;
-                    hudRegime.className = 'badge ' + r.replace(/\s+/g, '');
-                }
-                if (hudConn) {
-                    hudConn.textContent = this.connected ? 'CONNECTED' : 'DISCONNECTED';
-                    hudConn.className = this.connected ? 'conn-ok' : 'conn-err';
-                }
-            } else {
-                if (hudConn) {
-                    hudConn.textContent = 'LOCAL-ONLY';
-                    hudConn.className = 'conn-wait';
-                }
-            }
-        }
-
-        tick() {
-            this._renderTick++;
-            if (this._renderTick % 6 === 0) {
-                this.enforceDecoherence();
-            }
-            this.draw();
-        }
-    }
-
-    // ============================================================
-    // 11. TELEGRAM BRIDGE (with initData forwarding + handshake)
-    // ============================================================
-    const BACKEND_URL = 'https://aeea-df7f2ade617d.herokuapp.com/';
-    class TelegramBridge {
-        constructor(overlay, opts) {
-            opts = opts || {};
-            this.overlay = overlay;
-            this.endpoint = opts.endpoint || this._detectEndpoint();
-            this.pollInterval = opts.pollInterval || 2000;
-            this._timer = null;
-            this._connected = false;
-            this._lastErr = null;
-            this._handshakeSent = false;
-        }
-
-        _detectEndpoint() {
-            if (typeof BACKEND_URL !== 'undefined' && BACKEND_URL) return BACKEND_URL;
-            if (TELEGRAM_WEBAPP_URL) return TELEGRAM_WEBAPP_URL;
-            const origin = window.location.origin;
-            if (origin && origin !== 'null' && origin.indexOf('http') === 0) return origin;
-            return 'http://localhost:8765';
-        }
-
-        async handshake() {
-            if (!TMA.available || !TMA.initData || this._handshakeSent) return;
-            this._handshakeSent = true;
-            const url = this.endpoint.replace(/\/$/, '') + '/handshake';
-            const payload = {
-                initData: TMA.initData,
-                chat_id: TMA.initDataUnsafe && TMA.initDataUnsafe.user ? TMA.initDataUnsafe.user.id : null
-            };
-            try {
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({}));
-                    tmaLog('Handshake failed: HTTP ' + res.status + ' ' + (err.error || ''));
-                    this.overlay.codex.pushTrace({
-                        type: 'tma',
-                        t: this.overlay.codex.time.toFloat(),
-                        msg: `TMA handshake failed: ${res.status}`
-                    });
-                    return;
-                }
-                const data = await res.json();
-                TMA.handshakeOk = true;
-                TMA.publicUrl = data.public_url || this.endpoint;
-                if (data.user_id) TMA.userId = data.user_id;
-                if (data.username) TMA.username = data.username;
-                tmaLog('Handshake OK: user_id=' + TMA.userId + ' url=' + TMA.publicUrl);
-                this.overlay.codex.pushTrace({
-                    type: 'tma',
-                    t: this.overlay.codex.time.toFloat(),
-                    msg: `TMA handshake OK: @${TMA.username} (id=${TMA.userId})`
-                });
-            } catch (err) {
-                tmaLog('Handshake error: ' + err.message);
-            }
-        }
-
-        start() {
-            if (this._timer) return;
-            this._handshakeSent = false;
-            this.handshake();
-            const tick = async () => {
-                await this.poll();
-                this._timer = setTimeout(tick, this.pollInterval);
-            };
-            tick();
-        }
-
-        stop() {
-            if (this._timer) {
-                clearTimeout(this._timer);
-                this._timer = null;
-            }
-        }
-
-        async poll() {
-            try {
-                const headers = { 'Accept': 'application/json' };
-                if (TMA.available && TMA.initData) {
-                    headers['X-Telegram-Init-Data'] = TMA.initData;
-                }
-                const res = await fetch(this.endpoint.replace(/\/$/, '') + '/state', {
-                    method: 'GET',
-                    headers: headers,
-                    cache: 'no-store'
-                });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const data = await res.json();
-                data.endpoint = data.endpoint || this.endpoint;
-                this.overlay.ingestState(data);
-                this._connected = true;
-                this._lastErr = null;
-            } catch (err) {
-                this._connected = false;
-                this._lastErr = err.message;
-            }
-        }
-    }
-
-    // ============================================================
-    // 12. INITIALIZATION
-    // ============================================================
-    window.chartOverlay = null;
-    window.telegramBridge = null;
-
     function initializeVisualization() {
         if (!preFlightValidate()) {
-            showError('Canvas not ready. Retrying…');
+            showError('Canvas not ready. Retrying...');
             setTimeout(initializeVisualization, 200);
             return;
         }
-
-        bootstrapTelegram();
 
         try {
             codex.step(new Fraction(1, 100));
@@ -3556,68 +2197,12 @@
         }
 
         try {
-            window.chartOverlay = new ChartOverlay(chartCanvas, chartCtx, codex);
-            window.chartOverlay.setTool('pan');
-            window.chartOverlay._renderFVGList();
-
-            document.getElementById('toolPan').addEventListener('click', () => window.chartOverlay.setTool('pan'));
-            document.getElementById('toolTop').addEventListener('click', () => window.chartOverlay.setTool('top'));
-            document.getElementById('toolBott').addEventListener('click', () => window.chartOverlay.setTool('bott'));
-            document.getElementById('toolDel').addEventListener('click', () => window.chartOverlay.setTool('del'));
-
-            const connectBtn = document.getElementById('connectBtn');
-            connectBtn.addEventListener('click', () => {
-                if (window.telegramBridge) {
-                    window.telegramBridge.stop();
-                    window.telegramBridge = null;
-                    connectBtn.textContent = 'CONNECT';
-                    connectBtn.classList.remove('active');
-                    console.log('Bridge disconnected.');
-                } else {
-                    const endpoint = BACKEND_URL;
-                    window.telegramBridge = new TelegramBridge(window.chartOverlay, {
-                        endpoint: endpoint,
-                        pollInterval: 2000
-                    });
-                    window.telegramBridge.start();
-                    connectBtn.textContent = 'DISCONNECT';
-                    connectBtn.classList.add('active');
-                    console.log('Bridge connected to ' + endpoint);
-                }
-            });
-
-            if (TMA.available) {
-                console.log('[TMA] Auto-connecting bridge to ' + BACKEND_URL);
-                window.telegramBridge = new TelegramBridge(window.chartOverlay, {
-                    endpoint: BACKEND_URL,
-                    pollInterval: 2000
-                });
-                window.telegramBridge.start();
-                connectBtn.textContent = 'DISCONNECT';
-                connectBtn.classList.add('active');
-            }
-        } catch (e) {
-            showError('Chart overlay error: ' + e.message);
-            console.error('Chart overlay error:', e);
-        }
-
-        try {
             render();
         } catch (e) {
             showError('Render start error: ' + e.message);
             console.error('Render start error:', e);
         }
     }
-
-    const _rafOrig = window.requestAnimationFrame.bind(window);
-    window.requestAnimationFrame = function(cb) {
-        return _rafOrig(function(ts) {
-            if (window.chartOverlay) {
-                try { window.chartOverlay.tick(); } catch (e) { console.error('Overlay tick error:', e); }
-            }
-            cb(ts);
-        });
-    };
 
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
         setTimeout(initializeVisualization, 50);
@@ -3626,24 +2211,29 @@
     }
 
     // ============================================================
-    // 13. FINAL CONSOLE MANIFEST
+    // 11. FINAL CONSOLE MANIFEST
     // ============================================================
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('⚡ CODEX SYMBOLICA · ÆEA · TELEGRAM MINI APP v3.4.1');
+    console.log('⚡ CODEX SYMBOLICA · CONSTRAINT-LOCKED v3.2');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('New in v3.4.1 (Hotfix):');
-    console.log('  ✓ FIXED: ReferenceError on TELEGRAM_WEBAPP_URL halting script execution');
-    console.log('  ✓ FIXED: Auto-connect logic now correctly uses BACKEND_URL for TMA');
-    console.log('  ✓ FIXED: Manual CONNECT button now uses BACKEND_URL');
-    console.log('  ✓ IMPROVED: Robustness of ChartOverlay.setTool()');
-    console.log('  ✓ All v3.4 logic preserved');
+    console.log('Audit patches applied (v3.1 → v3.2):');
+    console.log('  ✓ Dynamic Natalia Fibration convergence (|term| < 10⁻⁹ threshold)');
+    console.log('  ✓ Symbolic zeta panel with Re/Im/Mag display');
+    console.log('  ✓ Zeta evaluations logged in TRACE panel');
+    console.log('  ✓ Extended trace buffer (32 entries)');
+    console.log('  ✓ All prior v3.0-v3.2 patches retained verbatim');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(' ⌨  T=Top | B=Bottom | D=Delete | Esc=Pan tool');
-    console.log(' ⌨  Shift+T = Trace | H=Help | Space=Pause | R=Reset');
-    console.log(' 🖱  Right-click on a line also deletes it');
-    console.log(' 📱 In Telegram: auto-connects, theme-adaptive, haptic feedback');
+    console.log(' Axioms: s = r | DbZ: Re[Ψ] branching | O[Ψ]: 4D sweep');
+    console.log(' Wavefunction: ψ(q) = Σ c_i · Padé_exp(-|q-q_i|²) over 6-point history');
+    console.log(' L² norm: ‖ψ‖² = ∫|ψ|² d⁴q over 6⁴ = 1296-cell grid (exact rational)');
+    console.log(' Zeta: ζ(½+it) = Σ n^(-½-it) via exact rational CF/Taylor');
+    console.log(' Protocols: Lingoso · ÆEA δ(m−n−2) · CRT(exact) · CF · ζ(s)(symbolic)');
+    console.log(' Self-reference: ⊢ CS ⊢ CS ⟹ Φ = Truth');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(' 🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
+    console.log('🎮 Space=Pause | R=Reset | M=Mode | E=Export | H=Help | T=Trace | S=s/r');
+    console.log('🖱️  Drag=rotate | Scroll=zoom | +/- = zoom | Click s²/r² = copy');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
 })();
