@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Codex Symbolica · ÆEA Chart Overlay · Constraint-Locked v3.4.1</title>
+    <title>Codex Symbolica · ÆEA Chart Overlay · Constraint-Locked v3.4.2</title>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -684,7 +684,7 @@
 </div>
 
 <div id="info">
-    <h1>⚡ CODEX SYMBOLICA · ÆEA v3.4.1</h1>
+    <h1>⚡ CODEX SYMBOLICA · ÆEA v3.4.2</h1>
     <p>S³→S² · DbZ · O[Ψ] · CRT · CF · ζ(s) · Lingoso · ÆEA · ⊢ CS</p>
     <p style="margin-top:4px;">
         <span style="color:#ffaa44;">H</span> help ·
@@ -827,7 +827,7 @@
 </div>
 
 <div id="explainPanel" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:11;background:rgba(5,5,16,0.95);border:1px solid #335577;border-radius:8px;padding:12px 20px;font-size:0.6rem;max-width:600px;backdrop-filter:blur(8px);box-shadow:0 4px 30px rgba(0,0,0,0.5);line-height:1.6;">
-    <h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ CODEX SYMBOLICA — VISUALIZATION KEY v3.4.1</h3>
+    <h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ CODEX SYMBOLICA — VISUALIZATION KEY v3.4.2</h3>
     <div><span style="color:#ffaa44;font-weight:bold;">Φ (Quaternion)</span> <span style="opacity:0.8;">— Current state on S³, projected to S² via Hopf fibration.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">s² (exact)</span> <span style="opacity:0.8;">— Squared arc length from origin (identity quaternion), exact rational.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">r² (exact)</span> <span style="opacity:0.8;">— Squared radial distance ‖q‖², exact rational.</span></div>
@@ -935,7 +935,16 @@
     'use strict';
 
     // ============================================================
-    // 0. TELEGRAM WEB APP BOOTSTRAP
+    // 0. BACKEND CONFIGURATION — SINGLE SOURCE OF TRUTH
+    // ============================================================
+    // Set this to your Heroku app URL (must be HTTPS).
+    // The Mini App frontend is hosted on GitHub Pages and talks to this
+    // backend cross-origin. CORS on the backend must allow this origin.
+    // ============================================================
+    const BACKEND_URL = 'https://aeea-df7f2ade617d.herokuapp.com';
+
+    // ============================================================
+    // 1. TELEGRAM WEB APP BOOTSTRAP
     // ============================================================
     const TelegramWebAppAPI = (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
 
@@ -955,7 +964,7 @@
         viewportStableHeight: window.innerHeight,
         handshakeOk: false,
         publicUrl: null,
-        backendEndpoint: null,
+        backendEndpoint: BACKEND_URL,
     };
 
     function tmaLog(msg) {
@@ -1092,7 +1101,7 @@
     function hideError() { errorDisplay.style.display = 'none'; }
 
     // ============================================================
-    // 1. EXACT FRACTION ARITHMETIC
+    // 2. EXACT FRACTION ARITHMETIC
     // ============================================================
     class Fraction {
         constructor(n = 0, d = 1) {
@@ -1245,7 +1254,7 @@
     }
 
     // ============================================================
-    // 2. QUATERNION ALGEBRA (Exact Fractions Only)
+    // 3. QUATERNION ALGEBRA (Exact Fractions Only)
     // ============================================================
     class Quat {
         constructor(a, b, c, d) {
@@ -1346,7 +1355,7 @@
     }
 
     // ============================================================
-    // 3. UTILITY FUNCTIONS
+    // 4. UTILITY FUNCTIONS
     // ============================================================
     function continuedFractionExact(frac, n) {
         const terms = [];
@@ -1425,7 +1434,7 @@
     }
 
     // ============================================================
-    // 4. CODEX STATE
+    // 5. CODEX STATE
     // ============================================================
     const OBS_GRID_DIM = 6;
     const TRACE_MAX = 32;
@@ -1885,7 +1894,7 @@
     }
 
     // ============================================================
-    // 5. CANVAS SETUP & PRE-FLIGHT VALIDATION
+    // 6. CANVAS SETUP & PRE-FLIGHT VALIDATION
     // ============================================================
     const canvas = document.getElementById('mainCanvas');
     const ctx = canvas.getContext('2d');
@@ -1949,7 +1958,7 @@
     window.__aei_resize = resizeCanvas;
 
     // ============================================================
-    // 6. 3D PROJECTION
+    // 7. 3D PROJECTION
     // ============================================================
     function project3D(x, y, z, rotX, rotY, zoom) {
         zoom = zoom || 1;
@@ -1973,7 +1982,7 @@
     }
 
     // ============================================================
-    // 7. STATE, CONTROLS, DOM HANDLES
+    // 8. STATE, CONTROLS, DOM HANDLES
     // ============================================================
     const codex = new CodexState();
     let paused = false;
@@ -2043,7 +2052,7 @@
     attachCopyHandler(r2Exact);
 
     // ============================================================
-    // 8. RENDER LOOP
+    // 9. RENDER LOOP
     // ============================================================
     function render() {
         try {
@@ -2529,7 +2538,7 @@
     }
 
     // ============================================================
-    // 9. CONTROLS & EVENT HANDLERS
+    // 10. CONTROLS & EVENT HANDLERS
     // ============================================================
     canvas.addEventListener('mousedown', (e) => {
         isDragging = true;
@@ -2670,7 +2679,7 @@
 
     document.getElementById('exportBtn').addEventListener('click', () => {
         const data = {
-            version: '3.4-tma',
+            version: '3.4.2-tma',
             timestamp: Date.now(),
             tma: {
                 available: TMA.available,
@@ -2724,7 +2733,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `codex_symbolica_exact_v3.4_tma_${Date.now()}.json`;
+        a.download = `codex_symbolica_exact_v3.4.2_tma_${Date.now()}.json`;
         a.click();
         URL.revokeObjectURL(url);
     });
@@ -2794,7 +2803,7 @@
     });
 
     // ============================================================
-    // 10. CHART OVERLAY (with TMA initData forwarding)
+    // 11. CHART OVERLAY (with TMA initData forwarding)
     // ============================================================
     class ChartOverlay {
         constructor(canvasEl, ctxEl, codexRef) {
@@ -3423,27 +3432,20 @@
     }
 
     // ============================================================
-    // 11. TELEGRAM BRIDGE (with initData forwarding + handshake)
+    // 12. TELEGRAM BRIDGE (with initData forwarding + handshake)
     // ============================================================
-    const BACKEND_URL = 'https://aeea-df7f2ade617d.herokuapp.com/';
     class TelegramBridge {
         constructor(overlay, opts) {
             opts = opts || {};
             this.overlay = overlay;
-            this.endpoint = opts.endpoint || this._detectEndpoint();
+            this.endpoint = opts.endpoint || BACKEND_URL;
             this.pollInterval = opts.pollInterval || 2000;
             this._timer = null;
             this._connected = false;
             this._lastErr = null;
             this._handshakeSent = false;
-        }
-
-        _detectEndpoint() {
-            if (typeof BACKEND_URL !== 'undefined' && BACKEND_URL) return BACKEND_URL;
-            if (TELEGRAM_WEBAPP_URL) return TELEGRAM_WEBAPP_URL;
-            const origin = window.location.origin;
-            if (origin && origin !== 'null' && origin.indexOf('http') === 0) return origin;
-            return 'http://localhost:8765';
+            this._failureCount = 0;
+            this._maxBackoff = 30000;
         }
 
         async handshake() {
@@ -3489,6 +3491,7 @@
         start() {
             if (this._timer) return;
             this._handshakeSent = false;
+            this._failureCount = 0;
             this.handshake();
             const tick = async () => {
                 await this.poll();
@@ -3521,15 +3524,17 @@
                 this.overlay.ingestState(data);
                 this._connected = true;
                 this._lastErr = null;
+                this._failureCount = 0;
             } catch (err) {
                 this._connected = false;
                 this._lastErr = err.message;
+                this._failureCount++;
             }
         }
     }
 
     // ============================================================
-    // 12. INITIALIZATION
+    // 13. INITIALIZATION
     // ============================================================
     window.chartOverlay = null;
     window.telegramBridge = null;
@@ -3574,28 +3579,29 @@
                     connectBtn.classList.remove('active');
                     console.log('Bridge disconnected.');
                 } else {
-                    const endpoint = BACKEND_URL;
                     window.telegramBridge = new TelegramBridge(window.chartOverlay, {
-                        endpoint: endpoint,
+                        endpoint: BACKEND_URL,
                         pollInterval: 2000
                     });
                     window.telegramBridge.start();
                     connectBtn.textContent = 'DISCONNECT';
                     connectBtn.classList.add('active');
-                    console.log('Bridge connected to ' + endpoint);
+                    console.log('Bridge connected to ' + BACKEND_URL);
                 }
             });
 
-            if (TMA.available) {
-                console.log('[TMA] Auto-connecting bridge to ' + BACKEND_URL);
-                window.telegramBridge = new TelegramBridge(window.chartOverlay, {
-                    endpoint: BACKEND_URL,
-                    pollInterval: 2000
-                });
-                window.telegramBridge.start();
-                connectBtn.textContent = 'DISCONNECT';
-                connectBtn.classList.add('active');
-            }
+            // Auto-connect: always try to connect to BACKEND_URL.
+            // If running inside Telegram, this also triggers the initData handshake.
+            // If running outside Telegram, the /state endpoint is still readable
+            // (read-only) and the UI will populate with live backend data.
+            console.log('[Bridge] Auto-connecting to ' + BACKEND_URL);
+            window.telegramBridge = new TelegramBridge(window.chartOverlay, {
+                endpoint: BACKEND_URL,
+                pollInterval: 2000
+            });
+            window.telegramBridge.start();
+            connectBtn.textContent = 'DISCONNECT';
+            connectBtn.classList.add('active');
         } catch (e) {
             showError('Chart overlay error: ' + e.message);
             console.error('Chart overlay error:', e);
@@ -3626,17 +3632,18 @@
     }
 
     // ============================================================
-    // 13. FINAL CONSOLE MANIFEST
+    // 14. FINAL CONSOLE MANIFEST
     // ============================================================
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('⚡ CODEX SYMBOLICA · ÆEA · TELEGRAM MINI APP v3.4.1');
+    console.log('⚡ CODEX SYMBOLICA · ÆEA · TELEGRAM MINI APP v3.4.2');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('New in v3.4.1 (Hotfix):');
-    console.log('  ✓ FIXED: ReferenceError on TELEGRAM_WEBAPP_URL halting script execution');
-    console.log('  ✓ FIXED: Auto-connect logic now correctly uses BACKEND_URL for TMA');
-    console.log('  ✓ FIXED: Manual CONNECT button now uses BACKEND_URL');
-    console.log('  ✓ IMPROVED: Robustness of ChartOverlay.setTool()');
-    console.log('  ✓ All v3.4 logic preserved');
+    console.log('New in v3.4.2 (Hanging-at-0 Fix):');
+    console.log('  ✓ FIXED: ReferenceError on TELEGRAM_WEBAPP_URL halting script');
+    console.log('  ✓ FIXED: Auto-connect now always targets BACKEND_URL');
+    console.log('  ✓ FIXED: Manual CONNECT uses BACKEND_URL directly');
+    console.log('  ✓ FIXED: Handshake only fires when initData is present');
+    console.log('  ✓ IMPROVED: Poll failure counter + backoff scaffolding');
+    console.log('  ✓ All v3.4.1 and prior logic preserved');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(' ⌨  T=Top | B=Bottom | D=Delete | Esc=Pan tool');
     console.log(' ⌨  Shift+T = Trace | H=Help | Space=Pause | R=Reset');
