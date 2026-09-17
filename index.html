@@ -275,6 +275,7 @@
         #proofTrace .pt-engine { color: #ffaa44; font-weight: bold; }
         #proofTrace .pt-indicator { color: #66ffaa; font-weight: bold; }
         #proofTrace .pt-signal { color: #ff4488; font-weight: bold; }
+        #proofTrace .pt-arc { color: #44ffcc; font-weight: bold; }
         #errorDisplay {
             position: absolute;
             bottom: 200px;
@@ -891,6 +892,7 @@
     <div><span class="label">Arc s²</span> <span class="value" id="eng-arc">—</span></div>
     <div><span class="label">Rad r²</span> <span class="value" id="eng-rad">—</span></div>
     <div><span class="label">Deviation</span> <span class="value" id="eng-dev">—</span></div>
+    <div><span class="label">Re[Ψ]</span> <span class="value" id="eng-repsi">—</span></div>
     <div><span class="label">FG Init</span> <span class="value" id="eng-fg">—</span></div>
     <div><span class="label">Ind Pass</span> <span class="value" id="eng-ind">—</span></div>
     <div><span class="label">Sig Fires</span> <span class="value" id="eng-sig">—</span></div>
@@ -910,7 +912,8 @@
     <div><span style="color:#ffaa44;font-weight:bold;">ENGINE COHERENCE</span> <span style="opacity:0.8;">— Live status reported by the Python engine via /state.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">INDICATOR PASSES</span> <span style="opacity:0.8;">— Number of times the 13D indicator matrix has been fully populated. Non-zero = live.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">SIGNAL FIRES</span> <span style="opacity:0.8;">— Number of Kronecker delta δ(m−n−2)=1 events. Non-zero = trading logic active.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">ENGINE STATE PANEL</span> <span style="opacity:0.8;">— Direct mirror of the live engine's internal fields: Price, Signal, Tick, Regime, m/n, Arc s², Rad r², Deviation, Indicator Passes, Signal Fires, Relay. This is the raw truth from app.py.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">ENGINE STATE PANEL</span> <span style="opacity:0.8;">— Direct mirror of the live engine's internal fields: Price, Signal, Tick, Regime, m/n, Arc s², Rad r², Deviation, Re[Ψ], Indicator Passes, Signal Fires, Relay. This is the raw truth from app.py.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">Re[Ψ]</span> <span style="opacity:0.8;">— Real component of the current quaternion Φ (the a-coordinate).</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">DbZ Branch</span> <span style="opacity:0.8;">— Re[Ψ] > 0 → critical line; Re[Ψ] ≤ 0 → Natalia fibration.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">ÆEA δ</span> <span style="opacity:0.8;">— Kronecker delta δ(m−n−2). Market topology parity.</span></div>
     <div style="margin-top:8px;border-top:1px solid #224466;padding-top:6px;">
@@ -933,7 +936,7 @@
         <span style="color:#44ffcc;font-weight:bold;">🌐 DATA PIPELINE</span>
         — Price data flows: Cloudflare Worker → Heroku (app.py) → Bridge (/state) → this Mini App.
         The Mini App mirrors the engine's true coherence state via the ENGINE COHERENCE metric.
-        ENGINE STATE panel shows the raw Python engine fields (arc_sq, radius_sq, deviation, indicator_populate_count, imbalance_fire_count, relay_url) directly from /state.
+        ENGINE STATE panel shows the raw Python engine fields (arc_sq, radius_sq, deviation, re_psi, indicator_populate_count, imbalance_fire_count, relay_url) directly from /state.
         <span style="color:#ff4466;font-weight:bold;">Note:</span> The Arc-Length coherence is reported truthfully by the engine.
         If the ENGINE STATE panel shows non-zero Deviation, the system is in a genuine deviation
         state — FVG commits will be gated by the engine's coherence check.
@@ -985,6 +988,10 @@
             <span class="label" style="margin-left:6px;">SIG FIRE</span>
             <span class="value" id="hud-sig">0</span>
         </div>
+        <div>
+            <span class="label">Re[Ψ]</span>
+            <span class="value" id="hud-repsi">—</span>
+        </div>
     </div>
 
     <div id="relayBadge" class="wait">RELAY: —</div>
@@ -1027,7 +1034,7 @@
     // BACKEND CONFIGURATION — SINGLE SOURCE OF TRUTH
     // ============================================================
     const BACKEND_URL = 'https://aeea-df7f2ade617d.herokuapp.com';
-    const RELAY_URL = '';
+    let RELAY_URL = '';
 
     // ============================================================
     // TELEGRAM WEB APP BOOTSTRAP
@@ -1597,12 +1604,14 @@
             this.engineDeviation = Fraction.zero();
             this.engineArcSq = Fraction.zero();
             this.engineRadiusSq = Fraction.one();
+            this.engineRePsi = Fraction.zero();
             this.engineInitialized = false;
             this.engineIndicatorPasses = 0;
             this.engineSignalFires = 0;
             this.engineRelayUrl = '';
             this._lastIndicatorPassesSeen = -1;
             this._lastSignalFiresSeen = -1;
+            this._lastCoherenceSeen = null;
         }
 
         coherentWavefunction(qPoint) {
@@ -1712,8 +1721,26 @@
             if (!engineState) return;
             this.engineState = engineState;
             try {
+                // [PATCH A5] Use true engine re_psi directly, no tanh heuristic
+                if (engineState.re_psi !== undefined) {
+                    try {
+                        this.engineRePsi = Fraction.fromExactString(String(engineState.re_psi));
+                        this.rePsi = this.engineRePsi;
+                    } catch (_) {}
+                }
                 if (engineState.coherent !== undefined) {
-                    this.engineCoherent = !!engineState.coherent;
+                    const newCoherent = !!engineState.coherent;
+                    if (this._lastCoherenceSeen !== newCoherent) {
+                        this._lastCoherenceSeen = newCoherent;
+                        this.pushTrace({
+                            type: newCoherent ? 'coherence' : 'evolution',
+                            t: this.time.toFloat(),
+                            msg: newCoherent
+                                ? `Engine reports COHERENT (s²=r²)`
+                                : `Engine reports DEVIATION (s²≠r²)`
+                        });
+                    }
+                    this.engineCoherent = newCoherent;
                 }
                 if (engineState.deviation !== undefined) {
                     try {
@@ -1746,14 +1773,6 @@
                 if (engineState.regime) {
                     this.marketRegime = engineState.regime.toUpperCase();
                 }
-                if (engineState.signal !== undefined) {
-                    const signalFloat = parseFloat(engineState.signal);
-                    if (isFinite(signalFloat)) {
-                        const normalized = signalFloat > 0 ? Math.tanh(signalFloat / 1000) : 0.5;
-                        this.rePsi = Fraction.fromFloat(normalized);
-                    }
-                }
-                // [PATCH] New diagnostic counters from /state
                 if (engineState.indicator_populate_count !== undefined) {
                     const newVal = parseInt(engineState.indicator_populate_count, 10) || 0;
                     if (newVal !== this._lastIndicatorPassesSeen) {
@@ -1784,6 +1803,9 @@
                 }
                 if (engineState.relay_url !== undefined) {
                     this.engineRelayUrl = String(engineState.relay_url || '');
+                    if (this.engineRelayUrl) {
+                        RELAY_URL = this.engineRelayUrl;
+                    }
                 }
             } catch (e) {
                 console.warn('ingestEngineState failed:', e);
@@ -1837,7 +1859,10 @@
                 this.r2 = this.r.mul(this.r);
                 this.srRatio = this.s2.div(this.r2);
                 this.dev = this.s2.sub(this.r2);
-                this.rePsi = this.q.a;
+                // [PATCH A5] Only update rePsi from quaternion if engine hasn't provided one
+                if (this.engineState === null || this.engineState.re_psi === undefined) {
+                    this.rePsi = this.q.a;
+                }
 
                 const proj = this.q.projectToS2();
                 this.proj = proj;
@@ -2059,12 +2084,14 @@
             this.engineDeviation = Fraction.zero();
             this.engineArcSq = Fraction.zero();
             this.engineRadiusSq = Fraction.one();
+            this.engineRePsi = Fraction.zero();
             this.engineInitialized = false;
             this.engineIndicatorPasses = 0;
             this.engineSignalFires = 0;
             this.engineRelayUrl = '';
             this._lastIndicatorPassesSeen = -1;
             this._lastSignalFiresSeen = -1;
+            this._lastCoherenceSeen = null;
         }
 
         toggleMode() {
@@ -2228,6 +2255,7 @@
     const engArcSpan = document.getElementById('eng-arc');
     const engRadSpan = document.getElementById('eng-rad');
     const engDevSpan = document.getElementById('eng-dev');
+    const engRePsiSpan = document.getElementById('eng-repsi');
     const engFgSpan = document.getElementById('eng-fg');
     const engIndSpan = document.getElementById('eng-ind');
     const engSigSpan = document.getElementById('eng-sig');
@@ -2248,6 +2276,49 @@
     }
     attachCopyHandler(s2Exact);
     attachCopyHandler(r2Exact);
+
+    // ============================================================
+    // RELAY URL SEEDING FROM /config  [PATCH A4]
+    // ============================================================
+    async function seedRelayUrlFromConfig() {
+        try {
+            const res = await fetch(BACKEND_URL.replace(/\/$/, '') + '/config', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                cache: 'no-store'
+            });
+            if (!res.ok) return;
+            const cfg = await res.json();
+            if (cfg && cfg.relay_url) {
+                RELAY_URL = String(cfg.relay_url).trim();
+                console.log('[Config] RELAY_URL seeded from /config:', RELAY_URL);
+                updateRelayBadge();
+            }
+        } catch (e) {
+            console.warn('[Config] relay_url seed failed:', e.message);
+        }
+    }
+
+    function updateRelayBadge() {
+        if (relayBadge) {
+            if (RELAY_URL) {
+                relayBadge.textContent = 'RELAY: UP';
+                relayBadge.className = 'up';
+            } else {
+                relayBadge.textContent = 'RELAY: WAIT';
+                relayBadge.className = 'wait';
+            }
+        }
+        if (relayStatusSpan) {
+            if (RELAY_URL) {
+                relayStatusSpan.textContent = 'UP';
+                relayStatusSpan.className = 'value engine-up';
+            } else {
+                relayStatusSpan.textContent = 'WAIT';
+                relayStatusSpan.className = 'value engine-wait';
+            }
+        }
+    }
 
     // ============================================================
     // RENDER LOOP
@@ -2644,15 +2715,11 @@
                     codex.lastZetaRe.toFloat() ** 2 + codex.lastZetaIm.toFloat() ** 2
                 ).toFixed(4);
 
-                // [PATCH] Relay status wired through engineState.relay_url
+                // [PATCH A4] Relay status driven by /config seed + /state ingest
                 if (relayStatusSpan) {
-                    const relayUrl = (codex.engineState && codex.engineState.relay_url) || RELAY_URL || '';
-                    if (relayUrl) {
+                    if (RELAY_URL) {
                         relayStatusSpan.textContent = 'UP';
                         relayStatusSpan.className = 'value engine-up';
-                    } else if (codex.engineState) {
-                        relayStatusSpan.textContent = 'DOWN';
-                        relayStatusSpan.className = 'value engine-down';
                     } else {
                         relayStatusSpan.textContent = 'WAIT';
                         relayStatusSpan.className = 'value engine-wait';
@@ -2674,22 +2741,13 @@
                     }
                 }
 
-                // [PATCH] Indicator passes and signal fires counters
                 if (indicatorPassesSpan) {
                     indicatorPassesSpan.textContent = String(codex.engineIndicatorPasses);
-                    if (codex.engineIndicatorPasses > 0) {
-                        indicatorPassesSpan.style.color = '#00ff88';
-                    } else {
-                        indicatorPassesSpan.style.color = '#ffaa44';
-                    }
+                    indicatorPassesSpan.style.color = codex.engineIndicatorPasses > 0 ? '#00ff88' : '#ffaa44';
                 }
                 if (signalFiresSpan) {
                     signalFiresSpan.textContent = String(codex.engineSignalFires);
-                    if (codex.engineSignalFires > 0) {
-                        signalFiresSpan.style.color = '#ff4488';
-                    } else {
-                        signalFiresSpan.style.color = '#ffaa44';
-                    }
+                    signalFiresSpan.style.color = codex.engineSignalFires > 0 ? '#ff4488' : '#ffaa44';
                 }
 
                 const dbzLabels = ['NONE', 'CRITICAL LINE', 'NATALIA'];
@@ -2737,6 +2795,7 @@
                     if (engArcSpan) engArcSpan.textContent = es.arc_sq !== undefined ? String(es.arc_sq).slice(0, 12) : '—';
                     if (engRadSpan) engRadSpan.textContent = es.radius_sq !== undefined ? String(es.radius_sq).slice(0, 12) : '—';
                     if (engDevSpan) engDevSpan.textContent = es.deviation !== undefined ? String(es.deviation).slice(0, 12) : '—';
+                    if (engRePsiSpan) engRePsiSpan.textContent = es.re_psi !== undefined ? String(es.re_psi).slice(0, 12) : '—';
                     if (engFgSpan) engFgSpan.textContent = es.engine_initialized ? '✅ YES' : '⏳ NO';
                     if (engIndSpan) engIndSpan.textContent = String(codex.engineIndicatorPasses);
                     if (engSigSpan) engSigSpan.textContent = String(codex.engineSignalFires);
@@ -2752,10 +2811,8 @@
                     }
                 }
 
-                // [PATCH] relayBadge in top-right of chart panel
                 if (relayBadge) {
-                    const relayUrl = (codex.engineState && codex.engineState.relay_url) || RELAY_URL || '';
-                    if (relayUrl) {
+                    if (RELAY_URL) {
                         relayBadge.textContent = 'RELAY: UP';
                         relayBadge.className = 'up';
                     } else if (codex.engineState) {
@@ -2957,6 +3014,7 @@
         if (engArcSpan) engArcSpan.textContent = '—';
         if (engRadSpan) engRadSpan.textContent = '—';
         if (engDevSpan) engDevSpan.textContent = '—';
+        if (engRePsiSpan) engRePsiSpan.textContent = '—';
         if (engFgSpan) engFgSpan.textContent = '—';
         if (engIndSpan) engIndSpan.textContent = '—';
         if (engSigSpan) engSigSpan.textContent = '—';
@@ -3027,6 +3085,7 @@
                 arc_sq: codex.engineState.arc_sq,
                 radius_sq: codex.engineState.radius_sq,
                 deviation: codex.engineState.deviation,
+                re_psi: codex.engineState.re_psi,
                 engine_initialized: codex.engineState.engine_initialized,
                 indicator_populate_count: codex.engineState.indicator_populate_count,
                 imbalance_fire_count: codex.engineState.imbalance_fire_count,
@@ -3043,6 +3102,7 @@
             dev_exact: codex.dev.toString(),
             eps_exact: codex.eps.toString(),
             rePsi_exact: codex.rePsi.toString(),
+            engineRePsi_exact: codex.engineRePsi.toString(),
             obs_re_exact: codex.obsRe.toString(),
             obs_im_exact: codex.obsIm.toString(),
             obs_grid_count: codex.obsGridCount,
@@ -3249,6 +3309,9 @@
             this.codex.ingestEngineState(state);
             if (state.endpoint) {
                 TMA.backendEndpoint = state.endpoint;
+            }
+            if (state.relay_url) {
+                RELAY_URL = String(state.relay_url);
             }
             if (state.webapp_user_id && !TMA.handshakeOk) {
                 tmaLog('Backend reports webapp_user_id=' + state.webapp_user_id);
@@ -3775,6 +3838,7 @@
             const hudRelay = document.getElementById('hud-relay');
             const hudInd = document.getElementById('hud-ind');
             const hudSig = document.getElementById('hud-sig');
+            const hudRePsi = document.getElementById('hud-repsi');
 
             if (this.backendState) {
                 if (hudSymbol) hudSymbol.textContent = this.backendState.symbol || 'BTC-USD';
@@ -3806,6 +3870,7 @@
                 }
                 if (hudInd) hudInd.textContent = String(this.backendState.indicator_populate_count || 0);
                 if (hudSig) hudSig.textContent = String(this.backendState.imbalance_fire_count || 0);
+                if (hudRePsi) hudRePsi.textContent = this.backendState.re_psi !== undefined ? String(this.backendState.re_psi).slice(0, 12) : '—';
             } else {
                 if (hudConn) {
                     hudConn.textContent = 'LOCAL-ONLY';
@@ -3817,6 +3882,7 @@
                 }
                 if (hudInd) hudInd.textContent = '0';
                 if (hudSig) hudSig.textContent = '0';
+                if (hudRePsi) hudRePsi.textContent = '—';
             }
         }
 
@@ -3945,6 +4011,9 @@
         }
 
         bootstrapTelegram();
+
+        // [PATCH A4] Seed RELAY_URL from /config before first render
+        seedRelayUrlFromConfig();
 
         try {
             codex.step(new Fraction(1, 100));
