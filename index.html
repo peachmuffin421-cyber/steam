@@ -106,6 +106,9 @@
         #metrics .value { color: #ffaa44; font-weight: bold; }
         #metrics .value.exact { color: #44ffcc; font-size: 0.55rem; cursor: pointer; }
         #metrics .value.exact:hover { color: #88ffee; }
+        #metrics .value.engine-up { color: #00ff88; }
+        #metrics .value.engine-down { color: #ff4466; }
+        #metrics .value.engine-wait { color: #ffaa44; }
         #status {
             position: absolute;
             bottom: 100px;
@@ -270,6 +273,8 @@
         #proofTrace .pt-tma { color: #44ffcc; font-weight: bold; }
         #proofTrace .pt-relay { color: #ffaa44; font-weight: bold; }
         #proofTrace .pt-engine { color: #ffaa44; font-weight: bold; }
+        #proofTrace .pt-indicator { color: #66ffaa; font-weight: bold; }
+        #proofTrace .pt-signal { color: #ff4488; font-weight: bold; }
         #errorDisplay {
             position: absolute;
             bottom: 200px;
@@ -423,6 +428,9 @@
         #enginePanel .value { color: #ffaa44; font-weight: bold; }
         #enginePanel .value.coherent { color: #00ff88; }
         #enginePanel .value.deviant { color: #ff4466; }
+        #enginePanel .value.relay-up { color: #00ff88; }
+        #enginePanel .value.relay-down { color: #ff4466; }
+        #enginePanel .value.relay-wait { color: #ffaa44; }
 
         #chartPanel {
             position: absolute;
@@ -667,6 +675,25 @@
             font-weight: bold;
         }
 
+        #relayBadge {
+            position: absolute;
+            top: 48px;
+            right: 12px;
+            z-index: 12;
+            pointer-events: none;
+            font-size: 0.5rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: rgba(5,5,16,0.92);
+            border: 1px solid #224466;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.4);
+            font-family: 'Courier New', monospace;
+        }
+        #relayBadge.up { border-color: #00ff88; color: #00ff88; }
+        #relayBadge.down { border-color: #ff4466; color: #ff4466; }
+        #relayBadge.wait { border-color: #ffaa44; color: #ffaa44; }
+
         @media (max-width: 1100px) {
             #chartCanvas, #chartPanel { width: 55vw; min-width: 320px; }
             #fvgPanel { width: 55vw; min-width: 320px; }
@@ -733,8 +760,10 @@
     <div><span class="label">‖[Φ, Φ†]‖</span> <span class="value" id="comm-val">0.0000</span></div>
     <div><span class="label">‖ψ‖² (L²)</span> <span class="value" id="psi-norm-val">0.0000</span></div>
     <div><span class="label">ζ(½+it)</span> <span class="value" id="zeta-val">0.0000</span></div>
-    <div><span class="label">RELAY</span> <span class="value" id="relay-status" style="color:#44ffcc;">—</span></div>
-    <div><span class="label">ENGINE COHERENCE</span> <span class="value" id="engine-coherence" style="color:#ffaa44;">—</span></div>
+    <div><span class="label">RELAY</span> <span class="value engine-wait" id="relay-status">—</span></div>
+    <div><span class="label">ENGINE COHERENCE</span> <span class="value engine-wait" id="engine-coherence">—</span></div>
+    <div><span class="label">INDICATOR PASSES</span> <span class="value" id="indicator-passes">0</span></div>
+    <div><span class="label">SIGNAL FIRES</span> <span class="value" id="signal-fires">0</span></div>
 </div>
 
 <div id="status">
@@ -863,6 +892,9 @@
     <div><span class="label">Rad r²</span> <span class="value" id="eng-rad">—</span></div>
     <div><span class="label">Deviation</span> <span class="value" id="eng-dev">—</span></div>
     <div><span class="label">FG Init</span> <span class="value" id="eng-fg">—</span></div>
+    <div><span class="label">Ind Pass</span> <span class="value" id="eng-ind">—</span></div>
+    <div><span class="label">Sig Fires</span> <span class="value" id="eng-sig">—</span></div>
+    <div><span class="label">Relay</span> <span class="value relay-wait" id="eng-relay">—</span></div>
 </div>
 
 <div id="explainPanel" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:11;background:rgba(5,5,16,0.95);border:1px solid #335577;border-radius:8px;padding:12px 20px;font-size:0.6rem;max-width:640px;backdrop-filter:blur(8px);box-shadow:0 4px 30px rgba(0,0,0,0.5);line-height:1.6;">
@@ -875,8 +907,10 @@
     <div><span style="color:#ffaa44;font-weight:bold;">‖ψ‖² (L²)</span> <span style="opacity:0.8;">— True L² norm of the coherent wavefunction over the 4D grid.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">ζ(½+it)</span> <span style="opacity:0.8;">— Riemann zeta function evaluated on the critical line.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">RELAY</span> <span style="opacity:0.8;">— Cloudflare Worker relay status (upstream Yahoo Finance).</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">ENGINE COHERENCE</span> <span style="opacity:0.8;">— Live status reported by the Python engine via /state. This is the sole source of truth.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">ENGINE STATE PANEL</span> <span style="opacity:0.8;">— Direct mirror of the live engine's internal fields: Price, Signal, Tick, Regime, m/n, Arc s², Rad r², Deviation. This is the raw truth from app.py.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">ENGINE COHERENCE</span> <span style="opacity:0.8;">— Live status reported by the Python engine via /state.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">INDICATOR PASSES</span> <span style="opacity:0.8;">— Number of times the 13D indicator matrix has been fully populated. Non-zero = live.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">SIGNAL FIRES</span> <span style="opacity:0.8;">— Number of Kronecker delta δ(m−n−2)=1 events. Non-zero = trading logic active.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">ENGINE STATE PANEL</span> <span style="opacity:0.8;">— Direct mirror of the live engine's internal fields: Price, Signal, Tick, Regime, m/n, Arc s², Rad r², Deviation, Indicator Passes, Signal Fires, Relay. This is the raw truth from app.py.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">DbZ Branch</span> <span style="opacity:0.8;">— Re[Ψ] > 0 → critical line; Re[Ψ] ≤ 0 → Natalia fibration.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">ÆEA δ</span> <span style="opacity:0.8;">— Kronecker delta δ(m−n−2). Market topology parity.</span></div>
     <div style="margin-top:8px;border-top:1px solid #224466;padding-top:6px;">
@@ -899,10 +933,11 @@
         <span style="color:#44ffcc;font-weight:bold;">🌐 DATA PIPELINE</span>
         — Price data flows: Cloudflare Worker → Heroku (app.py) → Bridge (/state) → this Mini App.
         The Mini App mirrors the engine's true coherence state via the ENGINE COHERENCE metric.
-        ENGINE STATE panel shows the raw Python engine fields (arc_sq, radius_sq, deviation) directly from /state.
+        ENGINE STATE panel shows the raw Python engine fields (arc_sq, radius_sq, deviation, indicator_populate_count, imbalance_fire_count, relay_url) directly from /state.
         <span style="color:#ff4466;font-weight:bold;">Note:</span> The Arc-Length coherence is reported truthfully by the engine.
         If the ENGINE STATE panel shows non-zero Deviation, the system is in a genuine deviation
         state — FVG commits will be gated by the engine's coherence check.
+        <span style="color:#ffaa44;font-weight:bold;">INDICATOR PASSES</span> and <span style="color:#ff4488;font-weight:bold;">SIGNAL FIRES</span> are the diagnostic counters that confirm the indicator matrix is live.
     </div>
     <div style="margin-top:6px;opacity:0.6;">Press <span style="color:#ffaa44;">H</span> to toggle this panel. Press <span style="color:#ffaa44;">Shift+T</span> to toggle TRACE.</div>
 </div>
@@ -944,7 +979,15 @@
             <span class="label">RELAY</span>
             <span class="conn-wait" id="hud-relay">—</span>
         </div>
+        <div>
+            <span class="label">IND PASS</span>
+            <span class="value" id="hud-ind">0</span>
+            <span class="label" style="margin-left:6px;">SIG FIRE</span>
+            <span class="value" id="hud-sig">0</span>
+        </div>
     </div>
+
+    <div id="relayBadge" class="wait">RELAY: —</div>
 
     <div id="continuityBadge" class="waiting">
         ● ARC-LENGTH: WAITING
@@ -1555,6 +1598,11 @@
             this.engineArcSq = Fraction.zero();
             this.engineRadiusSq = Fraction.one();
             this.engineInitialized = false;
+            this.engineIndicatorPasses = 0;
+            this.engineSignalFires = 0;
+            this.engineRelayUrl = '';
+            this._lastIndicatorPassesSeen = -1;
+            this._lastSignalFiresSeen = -1;
         }
 
         coherentWavefunction(qPoint) {
@@ -1704,6 +1752,38 @@
                         const normalized = signalFloat > 0 ? Math.tanh(signalFloat / 1000) : 0.5;
                         this.rePsi = Fraction.fromFloat(normalized);
                     }
+                }
+                // [PATCH] New diagnostic counters from /state
+                if (engineState.indicator_populate_count !== undefined) {
+                    const newVal = parseInt(engineState.indicator_populate_count, 10) || 0;
+                    if (newVal !== this._lastIndicatorPassesSeen) {
+                        this._lastIndicatorPassesSeen = newVal;
+                        this.engineIndicatorPasses = newVal;
+                        if (newVal > 0 && newVal % 5 === 0) {
+                            this.pushTrace({
+                                type: 'indicator',
+                                t: this.time.toFloat(),
+                                msg: `Indicator matrix pass #${newVal}`
+                            });
+                        }
+                    }
+                }
+                if (engineState.imbalance_fire_count !== undefined) {
+                    const newVal = parseInt(engineState.imbalance_fire_count, 10) || 0;
+                    if (newVal !== this._lastSignalFiresSeen) {
+                        this._lastSignalFiresSeen = newVal;
+                        this.engineSignalFires = newVal;
+                        if (newVal > 0) {
+                            this.pushTrace({
+                                type: 'signal',
+                                t: this.time.toFloat(),
+                                msg: `SIGNAL FIRE #${newVal}`
+                            });
+                        }
+                    }
+                }
+                if (engineState.relay_url !== undefined) {
+                    this.engineRelayUrl = String(engineState.relay_url || '');
                 }
             } catch (e) {
                 console.warn('ingestEngineState failed:', e);
@@ -1980,6 +2060,11 @@
             this.engineArcSq = Fraction.zero();
             this.engineRadiusSq = Fraction.one();
             this.engineInitialized = false;
+            this.engineIndicatorPasses = 0;
+            this.engineSignalFires = 0;
+            this.engineRelayUrl = '';
+            this._lastIndicatorPassesSeen = -1;
+            this._lastSignalFiresSeen = -1;
         }
 
         toggleMode() {
@@ -2106,6 +2191,8 @@
     const zetaValSpan = document.getElementById('zeta-val');
     const relayStatusSpan = document.getElementById('relay-status');
     const engineCoherenceSpan = document.getElementById('engine-coherence');
+    const indicatorPassesSpan = document.getElementById('indicator-passes');
+    const signalFiresSpan = document.getElementById('signal-fires');
     const dbzBranchSpan = document.getElementById('dbz-branch');
     const aeaeDeltaSpan = document.getElementById('aeae-delta');
     const aeaeMSpan = document.getElementById('aeae-m');
@@ -2142,6 +2229,10 @@
     const engRadSpan = document.getElementById('eng-rad');
     const engDevSpan = document.getElementById('eng-dev');
     const engFgSpan = document.getElementById('eng-fg');
+    const engIndSpan = document.getElementById('eng-ind');
+    const engSigSpan = document.getElementById('eng-sig');
+    const engRelaySpan = document.getElementById('eng-relay');
+    const relayBadge = document.getElementById('relayBadge');
 
     let frameCount = 0;
 
@@ -2553,13 +2644,18 @@
                     codex.lastZetaRe.toFloat() ** 2 + codex.lastZetaIm.toFloat() ** 2
                 ).toFixed(4);
 
+                // [PATCH] Relay status wired through engineState.relay_url
                 if (relayStatusSpan) {
-                    if (window.chartOverlay && window.chartOverlay.connected) {
+                    const relayUrl = (codex.engineState && codex.engineState.relay_url) || RELAY_URL || '';
+                    if (relayUrl) {
                         relayStatusSpan.textContent = 'UP';
-                        relayStatusSpan.style.color = '#00ff88';
-                    } else {
+                        relayStatusSpan.className = 'value engine-up';
+                    } else if (codex.engineState) {
                         relayStatusSpan.textContent = 'DOWN';
-                        relayStatusSpan.style.color = '#ff4466';
+                        relayStatusSpan.className = 'value engine-down';
+                    } else {
+                        relayStatusSpan.textContent = 'WAIT';
+                        relayStatusSpan.className = 'value engine-wait';
                     }
                 }
 
@@ -2567,14 +2663,32 @@
                     if (codex.engineCoherent !== null) {
                         if (codex.engineCoherent) {
                             engineCoherenceSpan.textContent = '✅ COHERENT';
-                            engineCoherenceSpan.style.color = '#00ff88';
+                            engineCoherenceSpan.className = 'value engine-up';
                         } else {
                             engineCoherenceSpan.textContent = '🔄 DEVIANT';
-                            engineCoherenceSpan.style.color = '#ff4466';
+                            engineCoherenceSpan.className = 'value engine-down';
                         }
                     } else {
                         engineCoherenceSpan.textContent = '⏳ WAITING';
-                        engineCoherenceSpan.style.color = '#ffaa44';
+                        engineCoherenceSpan.className = 'value engine-wait';
+                    }
+                }
+
+                // [PATCH] Indicator passes and signal fires counters
+                if (indicatorPassesSpan) {
+                    indicatorPassesSpan.textContent = String(codex.engineIndicatorPasses);
+                    if (codex.engineIndicatorPasses > 0) {
+                        indicatorPassesSpan.style.color = '#00ff88';
+                    } else {
+                        indicatorPassesSpan.style.color = '#ffaa44';
+                    }
+                }
+                if (signalFiresSpan) {
+                    signalFiresSpan.textContent = String(codex.engineSignalFires);
+                    if (codex.engineSignalFires > 0) {
+                        signalFiresSpan.style.color = '#ff4488';
+                    } else {
+                        signalFiresSpan.style.color = '#ffaa44';
                     }
                 }
 
@@ -2624,6 +2738,33 @@
                     if (engRadSpan) engRadSpan.textContent = es.radius_sq !== undefined ? String(es.radius_sq).slice(0, 12) : '—';
                     if (engDevSpan) engDevSpan.textContent = es.deviation !== undefined ? String(es.deviation).slice(0, 12) : '—';
                     if (engFgSpan) engFgSpan.textContent = es.engine_initialized ? '✅ YES' : '⏳ NO';
+                    if (engIndSpan) engIndSpan.textContent = String(codex.engineIndicatorPasses);
+                    if (engSigSpan) engSigSpan.textContent = String(codex.engineSignalFires);
+                    if (engRelaySpan) {
+                        const relayUrl = es.relay_url || '';
+                        if (relayUrl) {
+                            engRelaySpan.textContent = 'UP';
+                            engRelaySpan.className = 'value relay-up';
+                        } else {
+                            engRelaySpan.textContent = 'UNSET';
+                            engRelaySpan.className = 'value relay-down';
+                        }
+                    }
+                }
+
+                // [PATCH] relayBadge in top-right of chart panel
+                if (relayBadge) {
+                    const relayUrl = (codex.engineState && codex.engineState.relay_url) || RELAY_URL || '';
+                    if (relayUrl) {
+                        relayBadge.textContent = 'RELAY: UP';
+                        relayBadge.className = 'up';
+                    } else if (codex.engineState) {
+                        relayBadge.textContent = 'RELAY: DOWN';
+                        relayBadge.className = 'down';
+                    } else {
+                        relayBadge.textContent = 'RELAY: WAIT';
+                        relayBadge.className = 'wait';
+                    }
                 }
 
                 const sr = codex.srRatio.toFloat();
@@ -2817,6 +2958,24 @@
         if (engRadSpan) engRadSpan.textContent = '—';
         if (engDevSpan) engDevSpan.textContent = '—';
         if (engFgSpan) engFgSpan.textContent = '—';
+        if (engIndSpan) engIndSpan.textContent = '—';
+        if (engSigSpan) engSigSpan.textContent = '—';
+        if (engRelaySpan) {
+            engRelaySpan.textContent = '—';
+            engRelaySpan.className = 'value relay-wait';
+        }
+        if (indicatorPassesSpan) {
+            indicatorPassesSpan.textContent = '0';
+            indicatorPassesSpan.style.color = '#ffaa44';
+        }
+        if (signalFiresSpan) {
+            signalFiresSpan.textContent = '0';
+            signalFiresSpan.style.color = '#ffaa44';
+        }
+        if (relayBadge) {
+            relayBadge.textContent = 'RELAY: —';
+            relayBadge.className = 'wait';
+        }
         proofChain.classList.remove('visible');
         proofTrace.classList.remove('visible');
         proofTraceLines.innerHTML = '';
@@ -2869,6 +3028,9 @@
                 radius_sq: codex.engineState.radius_sq,
                 deviation: codex.engineState.deviation,
                 engine_initialized: codex.engineState.engine_initialized,
+                indicator_populate_count: codex.engineState.indicator_populate_count,
+                imbalance_fire_count: codex.engineState.imbalance_fire_count,
+                relay_url: codex.engineState.relay_url,
             } : null,
             time_exact: codex.time.toString(),
             generation: codex.gen,
@@ -2899,6 +3061,8 @@
             activePhoneme: codex.activePhoneme,
             commutatorNorm_exact: codex.commutatorNorm.toString(),
             curlMagnitude_exact: codex.curlMagnitude.toString(),
+            engineIndicatorPasses: codex.engineIndicatorPasses,
+            engineSignalFires: codex.engineSignalFires,
             fvgLines: (window.chartOverlay && window.chartOverlay.fvgLines) ? window.chartOverlay.fvgLines.map(l => ({
                 type: l.type, price_exact: l.price.toString(), idx: l.idx, user_id: l.user_id || null
             })) : [],
@@ -3609,6 +3773,8 @@
             const hudRegime = document.getElementById('hud-regime');
             const hudConn = document.getElementById('hud-conn');
             const hudRelay = document.getElementById('hud-relay');
+            const hudInd = document.getElementById('hud-ind');
+            const hudSig = document.getElementById('hud-sig');
 
             if (this.backendState) {
                 if (hudSymbol) hudSymbol.textContent = this.backendState.symbol || 'BTC-USD';
@@ -3638,6 +3804,8 @@
                         hudRelay.className = 'conn-wait';
                     }
                 }
+                if (hudInd) hudInd.textContent = String(this.backendState.indicator_populate_count || 0);
+                if (hudSig) hudSig.textContent = String(this.backendState.imbalance_fire_count || 0);
             } else {
                 if (hudConn) {
                     hudConn.textContent = 'LOCAL-ONLY';
@@ -3647,6 +3815,8 @@
                     hudRelay.textContent = '—';
                     hudRelay.className = 'conn-wait';
                 }
+                if (hudInd) hudInd.textContent = '0';
+                if (hudSig) hudSig.textContent = '0';
             }
         }
 
