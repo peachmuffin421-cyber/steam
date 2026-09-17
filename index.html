@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Codex Symbolica · ÆEA Chart Overlay · Constraint-Locked Final</title>
+    <title>Codex Symbolica · ÆEA Chart Overlay</title>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -707,7 +707,7 @@
 </div>
 
 <div id="info">
-    <h1>⚡ CODEX SYMBOLICA · ÆEA Final</h1>
+    <h1>⚡ CODEX SYMBOLICA</h1>
     <p>S³→S² · DbZ · O[Ψ] · CRT · CF · ζ(s) · Lingoso · ÆEA · ⊢ CS</p>
     <p style="margin-top:4px;">
         <span style="color:#ffaa44;">H</span> help ·
@@ -852,7 +852,7 @@
 </div>
 
 <div id="enginePanel">
-    <div class="label">ENGINE STATE (app.py):</div>
+    <div class="label">ENGINE STATE:</div>
     <div><span class="label">Price</span> <span class="value" id="eng-price">—</span></div>
     <div><span class="label">Signal</span> <span class="value" id="eng-signal">—</span></div>
     <div><span class="label">Tick</span> <span class="value" id="eng-tick">—</span></div>
@@ -866,7 +866,7 @@
 </div>
 
 <div id="explainPanel" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:11;background:rgba(5,5,16,0.95);border:1px solid #335577;border-radius:8px;padding:12px 20px;font-size:0.6rem;max-width:640px;backdrop-filter:blur(8px);box-shadow:0 4px 30px rgba(0,0,0,0.5);line-height:1.6;">
-    <h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ CODEX SYMBOLICA — VISUALIZATION KEY Final</h3>
+    <h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ VISUALIZATION KEY</h3>
     <div><span style="color:#ffaa44;font-weight:bold;">Φ (Quaternion)</span> <span style="opacity:0.8;">— Current state on S³, projected to S² via Hopf fibration.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">s² (exact)</span> <span style="opacity:0.8;">— Squared arc length from origin (identity quaternion), exact rational.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">r² (exact)</span> <span style="opacity:0.8;">— Squared radial distance ‖q‖², exact rational.</span></div>
@@ -875,34 +875,34 @@
     <div><span style="color:#ffaa44;font-weight:bold;">‖ψ‖² (L²)</span> <span style="opacity:0.8;">— True L² norm of the coherent wavefunction over the 4D grid.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">ζ(½+it)</span> <span style="opacity:0.8;">— Riemann zeta function evaluated on the critical line.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">RELAY</span> <span style="opacity:0.8;">— Cloudflare Worker relay status (upstream Yahoo Finance).</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">ENGINE COHERENCE</span> <span style="opacity:0.8;">— Live status reported by the Python engine (app.py) via /state. This is the sole source of truth.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">ENGINE COHERENCE</span> <span style="opacity:0.8;">— Live status reported by the Python engine via /state. This is the sole source of truth.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">ENGINE STATE PANEL</span> <span style="opacity:0.8;">— Direct mirror of the live engine's internal fields: Price, Signal, Tick, Regime, m/n, Arc s², Rad r², Deviation. This is the raw truth from app.py.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">DbZ Branch</span> <span style="opacity:0.8;">— Re[Ψ] > 0 → critical line; Re[Ψ] ≤ 0 → Natalia fibration.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">ÆEA δ</span> <span style="opacity:0.8;">— Kronecker delta δ(m−n−2). Market topology parity.</span></div>
     <div style="margin-top:8px;border-top:1px solid #224466;padding-top:6px;">
         <span style="color:#4488ff;font-weight:bold;">▲ TOP (T)</span>
-        <span style="opacity:0.8;">— Click chart to draw a blue premium FVG line (maps to æea.mq4 Top()).</span>
+        <span style="opacity:0.8;">— Click chart to draw a blue premium FVG line.</span>
     </div>
     <div>
         <span style="color:#ff4466;font-weight:bold;">▼ BOTTOM (B)</span>
-        <span style="opacity:0.8;">— Click chart to draw a red discount FVG line (maps to æea.mq4 Bott()).</span>
+        <span style="opacity:0.8;">— Click chart to draw a red discount FVG line.</span>
     </div>
     <div>
         <span style="color:#ffaa44;font-weight:bold;">✖ DELETE (D)</span>
-        <span style="opacity:0.8;">— Click an existing line to remove it (maps to æea.mq4 Deleter()).</span>
+        <span style="opacity:0.8;">— Click an existing line to remove it.</span>
     </div>
     <div>
         <span style="color:#44ffcc;font-weight:bold;">ESC</span>
         <span style="opacity:0.8;">— Clear active tool, return to rotate/zoom mode.</span>
     </div>
     <div style="margin-top:8px;border-top:1px solid #224466;padding-top:6px;opacity:0.8;">
-        <span style="color:#44ffcc;font-weight:bold;">🌐 DATA PIPELINE Final</span>
+        <span style="color:#44ffcc;font-weight:bold;">🌐 DATA PIPELINE</span>
         — Price data flows: Cloudflare Worker → Heroku (app.py) → Bridge (/state) → this Mini App.
         The Mini App mirrors the engine's true coherence state via the ENGINE COHERENCE metric.
         ENGINE STATE panel shows the raw Python engine fields (arc_sq, radius_sq, deviation) directly from /state.
-        <span style="color:#ff4466;font-weight:bold;">Note:</span> The Arc-Length coherence is now reported truthfully by the engine.
+        <span style="color:#ff4466;font-weight:bold;">Note:</span> The Arc-Length coherence is reported truthfully by the engine.
         If the ENGINE STATE panel shows non-zero Deviation, the system is in a genuine deviation
-        state — FVG commits will be gated by the engine's coherence check (P2 fix).
+        state — FVG commits will be gated by the engine's coherence check.
     </div>
     <div style="margin-top:6px;opacity:0.6;">Press <span style="color:#ffaa44;">H</span> to toggle this panel. Press <span style="color:#ffaa44;">Shift+T</span> to toggle TRACE.</div>
 </div>
@@ -981,13 +981,13 @@
     'use strict';
 
     // ============================================================
-    // 0. BACKEND CONFIGURATION — SINGLE SOURCE OF TRUTH
+    // BACKEND CONFIGURATION — SINGLE SOURCE OF TRUTH
     // ============================================================
     const BACKEND_URL = 'https://aeea-df7f2ade617d.herokuapp.com';
     const RELAY_URL = '';
 
     // ============================================================
-    // 1. TELEGRAM WEB APP BOOTSTRAP
+    // TELEGRAM WEB APP BOOTSTRAP
     // ============================================================
     const TelegramWebAppAPI = (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
 
@@ -1144,7 +1144,7 @@
     function hideError() { errorDisplay.style.display = 'none'; }
 
     // ============================================================
-    // 2. EXACT FRACTION ARITHMETIC
+    // EXACT FRACTION ARITHMETIC
     // ============================================================
     class Fraction {
         constructor(n = 0, d = 1) {
@@ -1297,7 +1297,7 @@
     }
 
     // ============================================================
-    // 3. QUATERNION ALGEBRA (Exact Fractions Only)
+    // QUATERNION ALGEBRA (Exact Fractions Only)
     // ============================================================
     class Quat {
         constructor(a, b, c, d) {
@@ -1398,7 +1398,7 @@
     }
 
     // ============================================================
-    // 4. UTILITY FUNCTIONS
+    // UTILITY FUNCTIONS
     // ============================================================
     function continuedFractionExact(frac, n) {
         const terms = [];
@@ -1477,7 +1477,7 @@
     }
 
     // ============================================================
-    // 5. CODEX STATE
+    // CODEX STATE
     // ============================================================
     const OBS_GRID_DIM = 6;
     const TRACE_MAX = 32;
@@ -1664,7 +1664,6 @@
             if (!engineState) return;
             this.engineState = engineState;
             try {
-                // [P2] Coherence flag is the sole source of truth from the engine.
                 if (engineState.coherent !== undefined) {
                     this.engineCoherent = !!engineState.coherent;
                 }
@@ -1990,7 +1989,7 @@
     }
 
     // ============================================================
-    // 6. CANVAS SETUP & PRE-FLIGHT VALIDATION
+    // CANVAS SETUP & PRE-FLIGHT VALIDATION
     // ============================================================
     const canvas = document.getElementById('mainCanvas');
     const ctx = canvas.getContext('2d');
@@ -2054,7 +2053,7 @@
     window.__aei_resize = resizeCanvas;
 
     // ============================================================
-    // 7. 3D PROJECTION
+    // 3D PROJECTION
     // ============================================================
     function project3D(x, y, z, rotX, rotY, zoom) {
         zoom = zoom || 1;
@@ -2078,7 +2077,7 @@
     }
 
     // ============================================================
-    // 8. STATE, CONTROLS, DOM HANDLES
+    // STATE, CONTROLS, DOM HANDLES
     // ============================================================
     const codex = new CodexState();
     let paused = false;
@@ -2160,7 +2159,7 @@
     attachCopyHandler(r2Exact);
 
     // ============================================================
-    // 9. RENDER LOOP
+    // RENDER LOOP
     // ============================================================
     function render() {
         try {
@@ -2531,9 +2530,6 @@
                     ctx.shadowBlur = 0;
                 }
 
-                // ============================================================
-                // [P2] COHERENCE DISPLAY — Engine state is sole source of truth
-                // ============================================================
                 coherenceSpan.textContent = codex.coherent ? '✅ COHERENT (s=r)' : '🔄 EVOLVING (s≠r)';
                 coherenceSpan.style.color = codex.coherent ? '#00ff88' : '#ff4466';
                 generationSpan.textContent = codex.gen;
@@ -2567,8 +2563,6 @@
                     }
                 }
 
-                // [P2] Engine Coherence is the sole source of truth.
-                // Never fabricate from local state.
                 if (engineCoherenceSpan) {
                     if (codex.engineCoherent !== null) {
                         if (codex.engineCoherent) {
@@ -2698,7 +2692,7 @@
     }
 
     // ============================================================
-    // 10. CONTROLS & EVENT HANDLERS
+    // CONTROLS & EVENT HANDLERS
     // ============================================================
     canvas.addEventListener('mousedown', (e) => {
         isDragging = true;
@@ -2852,7 +2846,6 @@
 
     document.getElementById('exportBtn').addEventListener('click', () => {
         const data = {
-            version: 'Final',
             timestamp: Date.now(),
             backend_url: BACKEND_URL,
             relay_url: RELAY_URL,
@@ -2861,7 +2854,6 @@
                 userId: TMA.userId,
                 username: TMA.username,
                 platform: TMA.platform,
-                version: TMA.version,
                 handshakeOk: TMA.handshakeOk,
                 publicUrl: TMA.publicUrl,
             },
@@ -2921,7 +2913,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `codex_symbolica_exact_Final_tma_${Date.now()}.json`;
+        a.download = `codex_symbolica_exact_${Date.now()}.json`;
         a.click();
         URL.revokeObjectURL(url);
     });
@@ -2991,7 +2983,7 @@
     });
 
     // ============================================================
-    // 11. CHART OVERLAY
+    // CHART OVERLAY
     // ============================================================
     class ChartOverlay {
         constructor(canvasEl, ctxEl, codexRef) {
@@ -3139,7 +3131,6 @@
         updateFromCodex() {}
 
         addFVG(type, priceFraction) {
-            // [P2] Coherence gate uses the engine's truth exclusively.
             let coherent = null;
             let devStr = '';
             if (this.backendState && this.backendState.coherent !== undefined) {
@@ -3148,7 +3139,6 @@
                     devStr = String(this.backendState.deviation);
                 }
             } else {
-                // Fallback: use local codex if engine state is not available.
                 const localCheck = this._validateContinuity();
                 coherent = localCheck.coherent;
                 devStr = localCheck.dev.toString();
@@ -3242,7 +3232,6 @@
                 ? '● ARC-LENGTH: COHERENT (s²=r²)'
                 : '● ARC-LENGTH: DEVIATION (s²≠r²)';
             setTimeout(() => {
-                // [P2] Prefer engine truth.
                 let isCoherent = null;
                 if (this.backendState && this.backendState.coherent !== undefined) {
                     isCoherent = !!this.backendState.coherent;
@@ -3671,7 +3660,7 @@
     }
 
     // ============================================================
-    // 12. TELEGRAM BRIDGE
+    // TELEGRAM BRIDGE
     // ============================================================
     class TelegramBridge {
         constructor(overlay, opts) {
@@ -3773,7 +3762,7 @@
     }
 
     // ============================================================
-    // 13. INITIALIZATION
+    // INITIALIZATION
     // ============================================================
     window.chartOverlay = null;
     window.telegramBridge = null;
@@ -3866,28 +3855,14 @@
         document.addEventListener('DOMContentLoaded', initializeVisualization);
     }
 
-    // ============================================================
-    // 14. FINAL CONSOLE MANIFEST
-    // ============================================================
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('⚡ CODEX SYMBOLICA · ÆEA · TELEGRAM MINI APP Final');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('Constraint-Locked Rebuild — Audit Findings Resolved:');
-    console.log('  ✓ [P1] s² accumulator: O(1) incremental in app.py');
-    console.log('  ✓ [P2] Coherence validator: exact tolerance, true s²/r²/Δ');
-    console.log('  ✓ [P3] MQL4 state machine: iA/cA populated at correct idx');
-    console.log('  ✓ [P4] FVG gate: engine coherence is sole source of truth');
-    console.log('  ✓ Engine state ingestion reads true coherent flag');
-    console.log('  ✓ ENGINE COHERENCE metric reads live /state.coherent');
-    console.log('  ✓ ENGINE STATE panel mirrors app.py fields directly');
-    console.log('  ✓ Continuity badge reflects engine truth when available');
+    console.log('⚡ CODEX SYMBOLICA · ÆEA');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(' ⌨  T=Top | B=Bottom | D=Delete | Esc=Pan tool');
     console.log(' ⌨  Shift+T = Trace | H=Help | Space=Pause | R=Reset');
     console.log(' 🖱  Right-click on a line also deletes it');
     console.log(' 📱 In Telegram: auto-connects, theme-adaptive, haptic feedback');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(' 🌐 Data Pipeline: Cloudflare Worker → Heroku (app.py) → Bridge → Mini App');
     console.log(' 🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
