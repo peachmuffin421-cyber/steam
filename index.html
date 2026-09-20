@@ -276,6 +276,10 @@
         #proofTrace .pt-indicator { color: #66ffaa; font-weight: bold; }
         #proofTrace .pt-signal { color: #ff4488; font-weight: bold; }
         #proofTrace .pt-arc { color: #44ffcc; font-weight: bold; }
+        // ═══ PATCH-A6: new trace categories ═══
+        #proofTrace .pt-trail { color: #ff66aa; font-weight: bold; }
+        #proofTrace .pt-order { color: #88ff88; font-weight: bold; }
+        #proofTrace .pt-kc { color: #44aaff; font-weight: bold; }
         #errorDisplay {
             position: absolute;
             bottom: 200px;
@@ -424,6 +428,8 @@
             backdrop-filter: blur(4px);
             box-shadow: 0 4px 20px rgba(0,0,0,0.4);
             line-height: 1.6;
+            max-height: 55vh;
+            overflow-y: auto;
         }
         #enginePanel .label { opacity: 0.5; }
         #enginePanel .value { color: #ffaa44; font-weight: bold; }
@@ -432,6 +438,19 @@
         #enginePanel .value.relay-up { color: #00ff88; }
         #enginePanel .value.relay-down { color: #ff4466; }
         #enginePanel .value.relay-wait { color: #ffaa44; }
+        // ═══ PATCH-A1: trailing stop panel value classes ═══
+        #enginePanel .value.trail-active { color: #00ff88; }
+        #enginePanel .value.trail-inactive { color: #6688aa; }
+        // ═══ PATCH-A4: KC/prime/dime surfacing classes ═══
+        #enginePanel .value.kc-true { color: #44ddff; }
+        #enginePanel .value.kc-false { color: #ff66aa; }
+        #enginePanel .value.prime-0 { color: #00ff88; }
+        #enginePanel .value.prime-1 { color: #ff4466; }
+        #enginePanel .value.dime-0 { color: #00ff88; }
+        #enginePanel .value.dime-1 { color: #ff4466; }
+        // ═══ PATCH-A5: on_track/on_stand counter classes ═══
+        #enginePanel .value.counter-zero { color: #6688aa; }
+        #enginePanel .value.counter-active { color: #ffaa44; }
 
         #chartPanel {
             position: absolute;
@@ -695,11 +714,63 @@
         #relayBadge.down { border-color: #ff4466; color: #ff4466; }
         #relayBadge.wait { border-color: #ffaa44; color: #ffaa44; }
 
+        // ═══ PATCH-A1: trailing stop badge ═══
+        #trailBadge {
+            position: absolute;
+            top: 84px;
+            right: 12px;
+            z-index: 12;
+            pointer-events: none;
+            font-size: 0.5rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: rgba(5,5,16,0.92);
+            border: 1px solid #224466;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.4);
+            font-family: 'Courier New', monospace;
+        }
+        #trailBadge.active { border-color: #00ff88; color: #00ff88; }
+        #trailBadge.inactive { border-color: #224466; color: #6688aa; }
+        #trailBadge.long { border-color: #00ff88; color: #00ff88; }
+        #trailBadge.short { border-color: #ff4466; color: #ff4466; }
+
+        // ═══ PATCH-A4: KC/prime/dime badge ═══
+        #kpdBadge {
+            position: absolute;
+            top: 120px;
+            right: 12px;
+            z-index: 12;
+            pointer-events: none;
+            font-size: 0.5rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: rgba(5,5,16,0.92);
+            border: 1px solid #224466;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.4);
+            font-family: 'Courier New', monospace;
+            display: flex;
+            gap: 8px;
+        }
+        #kpdBadge .kpd-kc.kc-true { color: #44ddff; }
+        #kpdBadge .kpd-kc.kc-false { color: #ff66aa; }
+        #kpdBadge .kpd-prime.p0 { color: #00ff88; }
+        #kpdBadge .kpd-prime.p1 { color: #ff4466; }
+        #kpdBadge .kpd-prime.pn { color: #6688aa; }
+        #kpdBadge .kpd-dime.d0 { color: #00ff88; }
+        #kpdBadge .kpd-dime.d1 { color: #ff4466; }
+        #kpdBadge .kpd-dime.dn { color: #6688aa; }
+        #kpdBadge .kpd-mem.m0 { color: #44ffcc; }
+        #kpdBadge .kpd-mem.m1 { color: #ffaa44; }
+        #kpdBadge .kpd-mem.mn { color: #6688aa; }
+
         @media (max-width: 1100px) {
             #chartCanvas, #chartPanel { width: 55vw; min-width: 320px; }
             #fvgPanel { width: 55vw; min-width: 320px; }
             #chartHUD { min-width: 200px; font-size: 0.55rem; }
             #toolPalette { top: 180px; right: 6px; }
+            #trailBadge, #kpdBadge { top: auto; }
         }
         @media (max-width: 700px) {
             #chartCanvas, #chartPanel {
@@ -716,7 +787,7 @@
             #info { max-width: 60vw; font-size: 0.55rem; }
             #controls { max-width: 60vw; }
             #lingosoPanel, #aeaePanel, #observerPanel, #zetaPanel, #enginePanel,
-            #timeSeriesPanel, #spiralLegend { display: none; }
+            #timeSeriesPanel, #spiralLegend, #trailBadge, #kpdBadge { display: none; }
         }
     </style>
 </head>
@@ -765,6 +836,10 @@
     <div><span class="label">ENGINE COHERENCE</span> <span class="value engine-wait" id="engine-coherence">—</span></div>
     <div><span class="label">INDICATOR PASSES</span> <span class="value" id="indicator-passes">0</span></div>
     <div><span class="label">SIGNAL FIRES</span> <span class="value" id="signal-fires">0</span></div>
+    // ═══ PATCH-A1: trailing stop metric line ═══
+    <div><span class="label">TRAILING STOP</span> <span class="value engine-wait" id="trail-status-metric">—</span></div>
+    // ═══ PATCH-A5: on_track/on_stand metrics ═══
+    <div><span class="label">ONTRACK / ONSTAND</span> <span class="value" id="scanner-counts-metric">0 / 0</span></div>
 </div>
 
 <div id="status">
@@ -897,6 +972,26 @@
     <div><span class="label">Ind Pass</span> <span class="value" id="eng-ind">—</span></div>
     <div><span class="label">Sig Fires</span> <span class="value" id="eng-sig">—</span></div>
     <div><span class="label">Relay</span> <span class="value relay-wait" id="eng-relay">—</span></div>
+    // ═══ PATCH-A1: trailing stop engine field ═══
+    <div><span class="label">Trail Active</span> <span class="value trail-inactive" id="eng-trail-active">—</span></div>
+    <div><span class="label">Trail SL</span> <span class="value" id="eng-trail-sl">—</span></div>
+    <div><span class="label">Trail TP</span> <span class="value" id="eng-trail-tp">—</span></div>
+    <div><span class="label">Trail Entry</span> <span class="value" id="eng-trail-entry">—</span></div>
+    <div><span class="label">Trail Side</span> <span class="value" id="eng-trail-side">—</span></div>
+    <div><span class="label">Open Long</span> <span class="value" id="eng-has-long">—</span></div>
+    <div><span class="label">Open Short</span> <span class="value" id="eng-has-short">—</span></div>
+    // ═══ PATCH-A4: KC/prime/dime/mem/tag engine fields ═══
+    <div><span class="label">KC</span> <span class="value kc-false" id="eng-kc">—</span></div>
+    <div><span class="label">Prime</span> <span class="value" id="eng-prime">—</span></div>
+    <div><span class="label">Dime</span> <span class="value" id="eng-dime">—</span></div>
+    <div><span class="label">Mem</span> <span class="value" id="eng-mem">—</span></div>
+    <div><span class="label">Tag</span> <span class="value" id="eng-tag">—</span></div>
+    <div><span class="label">Invert</span> <span class="value" id="eng-invert">—</span></div>
+    // ═══ PATCH-A5: on_track/on_stand engine fields ═══
+    <div><span class="label">OnTrack Runs</span> <span class="value counter-zero" id="eng-ontrack">—</span></div>
+    <div><span class="label">OnStand Runs</span> <span class="value counter-zero" id="eng-onstand">—</span></div>
+    <div><span class="label">Last Kron Bar</span> <span class="value" id="eng-lastkron">—</span></div>
+    <div><span class="label">Last Kron m/n/h</span> <span class="value" id="eng-lastkron-mnh">—</span></div>
 </div>
 
 <div id="explainPanel" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:11;background:rgba(5,5,16,0.95);border:1px solid #335577;border-radius:8px;padding:12px 20px;font-size:0.6rem;max-width:640px;backdrop-filter:blur(8px);box-shadow:0 4px 30px rgba(0,0,0,0.5);line-height:1.6;">
@@ -911,8 +1006,18 @@
     <div><span style="color:#ffaa44;font-weight:bold;">RELAY</span> <span style="opacity:0.8;">— Cloudflare Worker relay status (upstream Yahoo Finance).</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">ENGINE COHERENCE</span> <span style="opacity:0.8;">— Live status reported by the Python engine via /state.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">INDICATOR PASSES</span> <span style="opacity:0.8;">— Number of times the 13D indicator matrix has been fully populated. Non-zero = live.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">SIGNAL FIRES</span> <span style="opacity:0.8;">— Number of Kronecker delta δ(m−n−2)=1 events. Non-zero = trading logic active.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">ENGINE STATE PANEL</span> <span style="opacity:0.8;">— Direct mirror of the live engine's internal fields: Price, Signal, Tick, Regime, m/n, Arc s², Rad r², Deviation, Re[Ψ], Indicator Passes, Signal Fires, Relay. This is the raw truth from app.py.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">SIGNAL FIRES</span> <span style="opacity:0.8;">— Number of Kronecker delta δ(m−n−2)=1 events (MQL4 gate: m≥12 or n≥12). Non-zero = trading logic active.</span></div>
+    // ═══ PATCH-A1: trailing stop explain ═══
+    <div><span style="color:#ffaa44;font-weight:bold;">TRAILING STOP</span> <span style="opacity:0.8;">— MQL4 T() ported to Python engine. Activates when position open; updates SL/TP from Premium/Discount anchors using geometric trail step (30% of open profit).</span></div>
+    // ═══ PATCH-A4: KC/prime/dime explain ═══
+    <div><span style="color:#ffaa44;font-weight:bold;">KC (Constant of Change)</span> <span style="opacity:0.8;">— Non-Hermitian binary inversion flag. Toggles signal validation between conjunctive (precision) and disjunctive (adaptation).</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">Prime / Dime</span> <span style="opacity:0.8;">— Directional derivatives set by OnToe()/OnGoe() and OnGaurd(). prime=1 → bearish reversal, prime=0 → bullish reversal; dime=0 → upward, dime=1 → downward.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">Mem</span> <span style="opacity:0.8;">— Persisted memory of last dime state. Mirrors MQL4's mem assignment.</span></div>
+    // ═══ PATCH-A5: on_track/on_stand explain ═══
+    <div><span style="color:#ffaa44;font-weight:bold;">OnTrack / OnStand</span> <span style="opacity:0.8;">— Extremum scanners ported from MQL4. OnTrack scans above Premium boundary during sVolatile/tVolatile; OnStand scans below Discount boundary during forced deleveraging. Loop bound extended to 4*max (MQL4 parity).</span></div>
+    // ═══ PATCH-A6: last kronecker explain ═══
+    <div><span style="color:#ffaa44;font-weight:bold;">Last Kron m/n/h</span> <span style="opacity:0.8;">— Snapshot of global m/n counts and h-bar index at the moment the last Kronecker signal fired.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">ENGINE STATE PANEL</span> <span style="opacity:0.8;">— Direct mirror of the live engine's internal fields: Price, Signal, Tick, Regime, m/n, Arc s², Rad r², Deviation, Re[Ψ], Indicator Passes, Signal Fires, Relay, Trailing Stop, KC/Prime/Dime/Mem/Tag, OnTrack/OnStand. This is the raw truth from app.py.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">Re[Ψ]</span> <span style="opacity:0.8;">— Real component of the current quaternion Φ (the a-coordinate).</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">DbZ Branch</span> <span style="opacity:0.8;">— Re[Ψ] > 0 → critical line; Re[Ψ] ≤ 0 → Natalia fibration.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">ÆEA δ</span> <span style="opacity:0.8;">— Kronecker delta δ(m−n−2). Market topology parity.</span></div>
@@ -936,11 +1041,12 @@
         <span style="color:#44ffcc;font-weight:bold;">🌐 DATA PIPELINE</span>
         — Price data flows: Cloudflare Worker → Heroku (app.py) → Bridge (/state) → this Mini App.
         The Mini App mirrors the engine's true coherence state via the ENGINE COHERENCE metric.
-        ENGINE STATE panel shows the raw Python engine fields (arc_sq, radius_sq, deviation, re_psi, indicator_populate_count, imbalance_fire_count, relay_url) directly from /state.
+        ENGINE STATE panel shows the raw Python engine fields (arc_sq, radius_sq, deviation, re_psi, indicator_populate_count, imbalance_fire_count, relay_url, trailing_stop_*) directly from /state.
         <span style="color:#ff4466;font-weight:bold;">Note:</span> The Arc-Length coherence is reported truthfully by the engine.
         If the ENGINE STATE panel shows non-zero Deviation, the system is in a genuine deviation
         state — FVG commits will be gated by the engine's coherence check.
         <span style="color:#ffaa44;font-weight:bold;">INDICATOR PASSES</span> and <span style="color:#ff4488;font-weight:bold;">SIGNAL FIRES</span> are the diagnostic counters that confirm the indicator matrix is live.
+        <span style="color:#ff66aa;font-weight:bold;">TRAILING STOP</span> state is ported from MQL4 T().
     </div>
     <div style="margin-top:6px;opacity:0.6;">Press <span style="color:#ffaa44;">H</span> to toggle this panel. Press <span style="color:#ffaa44;">Shift+T</span> to toggle TRACE.</div>
 </div>
@@ -992,9 +1098,43 @@
             <span class="label">Re[Ψ]</span>
             <span class="value" id="hud-repsi">—</span>
         </div>
+        // ═══ PATCH-A1: trailing stop HUD line ═══
+        <div>
+            <span class="label">TRAIL</span>
+            <span class="value" id="hud-trail">—</span>
+            <span class="label" style="margin-left:6px;">SIDE</span>
+            <span class="value" id="hud-trail-side">—</span>
+        </div>
+        // ═══ PATCH-A4: KC/prime/dime HUD line ═══
+        <div>
+            <span class="label">KC</span>
+            <span class="value kc-false" id="hud-kc">—</span>
+            <span class="label">PRIME</span>
+            <span class="value" id="hud-prime">—</span>
+            <span class="label">DIME</span>
+            <span class="value" id="hud-dime">—</span>
+        </div>
+        // ═══ PATCH-A5: on_track/on_stand HUD line ═══
+        <div>
+            <span class="label">ONTRACK</span>
+            <span class="value" id="hud-ontrack">0</span>
+            <span class="label">ONSTAND</span>
+            <span class="value" id="hud-onstand">0</span>
+        </div>
     </div>
 
     <div id="relayBadge" class="wait">RELAY: —</div>
+
+    // ═══ PATCH-A1: trailing stop badge ═══
+    <div id="trailBadge" class="inactive">TRAIL: INACTIVE</div>
+
+    // ═══ PATCH-A4: KC/prime/dime badge ═══
+    <div id="kpdBadge">
+        <span class="kpd-kc kc-false" id="kpd-kc">KC:—</span>
+        <span class="kpd-prime pn" id="kpd-prime">P:—</span>
+        <span class="kpd-dime dn" id="kpd-dime">D:—</span>
+        <span class="kpd-mem mn" id="kpd-mem">M:—</span>
+    </div>
 
     <div id="continuityBadge" class="waiting">
         ● ARC-LENGTH: WAITING
@@ -1609,9 +1749,35 @@
             this.engineIndicatorPasses = 0;
             this.engineSignalFires = 0;
             this.engineRelayUrl = '';
+            // ═══ PATCH-A1: engine trailing stop state ═══
+            this.engineTrailActive = false;
+            this.engineTrailSL = '0.0';
+            this.engineTrailTP = '0.0';
+            this.engineTrailEntry = '0.0';
+            this.engineTrailSide = '';
+            this.engineHasLong = false;
+            this.engineHasShort = false;
+            this.engineLOrderId = -1;
+            this.engineKOrderId = -1;
+            // ═══ PATCH-A4: engine KC/prime/dime/mem/tag state ═══
+            this.engineKC = true;
+            this.enginePrime = -1;
+            this.engineDime = -1;
+            this.engineMem = -1;
+            this.engineTag = -1;
+            this.engineInvert = true;
+            // ═══ PATCH-A5: engine on_track/on_stand state ═══
+            this.engineOnTrack = 0;
+            this.engineOnStand = 0;
+            this.engineLastKronBar = -1;
+            this.engineLastKronM = 0;
+            this.engineLastKronN = 0;
+            this.engineLastKronH = -1;
             this._lastIndicatorPassesSeen = -1;
             this._lastSignalFiresSeen = -1;
             this._lastCoherenceSeen = null;
+            this._lastTrailSeen = null;
+            this._lastKronSeen = null;
         }
 
         coherentWavefunction(qPoint) {
@@ -1721,7 +1887,6 @@
             if (!engineState) return;
             this.engineState = engineState;
             try {
-                // [PATCH A5] Use true engine re_psi directly, no tanh heuristic
                 if (engineState.re_psi !== undefined) {
                     try {
                         this.engineRePsi = Fraction.fromExactString(String(engineState.re_psi));
@@ -1807,6 +1972,86 @@
                         RELAY_URL = this.engineRelayUrl;
                     }
                 }
+                // ═══ PATCH-A1: ingest trailing stop state ═══
+                if (engineState.trailing_stop_active !== undefined) {
+                    const newTrail = !!engineState.trailing_stop_active;
+                    if (this._lastTrailSeen !== newTrail) {
+                        this._lastTrailSeen = newTrail;
+                        if (newTrail) {
+                            this.pushTrace({
+                                type: 'trail',
+                                t: this.time.toFloat(),
+                                msg: `Trailing stop ACTIVATED (side=${engineState.trailing_stop_side || '?'})`
+                            });
+                        } else {
+                            this.pushTrace({
+                                type: 'trail',
+                                t: this.time.toFloat(),
+                                msg: `Trailing stop DEACTIVATED`
+                            });
+                        }
+                    }
+                    this.engineTrailActive = newTrail;
+                }
+                if (engineState.trailing_stop_price !== undefined) {
+                    this.engineTrailSL = String(engineState.trailing_stop_price);
+                }
+                if (engineState.trailing_take_profit !== undefined) {
+                    this.engineTrailTP = String(engineState.trailing_take_profit);
+                }
+                if (engineState.trailing_stop_entry !== undefined) {
+                    this.engineTrailEntry = String(engineState.trailing_stop_entry);
+                }
+                if (engineState.trailing_stop_side !== undefined) {
+                    this.engineTrailSide = String(engineState.trailing_stop_side || '');
+                }
+                if (engineState.has_open_long !== undefined) {
+                    this.engineHasLong = !!engineState.has_open_long;
+                }
+                if (engineState.has_open_short !== undefined) {
+                    this.engineHasShort = !!engineState.has_open_short;
+                }
+                if (engineState.lOrder_id !== undefined) {
+                    this.engineLOrderId = parseInt(engineState.lOrder_id, 10);
+                }
+                if (engineState.kOrder_id !== undefined) {
+                    this.engineKOrderId = parseInt(engineState.kOrder_id, 10);
+                }
+                // ═══ PATCH-A4: ingest KC/prime/dime/mem/tag ═══
+                if (engineState.KC !== undefined) this.engineKC = !!engineState.KC;
+                if (engineState.prime !== undefined) this.enginePrime = parseInt(engineState.prime, 10);
+                if (engineState.dime !== undefined) this.engineDime = parseInt(engineState.dime, 10);
+                if (engineState.mem !== undefined) this.engineMem = parseInt(engineState.mem, 10);
+                if (engineState.tag !== undefined) this.engineTag = parseInt(engineState.tag, 10);
+                if (engineState.invert !== undefined) this.engineInvert = !!engineState.invert;
+                // ═══ PATCH-A5: ingest on_track/on_stand ═══
+                if (engineState.on_track_runs !== undefined) {
+                    this.engineOnTrack = parseInt(engineState.on_track_runs, 10) || 0;
+                }
+                if (engineState.on_stand_runs !== undefined) {
+                    this.engineOnStand = parseInt(engineState.on_stand_runs, 10) || 0;
+                }
+                if (engineState.last_kronecker_bar !== undefined) {
+                    const newKron = parseInt(engineState.last_kronecker_bar, 10);
+                    if (this._lastKronSeen !== newKron && newKron >= 0) {
+                        this._lastKronSeen = newKron;
+                        this.pushTrace({
+                            type: 'order',
+                            t: this.time.toFloat(),
+                            msg: `Kronecker @ h=${newKron}`
+                        });
+                    }
+                    this.engineLastKronBar = newKron;
+                }
+                if (engineState.last_kronecker_m !== undefined) {
+                    this.engineLastKronM = parseInt(engineState.last_kronecker_m, 10) || 0;
+                }
+                if (engineState.last_kronecker_n !== undefined) {
+                    this.engineLastKronN = parseInt(engineState.last_kronecker_n, 10) || 0;
+                }
+                if (engineState.last_kronecker_h !== undefined) {
+                    this.engineLastKronH = parseInt(engineState.last_kronecker_h, 10);
+                }
             } catch (e) {
                 console.warn('ingestEngineState failed:', e);
             }
@@ -1859,7 +2104,6 @@
                 this.r2 = this.r.mul(this.r);
                 this.srRatio = this.s2.div(this.r2);
                 this.dev = this.s2.sub(this.r2);
-                // [PATCH A5] Only update rePsi from quaternion if engine hasn't provided one
                 if (this.engineState === null || this.engineState.re_psi === undefined) {
                     this.rePsi = this.q.a;
                 }
@@ -2089,9 +2333,32 @@
             this.engineIndicatorPasses = 0;
             this.engineSignalFires = 0;
             this.engineRelayUrl = '';
+            this.engineTrailActive = false;
+            this.engineTrailSL = '0.0';
+            this.engineTrailTP = '0.0';
+            this.engineTrailEntry = '0.0';
+            this.engineTrailSide = '';
+            this.engineHasLong = false;
+            this.engineHasShort = false;
+            this.engineLOrderId = -1;
+            this.engineKOrderId = -1;
+            this.engineKC = true;
+            this.enginePrime = -1;
+            this.engineDime = -1;
+            this.engineMem = -1;
+            this.engineTag = -1;
+            this.engineInvert = true;
+            this.engineOnTrack = 0;
+            this.engineOnStand = 0;
+            this.engineLastKronBar = -1;
+            this.engineLastKronM = 0;
+            this.engineLastKronN = 0;
+            this.engineLastKronH = -1;
             this._lastIndicatorPassesSeen = -1;
             this._lastSignalFiresSeen = -1;
             this._lastCoherenceSeen = null;
+            this._lastTrailSeen = null;
+            this._lastKronSeen = null;
         }
 
         toggleMode() {
@@ -2220,6 +2487,10 @@
     const engineCoherenceSpan = document.getElementById('engine-coherence');
     const indicatorPassesSpan = document.getElementById('indicator-passes');
     const signalFiresSpan = document.getElementById('signal-fires');
+    // ═══ PATCH-A1: trail metric span ═══
+    const trailStatusMetricSpan = document.getElementById('trail-status-metric');
+    // ═══ PATCH-A5: scanner counts metric span ═══
+    const scannerCountsMetricSpan = document.getElementById('scanner-counts-metric');
     const dbzBranchSpan = document.getElementById('dbz-branch');
     const aeaeDeltaSpan = document.getElementById('aeae-delta');
     const aeaeMSpan = document.getElementById('aeae-m');
@@ -2260,7 +2531,34 @@
     const engIndSpan = document.getElementById('eng-ind');
     const engSigSpan = document.getElementById('eng-sig');
     const engRelaySpan = document.getElementById('eng-relay');
+    // ═══ PATCH-A1: trail DOM handles ═══
+    const engTrailActiveSpan = document.getElementById('eng-trail-active');
+    const engTrailSLSpan = document.getElementById('eng-trail-sl');
+    const engTrailTPSpan = document.getElementById('eng-trail-tp');
+    const engTrailEntrySpan = document.getElementById('eng-trail-entry');
+    const engTrailSideSpan = document.getElementById('eng-trail-side');
+    const engHasLongSpan = document.getElementById('eng-has-long');
+    const engHasShortSpan = document.getElementById('eng-has-short');
+    // ═══ PATCH-A4: KC/prime/dime DOM handles ═══
+    const engKCSpan = document.getElementById('eng-kc');
+    const engPrimeSpan = document.getElementById('eng-prime');
+    const engDimeSpan = document.getElementById('eng-dime');
+    const engMemSpan = document.getElementById('eng-mem');
+    const engTagSpan = document.getElementById('eng-tag');
+    const engInvertSpan = document.getElementById('eng-invert');
+    // ═══ PATCH-A5: on_track/on_stand DOM handles ═══
+    const engOnTrackSpan = document.getElementById('eng-ontrack');
+    const engOnStandSpan = document.getElementById('eng-onstand');
+    const engLastKronSpan = document.getElementById('eng-lastkron');
+    const engLastKronMnhSpan = document.getElementById('eng-lastkron-mnh');
     const relayBadge = document.getElementById('relayBadge');
+    // ═══ PATCH-A1: trail badge DOM handle ═══
+    const trailBadge = document.getElementById('trailBadge');
+    // ═══ PATCH-A4: KC/prime/dime badge DOM handles ═══
+    const kpdKC = document.getElementById('kpd-kc');
+    const kpdPrime = document.getElementById('kpd-prime');
+    const kpdDime = document.getElementById('kpd-dime');
+    const kpdMem = document.getElementById('kpd-mem');
 
     let frameCount = 0;
 
@@ -2278,7 +2576,7 @@
     attachCopyHandler(r2Exact);
 
     // ============================================================
-    // RELAY URL SEEDING FROM /config  [PATCH A4]
+    // RELAY URL SEEDING FROM /config
     // ============================================================
     async function seedRelayUrlFromConfig() {
         try {
@@ -2317,6 +2615,61 @@
                 relayStatusSpan.textContent = 'WAIT';
                 relayStatusSpan.className = 'value engine-wait';
             }
+        }
+    }
+
+    // ═══ PATCH-A1: trail badge renderer ═══
+    function updateTrailBadge() {
+        if (trailBadge) {
+            if (codex.engineTrailActive) {
+                const side = codex.engineTrailSide || '?';
+                trailBadge.textContent = `TRAIL: ${side} SL=${codex.engineTrailSL.slice(0,8)} TP=${codex.engineTrailTP.slice(0,8)}`;
+                trailBadge.className = side === 'LONG' ? 'long' : 'short';
+            } else {
+                trailBadge.textContent = 'TRAIL: INACTIVE';
+                trailBadge.className = 'inactive';
+            }
+        }
+        if (trailStatusMetricSpan) {
+            if (codex.engineTrailActive) {
+                trailStatusMetricSpan.textContent = codex.engineTrailSide || 'ACTIVE';
+                trailStatusMetricSpan.className = 'value engine-up';
+            } else {
+                trailStatusMetricSpan.textContent = 'INACTIVE';
+                trailStatusMetricSpan.className = 'value engine-wait';
+            }
+        }
+    }
+
+    // ═══ PATCH-A4: KC/prime/dime badge renderer ═══
+    function updateKPDBadge() {
+        if (kpdKC) {
+            kpdKC.textContent = 'KC:' + (codex.engineKC ? 'T' : 'F');
+            kpdKC.className = 'kpd-kc ' + (codex.engineKC ? 'kc-true' : 'kc-false');
+        }
+        if (kpdPrime) {
+            const p = codex.enginePrime;
+            kpdPrime.textContent = 'P:' + (p >= 0 ? p : '—');
+            kpdPrime.className = 'kpd-prime ' + (p === 0 ? 'p0' : p === 1 ? 'p1' : 'pn');
+        }
+        if (kpdDime) {
+            const d = codex.engineDime;
+            kpdDime.textContent = 'D:' + (d >= 0 ? d : '—');
+            kpdDime.className = 'kpd-dime ' + (d === 0 ? 'd0' : d === 1 ? 'd1' : 'dn');
+        }
+        if (kpdMem) {
+            const m = codex.engineMem;
+            kpdMem.textContent = 'M:' + (m >= 0 ? m : '—');
+            kpdMem.className = 'kpd-mem ' + (m === 0 ? 'm0' : m === 1 ? 'm1' : 'mn');
+        }
+    }
+
+    // ═══ PATCH-A5: scanner counts metric renderer ═══
+    function updateScannerCountsMetric() {
+        if (scannerCountsMetricSpan) {
+            scannerCountsMetricSpan.textContent = `${codex.engineOnTrack} / ${codex.engineOnStand}`;
+            const active = codex.engineOnTrack > 0 || codex.engineOnStand > 0;
+            scannerCountsMetricSpan.style.color = active ? '#ffaa44' : '#6688aa';
         }
     }
 
@@ -2715,7 +3068,6 @@
                     codex.lastZetaRe.toFloat() ** 2 + codex.lastZetaIm.toFloat() ** 2
                 ).toFixed(4);
 
-                // [PATCH A4] Relay status driven by /config seed + /state ingest
                 if (relayStatusSpan) {
                     if (RELAY_URL) {
                         relayStatusSpan.textContent = 'UP';
@@ -2749,6 +3101,13 @@
                     signalFiresSpan.textContent = String(codex.engineSignalFires);
                     signalFiresSpan.style.color = codex.engineSignalFires > 0 ? '#ff4488' : '#ffaa44';
                 }
+
+                // ═══ PATCH-A1: trail metrics and badge ═══
+                updateTrailBadge();
+                // ═══ PATCH-A4: KC/prime/dime badge ═══
+                updateKPDBadge();
+                // ═══ PATCH-A5: scanner counts ═══
+                updateScannerCountsMetric();
 
                 const dbzLabels = ['NONE', 'CRITICAL LINE', 'NATALIA'];
                 dbzBranchSpan.textContent = dbzLabels[codex.dbz] || 'NONE';
@@ -2807,6 +3166,63 @@
                         } else {
                             engRelaySpan.textContent = 'UNSET';
                             engRelaySpan.className = 'value relay-down';
+                        }
+                    }
+                    // ═══ PATCH-A1: trail engine fields ═══
+                    if (engTrailActiveSpan) {
+                        if (es.trailing_stop_active) {
+                            engTrailActiveSpan.textContent = '✅ ACTIVE';
+                            engTrailActiveSpan.className = 'value trail-active';
+                        } else {
+                            engTrailActiveSpan.textContent = '⚪ INACTIVE';
+                            engTrailActiveSpan.className = 'value trail-inactive';
+                        }
+                    }
+                    if (engTrailSLSpan) engTrailSLSpan.textContent = es.trailing_stop_price !== undefined ? String(es.trailing_stop_price).slice(0, 12) : '—';
+                    if (engTrailTPSpan) engTrailTPSpan.textContent = es.trailing_take_profit !== undefined ? String(es.trailing_take_profit).slice(0, 12) : '—';
+                    if (engTrailEntrySpan) engTrailEntrySpan.textContent = es.trailing_stop_entry !== undefined ? String(es.trailing_stop_entry).slice(0, 12) : '—';
+                    if (engTrailSideSpan) engTrailSideSpan.textContent = es.trailing_stop_side || '—';
+                    if (engHasLongSpan) engHasLongSpan.textContent = es.has_open_long ? '✅ YES' : '❌ NO';
+                    if (engHasShortSpan) engHasShortSpan.textContent = es.has_open_short ? '✅ YES' : '❌ NO';
+                    // ═══ PATCH-A4: KC/prime/dime engine fields ═══
+                    if (engKCSpan) {
+                        engKCSpan.textContent = String(codex.engineKC);
+                        engKCSpan.className = 'value ' + (codex.engineKC ? 'kc-true' : 'kc-false');
+                    }
+                    if (engPrimeSpan) {
+                        const p = codex.enginePrime;
+                        engPrimeSpan.textContent = p >= 0 ? String(p) : '—';
+                        engPrimeSpan.className = 'value ' + (p === 0 ? 'prime-0' : p === 1 ? 'prime-1' : '');
+                    }
+                    if (engDimeSpan) {
+                        const d = codex.engineDime;
+                        engDimeSpan.textContent = d >= 0 ? String(d) : '—';
+                        engDimeSpan.className = 'value ' + (d === 0 ? 'dime-0' : d === 1 ? 'dime-1' : '');
+                    }
+                    if (engMemSpan) {
+                        const m = codex.engineMem;
+                        engMemSpan.textContent = m >= 0 ? String(m) : '—';
+                    }
+                    if (engTagSpan) {
+                        const t = codex.engineTag;
+                        engTagSpan.textContent = t >= 0 ? String(t) : '—';
+                    }
+                    if (engInvertSpan) engInvertSpan.textContent = String(codex.engineInvert);
+                    // ═══ PATCH-A5: on_track/on_stand engine fields ═══
+                    if (engOnTrackSpan) {
+                        engOnTrackSpan.textContent = String(codex.engineOnTrack);
+                        engOnTrackSpan.className = 'value ' + (codex.engineOnTrack > 0 ? 'counter-active' : 'counter-zero');
+                    }
+                    if (engOnStandSpan) {
+                        engOnStandSpan.textContent = String(codex.engineOnStand);
+                        engOnStandSpan.className = 'value ' + (codex.engineOnStand > 0 ? 'counter-active' : 'counter-zero');
+                    }
+                    if (engLastKronSpan) engLastKronSpan.textContent = codex.engineLastKronBar >= 0 ? String(codex.engineLastKronBar) : '—';
+                    if (engLastKronMnhSpan) {
+                        if (codex.engineLastKronH >= 0) {
+                            engLastKronMnhSpan.textContent = `${codex.engineLastKronM}/${codex.engineLastKronN}/${codex.engineLastKronH}`;
+                        } else {
+                            engLastKronMnhSpan.textContent = '—';
                         }
                     }
                 }
@@ -3022,6 +3438,26 @@
             engRelaySpan.textContent = '—';
             engRelaySpan.className = 'value relay-wait';
         }
+        // ═══ PATCH-A1: reset trail fields ═══
+        if (engTrailActiveSpan) { engTrailActiveSpan.textContent = '—'; engTrailActiveSpan.className = 'value trail-inactive'; }
+        if (engTrailSLSpan) engTrailSLSpan.textContent = '—';
+        if (engTrailTPSpan) engTrailTPSpan.textContent = '—';
+        if (engTrailEntrySpan) engTrailEntrySpan.textContent = '—';
+        if (engTrailSideSpan) engTrailSideSpan.textContent = '—';
+        if (engHasLongSpan) engHasLongSpan.textContent = '—';
+        if (engHasShortSpan) engHasShortSpan.textContent = '—';
+        // ═══ PATCH-A4: reset KC/prime/dime fields ═══
+        if (engKCSpan) { engKCSpan.textContent = '—'; engKCSpan.className = 'value'; }
+        if (engPrimeSpan) { engPrimeSpan.textContent = '—'; engPrimeSpan.className = 'value'; }
+        if (engDimeSpan) { engDimeSpan.textContent = '—'; engDimeSpan.className = 'value'; }
+        if (engMemSpan) engMemSpan.textContent = '—';
+        if (engTagSpan) engTagSpan.textContent = '—';
+        if (engInvertSpan) engInvertSpan.textContent = '—';
+        // ═══ PATCH-A5: reset scanner counters ═══
+        if (engOnTrackSpan) { engOnTrackSpan.textContent = '—'; engOnTrackSpan.className = 'value counter-zero'; }
+        if (engOnStandSpan) { engOnStandSpan.textContent = '—'; engOnStandSpan.className = 'value counter-zero'; }
+        if (engLastKronSpan) engLastKronSpan.textContent = '—';
+        if (engLastKronMnhSpan) engLastKronMnhSpan.textContent = '—';
         if (indicatorPassesSpan) {
             indicatorPassesSpan.textContent = '0';
             indicatorPassesSpan.style.color = '#ffaa44';
@@ -3030,10 +3466,26 @@
             signalFiresSpan.textContent = '0';
             signalFiresSpan.style.color = '#ffaa44';
         }
+        if (trailStatusMetricSpan) {
+            trailStatusMetricSpan.textContent = '—';
+            trailStatusMetricSpan.className = 'value engine-wait';
+        }
+        if (scannerCountsMetricSpan) {
+            scannerCountsMetricSpan.textContent = '0 / 0';
+            scannerCountsMetricSpan.style.color = '#6688aa';
+        }
         if (relayBadge) {
             relayBadge.textContent = 'RELAY: —';
             relayBadge.className = 'wait';
         }
+        if (trailBadge) {
+            trailBadge.textContent = 'TRAIL: INACTIVE';
+            trailBadge.className = 'inactive';
+        }
+        if (kpdKC) { kpdKC.textContent = 'KC:—'; kpdKC.className = 'kpd-kc kc-false'; }
+        if (kpdPrime) { kpdPrime.textContent = 'P:—'; kpdPrime.className = 'kpd-prime pn'; }
+        if (kpdDime) { kpdDime.textContent = 'D:—'; kpdDime.className = 'kpd-dime dn'; }
+        if (kpdMem) { kpdMem.textContent = 'M:—'; kpdMem.className = 'kpd-mem mn'; }
         proofChain.classList.remove('visible');
         proofTrace.classList.remove('visible');
         proofTraceLines.innerHTML = '';
@@ -3090,6 +3542,28 @@
                 indicator_populate_count: codex.engineState.indicator_populate_count,
                 imbalance_fire_count: codex.engineState.imbalance_fire_count,
                 relay_url: codex.engineState.relay_url,
+                // ═══ PATCH-A1: export trail state ═══
+                trailing_stop_active: codex.engineState.trailing_stop_active,
+                trailing_stop_price: codex.engineState.trailing_stop_price,
+                trailing_take_profit: codex.engineState.trailing_take_profit,
+                trailing_stop_entry: codex.engineState.trailing_stop_entry,
+                trailing_stop_side: codex.engineState.trailing_stop_side,
+                has_open_long: codex.engineState.has_open_long,
+                has_open_short: codex.engineState.has_open_short,
+                // ═══ PATCH-A4: export KC/prime/dime ═══
+                KC: codex.engineState.KC,
+                prime: codex.engineState.prime,
+                dime: codex.engineState.dime,
+                mem: codex.engineState.mem,
+                tag: codex.engineState.tag,
+                invert: codex.engineState.invert,
+                // ═══ PATCH-A5: export scanners ═══
+                on_track_runs: codex.engineState.on_track_runs,
+                on_stand_runs: codex.engineState.on_stand_runs,
+                last_kronecker_bar: codex.engineState.last_kronecker_bar,
+                last_kronecker_m: codex.engineState.last_kronecker_m,
+                last_kronecker_n: codex.engineState.last_kronecker_n,
+                last_kronecker_h: codex.engineState.last_kronecker_h,
             } : null,
             time_exact: codex.time.toString(),
             generation: codex.gen,
@@ -3123,6 +3597,25 @@
             curlMagnitude_exact: codex.curlMagnitude.toString(),
             engineIndicatorPasses: codex.engineIndicatorPasses,
             engineSignalFires: codex.engineSignalFires,
+            engineTrailActive: codex.engineTrailActive,
+            engineTrailSL: codex.engineTrailSL,
+            engineTrailTP: codex.engineTrailTP,
+            engineTrailEntry: codex.engineTrailEntry,
+            engineTrailSide: codex.engineTrailSide,
+            engineHasLong: codex.engineHasLong,
+            engineHasShort: codex.engineHasShort,
+            engineKC: codex.engineKC,
+            enginePrime: codex.enginePrime,
+            engineDime: codex.engineDime,
+            engineMem: codex.engineMem,
+            engineTag: codex.engineTag,
+            engineInvert: codex.engineInvert,
+            engineOnTrack: codex.engineOnTrack,
+            engineOnStand: codex.engineOnStand,
+            engineLastKronBar: codex.engineLastKronBar,
+            engineLastKronM: codex.engineLastKronM,
+            engineLastKronN: codex.engineLastKronN,
+            engineLastKronH: codex.engineLastKronH,
             fvgLines: (window.chartOverlay && window.chartOverlay.fvgLines) ? window.chartOverlay.fvgLines.map(l => ({
                 type: l.type, price_exact: l.price.toString(), idx: l.idx, user_id: l.user_id || null
             })) : [],
@@ -3779,6 +4272,58 @@
                 c.setLineDash([]);
             }
 
+            // ═══ PATCH-A1: render trailing stop lines on chart ═══
+            if (this.backendState && this.backendState.trailing_stop_active) {
+                try {
+                    const slPrice = parseFloat(this.backendState.trailing_stop_price);
+                    const tpPrice = parseFloat(this.backendState.trailing_take_profit);
+                    const entryPrice = parseFloat(this.backendState.trailing_stop_entry);
+                    if (slPrice > 0) {
+                        const ySL = this._priceToY(slPrice);
+                        c.strokeStyle = 'rgba(255, 102, 170, 0.85)';
+                        c.lineWidth = 1.5;
+                        c.setLineDash([6, 3]);
+                        c.beginPath();
+                        c.moveTo(this.padX, ySL);
+                        c.lineTo(w - 8, ySL);
+                        c.stroke();
+                        c.setLineDash([]);
+                        c.fillStyle = 'rgba(255, 102, 170, 0.9)';
+                        c.font = 'bold 9px "Courier New", monospace';
+                        c.textAlign = 'left';
+                        c.textBaseline = 'middle';
+                        c.fillText('SL ' + slPrice.toFixed(4), this.padX + 4, ySL);
+                    }
+                    if (tpPrice > 0) {
+                        const yTP = this._priceToY(tpPrice);
+                        c.strokeStyle = 'rgba(0, 255, 136, 0.85)';
+                        c.lineWidth = 1.5;
+                        c.setLineDash([6, 3]);
+                        c.beginPath();
+                        c.moveTo(this.padX, yTP);
+                        c.lineTo(w - 8, yTP);
+                        c.stroke();
+                        c.setLineDash([]);
+                        c.fillStyle = 'rgba(0, 255, 136, 0.9)';
+                        c.font = 'bold 9px "Courier New", monospace';
+                        c.textAlign = 'left';
+                        c.textBaseline = 'middle';
+                        c.fillText('TP ' + tpPrice.toFixed(4), this.padX + 4, yTP);
+                    }
+                    if (entryPrice > 0) {
+                        const yE = this._priceToY(entryPrice);
+                        c.strokeStyle = 'rgba(255, 170, 68, 0.7)';
+                        c.lineWidth = 1;
+                        c.setLineDash([2, 4]);
+                        c.beginPath();
+                        c.moveTo(this.padX, yE);
+                        c.lineTo(w - 8, yE);
+                        c.stroke();
+                        c.setLineDash([]);
+                    }
+                } catch (e) { /* ignore parse errors */ }
+            }
+
             for (const line of this.fvgLines) {
                 const y = this._priceToY(line.price.toFloat());
                 const isTop = line.type === 'top';
@@ -3839,6 +4384,16 @@
             const hudInd = document.getElementById('hud-ind');
             const hudSig = document.getElementById('hud-sig');
             const hudRePsi = document.getElementById('hud-repsi');
+            // ═══ PATCH-A1: HUD trail refs ═══
+            const hudTrail = document.getElementById('hud-trail');
+            const hudTrailSide = document.getElementById('hud-trail-side');
+            // ═══ PATCH-A4: HUD KC/prime/dime refs ═══
+            const hudKC = document.getElementById('hud-kc');
+            const hudPrime = document.getElementById('hud-prime');
+            const hudDime = document.getElementById('hud-dime');
+            // ═══ PATCH-A5: HUD scanner refs ═══
+            const hudOnTrack = document.getElementById('hud-ontrack');
+            const hudOnStand = document.getElementById('hud-onstand');
 
             if (this.backendState) {
                 if (hudSymbol) hudSymbol.textContent = this.backendState.symbol || 'BTC-USD';
@@ -3871,6 +4426,34 @@
                 if (hudInd) hudInd.textContent = String(this.backendState.indicator_populate_count || 0);
                 if (hudSig) hudSig.textContent = String(this.backendState.imbalance_fire_count || 0);
                 if (hudRePsi) hudRePsi.textContent = this.backendState.re_psi !== undefined ? String(this.backendState.re_psi).slice(0, 12) : '—';
+                // ═══ PATCH-A1: HUD trail ═══
+                if (hudTrail) {
+                    if (this.backendState.trailing_stop_active) {
+                        hudTrail.textContent = 'ACTIVE';
+                        hudTrail.className = 'value';
+                    } else {
+                        hudTrail.textContent = 'INACTIVE';
+                        hudTrail.className = 'value';
+                    }
+                }
+                if (hudTrailSide) hudTrailSide.textContent = this.backendState.trailing_stop_side || '—';
+                // ═══ PATCH-A4: HUD KC/prime/dime ═══
+                if (hudKC) {
+                    const kc = this.backendState.KC;
+                    hudKC.textContent = kc ? 'T' : 'F';
+                    hudKC.className = 'value ' + (kc ? 'kc-true' : 'kc-false');
+                }
+                if (hudPrime) {
+                    const p = this.backendState.prime;
+                    hudPrime.textContent = (p >= 0) ? String(p) : '—';
+                }
+                if (hudDime) {
+                    const d = this.backendState.dime;
+                    hudDime.textContent = (d >= 0) ? String(d) : '—';
+                }
+                // ═══ PATCH-A5: HUD scanner counters ═══
+                if (hudOnTrack) hudOnTrack.textContent = String(this.backendState.on_track_runs || 0);
+                if (hudOnStand) hudOnStand.textContent = String(this.backendState.on_stand_runs || 0);
             } else {
                 if (hudConn) {
                     hudConn.textContent = 'LOCAL-ONLY';
@@ -3883,6 +4466,13 @@
                 if (hudInd) hudInd.textContent = '0';
                 if (hudSig) hudSig.textContent = '0';
                 if (hudRePsi) hudRePsi.textContent = '—';
+                if (hudTrail) hudTrail.textContent = '—';
+                if (hudTrailSide) hudTrailSide.textContent = '—';
+                if (hudKC) { hudKC.textContent = '—'; hudKC.className = 'value kc-false'; }
+                if (hudPrime) hudPrime.textContent = '—';
+                if (hudDime) hudDime.textContent = '—';
+                if (hudOnTrack) hudOnTrack.textContent = '0';
+                if (hudOnStand) hudOnStand.textContent = '0';
             }
         }
 
@@ -4012,7 +4602,6 @@
 
         bootstrapTelegram();
 
-        // [PATCH A4] Seed RELAY_URL from /config before first render
         seedRelayUrlFromConfig();
 
         try {
