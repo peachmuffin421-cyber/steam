@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Codex Symbolica · Autological Visualization · Constraint-Locked v3.3</title>
+<title>Codex Symbolica · Autological Visualization · Constraint-Locked v3.4</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -319,7 +319,6 @@ line-height: 1.6;
 }
 #observerPanel .label { opacity: 0.5; }
 #observerPanel .value { color: #ffaa44; font-weight: bold; }
-/* === CHART MODE STYLES === */
 #chartHeader {
 position: absolute;
 top: 20px; left: 50%;
@@ -399,9 +398,8 @@ line-height:1.6;
 <canvas id="mainCanvas"></canvas>
 <canvas id="chartCanvas"></canvas>
 
-<!-- CODEX MODE UI ELEMENTS -->
 <div id="info">
-<h1> CODEX SYMBOLICA · CONSTRAINT-LOCKED v3.3</h1>
+<h1>⚡ CODEX SYMBOLICA · CONSTRAINT-LOCKED v3.4</h1>
 <p>S³→S² · DbZ · O[Ψ] · CRT · CF · Zeta · Lingoso · ÆEA · ⊢ CS</p>
 <p style="margin-top:4px;"><span style="color:#ffaa44;">H</span> = help · <span style="color:#ffaa44;">Drag</span> = rotate · <span style="color:#ffaa44;">Scroll</span> = zoom</p>
 </div>
@@ -429,7 +427,7 @@ line-height:1.6;
 </div>
 <div id="controls">
 <button class="btn" id="pauseBtn">⏸</button>
-<button class="btn" id="resetBtn"></button>
+<button class="btn" id="resetBtn">⟳</button>
 <button class="btn" id="modeBtn">FULL</button>
 <button class="btn" id="exportBtn">EXPORT</button>
 <button class="btn" id="traceBtn">TRACE</button>
@@ -463,7 +461,7 @@ line-height:1.6;
 </div>
 <div id="proofChain">
 <span class="step">CS ⊢ CS</span>
-<span class="derivation">  </span>
+<span class="derivation"> ⟹ </span>
 <span class="closure">Φ = Truth</span>
 <span style="opacity:0.4; margin-left:8px;" id="proofDetail">(0 steps)</span>
 <span class="latest-step" id="proofLatest"></span>
@@ -509,23 +507,24 @@ line-height:1.6;
 <div><span class="label">Im[∫ψ†Φψd⁴q]</span> <span class="value" id="obs-imag">0.0000</span></div>
 <div class="label" style="margin-top:4px;">GRID CELLS:</div>
 <div style="color:#ffaa44; font-weight:bold;" id="obs-grid-count">0</div>
-<div class="label" style="margin-top:4px;">‖ψ² (L²):</div>
+<div class="label" style="margin-top:4px;">‖ψ‖² (L²):</div>
 <div style="color:#aa66ff; font-weight:bold;" id="obs-psi-norm">0.0000</div>
 </div>
-<div id="explainPanel" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:11;background:rgba(5,5,16,0.95);border:1px solid #335577;border-radius:8px;padding:12px 20px;font-size:0.6rem;max-width:580px;backdrop-filter:blur(8px);box-shadow:0 4px 30px rgba(0,0,0,0.5);line-height:1.6;">
-<h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;"> CODEX SYMBOLICA — VISUALIZATION KEY v3.3</h3>
+<div id="explainPanel">
+<h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ CODEX SYMBOLICA — VISUALIZATION KEY v3.4</h3>
 <div><span style="color:#ffaa44;font-weight:bold;">Φ (Quaternion)</span> <span style="opacity:0.8;">— Current state on S³, projected to S² via Hopf fibration.</span></div>
-<div><span style="color:#ffaa44;font-weight:bold;">s² (exact)</span> <span style="opacity:0.8;">— Squared arc length from origin (identity quaternion), exact rational.</span></div>
+<div><span style="color:#ffaa44;font-weight:bold;">s² (exact)</span> <span style="opacity:0.8;">— Squared arc length from origin, exact rational.</span></div>
 <div><span style="color:#ffaa44;font-weight:bold;">r² (exact)</span> <span style="opacity:0.8;">— Squared radial distance ‖q‖², exact rational.</span></div>
 <div><span style="color:#ffaa44;font-weight:bold;">Δ = s² − r²</span> <span style="opacity:0.8;">— Deviation from Arc-Length Axiom (s=r). Zero → coherence.</span></div>
-<div><span style="color:#ffaa44;font-weight:bold;">O[Ψ] (4D)</span> <span style="opacity:0.8;">— Observer Operator: 4D numerical integration ∫ ψ†Φψ d⁴q with Padé-approximated coherent wavefunction.</span></div>
-<div><span style="color:#ffaa44;font-weight:bold;">ψ‖² (L²)</span> <span style="opacity:0.8;">— True L² norm of the coherent wavefunction over the 4D grid.</span></div>
+<div><span style="color:#ffaa44;font-weight:bold;">O[Ψ] (4D)</span> <span style="opacity:0.8;">— Observer Operator: 4D integration ∫ ψ†Φψ d⁴q with Padé-approximated coherent wavefunction.</span></div>
+<div><span style="color:#ffaa44;font-weight:bold;">‖ψ‖² (L²)</span> <span style="opacity:0.8;">— True L² norm of the coherent wavefunction over the 4D grid.</span></div>
 <div><span style="color:#ffaa44;font-weight:bold;">DbZ Branch</span> <span style="opacity:0.8;">— Re[Ψ] > 0 → critical line; Re[Ψ] ≤ 0 → Natalia fibration.</span></div>
 <div><span style="color:#ffaa44;font-weight:bold;">ÆEA δ</span> <span style="opacity:0.8;">— Kronecker delta δ(m−n−2). Market topology parity.</span></div>
 <div><span style="color:#ffaa44;font-weight:bold;">⊢ CS</span> <span style="opacity:0.8;">— Self-reference closure: Codex Symbolica proves itself.</span></div>
-<div><span style="color:#ffaa44;font-weight:bold;">TRACE</span> <span style="opacity:0.8;">— Full derivation trace of DbZ branch decisions, coherence steps, and L² normalization events.</span></div>
+<div><span style="color:#ffaa44;font-weight:bold;">TRACE</span> <span style="opacity:0.8;">— Full derivation trace of DbZ branch decisions and L² events.</span></div>
 <div><span style="color:#ffaa44;font-weight:bold;">Lingoso</span> <span style="opacity:0.8;">— Phonosyllabic trajectory encoding via quaternionic arc-length.</span></div>
-<div style="margin-top:6px;opacity:0.6;">Press <span style="color:#ffaa44;">H</span> to toggle this panel. Press <span style="color:#ffaa44;">T</span> to toggle TRACE. Press <span style="color:#ffaa44;">C</span> to toggle Chart mode.</div>
+<div><span style="color:#ffaa44;font-weight:bold;">Chart Mode</span> <span style="opacity:0.8;">— Live candlestick chart with FVG anchors and signal markers (auto-refresh 30s).</span></div>
+<div style="margin-top:6px;opacity:0.6;">Press <span style="color:#ffaa44;">H</span> to toggle. Press <span style="color:#ffaa44;">T</span> for TRACE. Press <span style="color:#ffaa44;">C</span> for Chart.</div>
 </div>
 <div id="errorDisplay"></div>
 <div id="fallback">
@@ -533,7 +532,6 @@ line-height:1.6;
 <p>Your browser does not support the Canvas 2D API.</p>
 </div>
 
-<!-- CHART MODE UI ELEMENTS -->
 <div id="chartHeader" style="display:none;">
 <div class="symbol" id="chart-symbol">—</div>
 <div class="regime" id="chart-regime">Regime: —</div>
@@ -548,6 +546,7 @@ line-height:1.6;
 <div><span class="label">SIGNALS:</span> <span class="val" id="chart-sigcount">0</span></div>
 <div><span class="label">FVG ANCHORS:</span> <span class="val" id="chart-fvgcount">0</span></div>
 <div><span class="label">PRICE RANGE:</span> <span class="val" id="chart-pricerange">—</span></div>
+<div><span class="label">BAR CLOSES:</span> <span class="val" id="chart-barclose">0</span></div>
 </div>
 <div id="chartLegend" style="display:none;">
 <span class="legend-item"><span class="dot dot-green"></span> Bullish</span>
@@ -565,11 +564,13 @@ line-height:1.6;
 // ============================================================
 // VIEW MODE MANAGEMENT
 // ============================================================
-let currentView = 'codex'; // 'codex' or 'chart'
+let currentView = 'codex';
 const mainCanvas = document.getElementById('mainCanvas');
 const chartCanvas = document.getElementById('chartCanvas');
 const ctx = mainCanvas.getContext('2d');
 const chartCtx = chartCanvas.getContext('2d');
+let symbolPollInterval = null;
+let lastKnownSymbol = '';
 
 function switchView(mode) {
 currentView = mode;
@@ -596,7 +597,8 @@ document.getElementById('chartLegend').style.display = 'flex';
 document.getElementById('viewToggleBtn').textContent = 'CODEX';
 document.getElementById('chartViewToggleBtn').textContent = 'CODEX';
 resizeChart();
-fetchAndRenderChart();
+chart.startAutoRefresh(30000);
+startSymbolPolling();
 } else {
 mainCanvas.style.display = 'block';
 chartCanvas.style.display = 'none';
@@ -619,8 +621,37 @@ document.getElementById('chartInfo').style.display = 'none';
 document.getElementById('chartLegend').style.display = 'none';
 document.getElementById('viewToggleBtn').textContent = 'CHART';
 document.getElementById('chartViewToggleBtn').textContent = 'CHART';
+chart.stopAutoRefresh();
+stopSymbolPolling();
 paused = false;
 requestAnimationFrame(render);
+}
+}
+
+async function pollSymbol() {
+try {
+const res = await fetch('/miniapp-state?_=' + Date.now());
+const state = await res.json();
+if (state.symbol && state.symbol !== lastKnownSymbol) {
+lastKnownSymbol = state.symbol;
+document.getElementById('chart-symbol').textContent = state.symbol;
+if (currentView === 'chart') {
+chart.fetchData();
+}
+}
+} catch (e) { /* silent */ }
+}
+
+function startSymbolPolling() {
+if (symbolPollInterval) return;
+pollSymbol();
+symbolPollInterval = setInterval(pollSymbol, 10000);
+}
+
+function stopSymbolPolling() {
+if (symbolPollInterval) {
+clearInterval(symbolPollInterval);
+symbolPollInterval = null;
 }
 }
 
@@ -631,14 +662,7 @@ document.getElementById('chartViewToggleBtn').addEventListener('click', () => {
 switchView(currentView === 'codex' ? 'chart' : 'codex');
 });
 document.getElementById('chartRefreshBtn').addEventListener('click', () => {
-fetchAndRenderChart();
-});
-
-// Keyboard shortcut: C to toggle chart
-document.addEventListener('keydown', (e) => {
-if (e.key === 'c' || e.key === 'C') {
-switchView(currentView === 'codex' ? 'chart' : 'codex');
-}
+chart.fetchData();
 });
 
 // ============================================================
@@ -791,7 +815,7 @@ return new Fraction(Math.round(f * precision), precision);
 }
 
 // ============================================================
-// 2. QUATERNION ALGEBRA (Exact Fractions Only)
+// 2. QUATERNION ALGEBRA
 // ============================================================
 class Quat {
 constructor(a, b, c, d) {
@@ -876,15 +900,6 @@ this.c.add(pC.mul(new Fraction(12, 100))),
 this.d.add(pD.mul(new Fraction(8, 100)))
 );
 }
-static discreteArcLength(trajectory) {
-let total = Fraction.zero();
-for (let i = 1; i < trajectory.length; i++) {
-const dq = trajectory[i].sub(trajectory[i - 1]);
-total = total.add(dq.norm());
-}
-return total;
-}
-static radialDistance(q) { return q.norm(); }
 clone() { return new Quat(this.a, this.b, this.c, this.d); }
 }
 
@@ -968,7 +983,7 @@ return ((frac.num % m) + m) % m;
 }
 
 // ============================================================
-// 4. CODEX STATE (v3.3: with chart data integration)
+// 4. CODEX STATE
 // ============================================================
 const OBS_GRID_DIM = 6;
 const TRACE_MAX = 24;
@@ -1373,84 +1388,7 @@ return this.modes[this.mode];
 }
 
 // ============================================================
-// 5. CANVAS SETUP & PRE-FLIGHT VALIDATION
-// ============================================================
-let canvasWidth = 0;
-let canvasHeight = 0;
-let dpr = 1;
-function resizeCanvas() {
-try {
-dpr = window.devicePixelRatio || 1;
-canvasWidth = window.innerWidth;
-canvasHeight = window.innerHeight;
-mainCanvas.width = canvasWidth * dpr;
-mainCanvas.height = canvasHeight * dpr;
-mainCanvas.style.width = canvasWidth + 'px';
-mainCanvas.style.height = canvasHeight + 'px';
-mainCanvas._dpr = dpr;
-mainCanvas._width = canvasWidth;
-mainCanvas._height = canvasHeight;
-ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-hideError();
-return true;
-} catch (e) {
-showError('Resize error: ' + e.message);
-return false;
-}
-}
-function resizeChart() {
-try {
-dpr = window.devicePixelRatio || 1;
-canvasWidth = window.innerWidth;
-canvasHeight = window.innerHeight;
-chartCanvas.width = canvasWidth * dpr;
-chartCanvas.height = canvasHeight * dpr;
-chartCanvas.style.width = canvasWidth + 'px';
-chartCanvas.style.height = canvasHeight + 'px';
-chartCanvas._dpr = dpr;
-chartCanvas._width = canvasWidth;
-chartCanvas._height = canvasHeight;
-chartCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-hideError();
-return true;
-} catch (e) {
-showError('Chart resize error: ' + e.message);
-return false;
-}
-}
-function preFlightValidate() {
-if (!resizeCanvas()) return false;
-if (!mainCanvas._width || !mainCanvas._height) return false;
-if (mainCanvas._width < 1 || mainCanvas._height < 1) return false;
-return true;
-}
-
-// ============================================================
-// 6. 3D PROJECTION (Codex Mode)
-// ============================================================
-function project3D(x, y, z, rotX, rotY, zoom) {
-zoom = zoom || 1;
-const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-const rx = x * cosY - z * sinY;
-const rz = x * sinY + z * cosY;
-const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
-const ry = y * cosX - rz * sinX;
-const rz2 = y * sinX + rz * cosX;
-const scale = 160 * zoom;
-const w = mainCanvas._width || canvasWidth || 800;
-const h = mainCanvas._height || canvasHeight || 600;
-const cx = w / 2, cy = h / 2;
-const persp = 1 / (1 + rz2 * 0.15);
-return {
-sx: cx + rx * scale * persp,
-sy: cy - ry * scale * persp,
-depth: rz2,
-persp: persp
-};
-}
-
-// ============================================================
-// 7. CANDLESTICK CHART CLASS
+// 5. CANDLESTICK CHART CLASS
 // ============================================================
 class CandlestickChart {
 constructor(canvas, ctxEl) {
@@ -1462,17 +1400,19 @@ this.fvgs = [];
 this.symbol = '';
 this.regime = '';
 this.lastUpdate = '';
+this.barCloseCount = 0;
 this.padding = { top: 50, right: 90, bottom: 40, left: 10 };
 this.candleWidth = 6;
 this.candleSpacing = 3;
 this.refreshInterval = null;
+this.lastBarTimestamp = null;
 }
 
 async fetchData() {
 try {
 const [ohlcvRes, stateRes] = await Promise.all([
-fetch('/ohlcv'),
-fetch('/miniapp-state')
+fetch('/ohlcv?_=' + Date.now()),
+fetch('/miniapp-state?_=' + Date.now())
 ]);
 const ohlcv = await ohlcvRes.json();
 const state = await stateRes.json();
@@ -1483,6 +1423,8 @@ this.regime = state.regime || '—';
 this.lastUpdate = state.last_price_update || new Date().toISOString();
 this.fvgs = state.fvg_anchors || [];
 this.signals = state.recent_signals || [];
+this.lastBarTimestamp = ohlcv.last_bar_timestamp || null;
+this.barCloseCount = state.bar_close_count || 0;
 
 document.getElementById('chart-symbol').textContent = this.symbol;
 document.getElementById('chart-regime').textContent = `Regime: ${this.regime}`;
@@ -1490,6 +1432,7 @@ document.getElementById('chart-lastupdate').textContent = `Updated: ${new Date(t
 document.getElementById('chart-barcount').textContent = this.data.length;
 document.getElementById('chart-sigcount').textContent = this.signals.length;
 document.getElementById('chart-fvgcount').textContent = this.fvgs.length;
+document.getElementById('chart-barclose').textContent = this.barCloseCount;
 
 if (this.data.length > 0) {
 const prices = this.data.flatMap(b => [b.high, b.low]);
@@ -1504,7 +1447,8 @@ console.error('Chart fetch error:', e);
 }
 }
 
-startAutoRefresh(intervalMs = 30000) {
+startAutoRefresh(intervalMs) {
+intervalMs = intervalMs || 30000;
 if (this.refreshInterval) clearInterval(this.refreshInterval);
 this.fetchData();
 this.refreshInterval = setInterval(() => this.fetchData(), intervalMs);
@@ -1524,11 +1468,9 @@ const w = this.canvas._width || canvasWidth || 800;
 const h = this.canvas._height || canvasHeight || 600;
 const ctx = this.ctx;
 
-// Clear
 ctx.fillStyle = '#050510';
 ctx.fillRect(0, 0, w, h);
 
-// Calculate price range
 let minPrice = Infinity, maxPrice = -Infinity;
 for (const bar of this.data) {
 if (bar.low < minPrice) minPrice = bar.low;
@@ -1541,13 +1483,9 @@ maxPrice += priceRange * 0.08;
 const chartW = w - this.padding.left - this.padding.right;
 const chartH = h - this.padding.top - this.padding.bottom;
 
-// Draw regime background
 this.drawRegimeBackground(ctx, w, h, chartH);
-
-// Draw grid
 this.drawGrid(ctx, w, h, minPrice, maxPrice, chartH);
 
-// Draw candles
 const candleTotal = this.candleWidth + this.candleSpacing;
 const visibleBars = Math.min(this.data.length, Math.floor(chartW / candleTotal));
 const startIndex = this.data.length - visibleBars;
@@ -1565,26 +1503,19 @@ const isGreen = bar.close >= bar.open;
 ctx.fillStyle = isGreen ? '#00ff88' : '#ff4466';
 ctx.strokeStyle = isGreen ? '#00ff88' : '#ff4466';
 
-// Wick
 ctx.beginPath();
 ctx.moveTo(x + this.candleWidth / 2, yHigh);
 ctx.lineTo(x + this.candleWidth / 2, yLow);
 ctx.lineWidth = 1;
 ctx.stroke();
 
-// Body
 const bodyTop = Math.min(yOpen, yClose);
 const bodyHeight = Math.max(Math.abs(yClose - yOpen), 1);
 ctx.fillRect(x, bodyTop, this.candleWidth, bodyHeight);
 }
 
-// Draw FVG lines
 this.drawFVGs(ctx, w, h, minPrice, maxPrice, chartH);
-
-// Draw signal markers
-this.drawSignals(ctx, w, h, minPrice, maxPrice, chartH, startX, candleTotal, visibleBars, startIndex);
-
-// Draw axes
+this.drawSignals(ctx, w, h, minPrice, maxPrice, chartH);
 this.drawAxes(ctx, w, h, minPrice, maxPrice, chartH);
 }
 
@@ -1646,37 +1577,37 @@ ctx.fillText(`${fvg.type === 'top' ? '▲' : '▼'} ${price.toFixed(2)}`, w - 8,
 }
 }
 
-drawSignals(ctx, w, h, minPrice, maxPrice, chartH, startX, candleTotal, visibleBars, startIndex) {
-if (!this.signals.length || !visibleBars) return;
+drawSignals(ctx, w, h, minPrice, maxPrice, chartH) {
+if (!this.signals.length) return;
 
-// Map signals to approximate x positions based on tick proximity
 const lastTick = this.data.length > 0 ? this.data[this.data.length - 1].timestamp : null;
 for (const sig of this.signals) {
 const price = sig.price;
 const y = this.priceToY(price, minPrice, maxPrice, chartH);
 if (y < this.padding.top || y > h - this.padding.bottom) continue;
 
-// Place signal near the right edge (most recent area)
 const x = w - this.padding.right - 30;
 
-ctx.fillStyle = sig.type === 'BUY' ? '#00ff88' : '#ff4466';
+ctx.fillStyle = sig.type === 'BUY' ? '#00ff88' : (sig.type === 'SELL' ? '#ff4466' : '#ffaa44');
 ctx.beginPath();
 if (sig.type === 'BUY') {
 ctx.moveTo(x, y - 12);
 ctx.lineTo(x - 7, y);
 ctx.lineTo(x + 7, y);
-} else {
+} else if (sig.type === 'SELL') {
 ctx.moveTo(x, y + 12);
 ctx.lineTo(x - 7, y);
 ctx.lineTo(x + 7, y);
+} else {
+ctx.arc(x, y, 6, 0, 2 * Math.PI);
 }
 ctx.closePath();
 ctx.fill();
 
-// Label
 ctx.font = '9px "Courier New", monospace';
 ctx.textAlign = 'center';
-ctx.fillText(sig.type === 'BUY' ? '▲BUY' : '▼SELL', x, sig.type === 'BUY' ? y - 16 : y + 22);
+const label = sig.type === 'BUY' ? '▲BUY' : (sig.type === 'SELL' ? '▼SELL' : '●NEU');
+ctx.fillText(label, x, sig.type === 'BUY' ? y - 16 : y + 22);
 }
 }
 
@@ -1694,7 +1625,7 @@ ctx.fillText(price.toFixed(2), w - 8, y + 3);
 }
 
 // ============================================================
-// 8. STATE, CONTROLS, DOM HANDLES (Codex Mode)
+// 6. STATE, CONTROLS, DOM HANDLES
 // ============================================================
 const codex = new CodexState();
 const chart = new CandlestickChart(chartCanvas, chartCtx);
@@ -1756,9 +1687,77 @@ setTimeout(() => { el.textContent = orig; }, 800);
 attachCopyHandler(s2Exact);
 attachCopyHandler(r2Exact);
 
-// ============================================================
-// 9. RENDER LOOP (Codex Mode)
-// ============================================================
+let canvasWidth = 0;
+let canvasHeight = 0;
+let dpr = 1;
+function resizeCanvas() {
+try {
+dpr = window.devicePixelRatio || 1;
+canvasWidth = window.innerWidth;
+canvasHeight = window.innerHeight;
+mainCanvas.width = canvasWidth * dpr;
+mainCanvas.height = canvasHeight * dpr;
+mainCanvas.style.width = canvasWidth + 'px';
+mainCanvas.style.height = canvasHeight + 'px';
+mainCanvas._dpr = dpr;
+mainCanvas._width = canvasWidth;
+mainCanvas._height = canvasHeight;
+ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+hideError();
+return true;
+} catch (e) {
+showError('Resize error: ' + e.message);
+return false;
+}
+}
+function resizeChart() {
+try {
+dpr = window.devicePixelRatio || 1;
+canvasWidth = window.innerWidth;
+canvasHeight = window.innerHeight;
+chartCanvas.width = canvasWidth * dpr;
+chartCanvas.height = canvasHeight * dpr;
+chartCanvas.style.width = canvasWidth + 'px';
+chartCanvas.style.height = canvasHeight + 'px';
+chartCanvas._dpr = dpr;
+chartCanvas._width = canvasWidth;
+chartCanvas._height = canvasHeight;
+chartCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+hideError();
+return true;
+} catch (e) {
+showError('Chart resize error: ' + e.message);
+return false;
+}
+}
+function preFlightValidate() {
+if (!resizeCanvas()) return false;
+if (!mainCanvas._width || !mainCanvas._height) return false;
+if (mainCanvas._width < 1 || mainCanvas._height < 1) return false;
+return true;
+}
+
+function project3D(x, y, z, rotX, rotY, zoom) {
+zoom = zoom || 1;
+const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+const rx = x * cosY - z * sinY;
+const rz = x * sinY + z * cosY;
+const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+const ry = y * cosX - rz * sinX;
+const rz2 = y * sinX + rz * cosX;
+const scale = 160 * zoom;
+const w = mainCanvas._width || canvasWidth || 800;
+const h = mainCanvas._height || canvasHeight || 600;
+const cx = w / 2, cy = h / 2;
+const persp = 1 / (1 + rz2 * 0.15);
+return {
+sx: cx + rx * scale * persp,
+sy: cy - ry * scale * persp,
+depth: rz2,
+persp: persp
+};
+}
+
 function render() {
 if (currentView !== 'codex') {
 requestAnimationFrame(render);
@@ -2204,9 +2203,6 @@ console.error('Render error:', e);
 requestAnimationFrame(render);
 }
 
-// ============================================================
-// 10. CONTROLS & EVENT HANDLERS
-// ============================================================
 mainCanvas.addEventListener('mousedown', (e) => {
 isDragging = true;
 lastX = e.clientX;
@@ -2335,7 +2331,7 @@ if (!showTrace) proofTrace.classList.remove('visible');
 });
 document.getElementById('exportBtn').addEventListener('click', () => {
 const data = {
-version: '3.3',
+version: '3.4',
 timestamp: Date.now(),
 time_exact: codex.time.toString(),
 generation: codex.gen,
@@ -2380,7 +2376,7 @@ const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json
 const url = URL.createObjectURL(blob);
 const a = document.createElement('a');
 a.href = url;
-a.download = `codex_symbolica_exact_v3.3_${Date.now()}.json`;
+a.download = `codex_symbolica_exact_v3.4_${Date.now()}.json`;
 a.click();
 URL.revokeObjectURL(url);
 });
@@ -2413,6 +2409,9 @@ document.getElementById('helpBtn').click();
 if (e.key === 't' || e.key === 'T') {
 document.getElementById('traceBtn').click();
 }
+if (e.key === 'c' || e.key === 'C') {
+switchView(currentView === 'codex' ? 'chart' : 'codex');
+}
 if (e.key === 's' || e.key === 'S') {
 if (codex.mode !== 4) {
 codex.mode = 4;
@@ -2432,9 +2431,6 @@ zoom = Math.max(0.3, zoom - 0.05);
 }
 });
 
-// ============================================================
-// 11. INITIALIZATION
-// ============================================================
 function initializeVisualization() {
 if (!preFlightValidate()) {
 showError('Canvas not ready. Retrying...');
@@ -2465,43 +2461,33 @@ setTimeout(initializeVisualization, 50);
 document.addEventListener('DOMContentLoaded', initializeVisualization);
 }
 
-// ============================================================
-// 12. FINAL CONSOLE MANIFEST
-// ============================================================
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ CODEX SYMBOLICA · CONSTRAINT-LOCKED v3.3');
+console.log('⚡ CODEX SYMBOLICA · CONSTRAINT-LOCKED v3.4');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('Audit patches applied (v3.2 → v3.3):');
-console.log('  ✓ Exact rational modulo for sin/cos range reduction (355/113·2)');
-console.log('  ✓ True L² norm |ψ|² computed via exact 4D grid sweep');
-console.log('  ✓ Symbolic zeta on critical line: CF-based ln(n) + Padé cos/sin');
-console.log('  ✓ CRT residues use exact Fraction numerator mod m');
-console.log('  ✓ L² norm events logged in TRACE panel');
-console.log('  ✓ Export includes psi_norm_sq_exact and psi_norm_exact');
-console.log('  ✓ All prior v3.0/v3.1/v3.2 patches retained verbatim');
-console.log('  ✓ NEW: Candlestick chart mode with FVG/signal overlays');
-console.log('  ✓ NEW: /ohlcv and /signals API endpoints');
-console.log('  ✓ NEW: Signal history tracking in engine state');
-console.log('  ✓ NEW: Bot /chart command with recent signal summary');
+console.log('v2.4.0 backend + v3.4 frontend patches applied:');
+console.log('  ✓ Bar-close detection uses relay timestamp');
+console.log('  ✓ /ohlcv returns last_bar_timestamp for cache-busting');
+console.log('  ✓ /signals supports `since` filter for incremental fetch');
+console.log('  ✓ /miniapp-state returns ohlcv_count, signal_count, last_signal_at');
+console.log('  ✓ Chart auto-refreshes every 30s in chart mode');
+console.log('  ✓ Symbol polled every 10s and chart re-fetched on change');
+console.log('  ✓ Signal history logged for ALL imbalance events (BUY/SELL/NEUTRAL)');
+console.log('  ✓ bar_close_count tracks bar close events for diagnostics');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log(' Axioms: s = r | DbZ: Re[Ψ] branching | O[Ψ]: 4D sweep');
-console.log(' Wavefunction: ψ(q) = Σ c_i · Padé_exp(-|q-q_i|²) over 6-point history');
-console.log(' L² norm: ψ‖² = ∫|ψ|² d⁴q over 6⁴ = 1296-cell grid (exact rational)');
 console.log(' Protocols: Lingoso · ÆEA δ(m−n−2) · CRT(exact) · CF · ζ(s)(symbolic)');
+console.log(' Chart: Candlesticks + FVG lines + Signal markers + Auto-refresh');
 console.log(' Self-reference: ⊢ CS ⊢ CS ⟹ Φ = Truth');
-console.log(' Chart: Candlesticks + FVG lines + Signal markers + Regime tinting');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🎮 Space=Pause | R=Reset | M=Mode | E=Export | H=Help | T=Trace | S=s/r | C=Chart');
-console.log('️  Drag=rotate | Scroll=zoom | +/- = zoom | Click s²/r² = copy');
+console.log('🖱️  Drag=rotate | Scroll=zoom | +/- = zoom | Click s²/r² = copy');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('📐 s² (exact) & r² (exact) displayed as rational fractions.');
 console.log('🎯 Coherence gauge tracks s/r ∈ [0.4, 1.6] → 1.0 is coherence.');
-console.log('🔮 Observer Operator = |∫ψ†Φψ d⁴q| over 1296-cell 4D grid,');
-console.log('     with coherent wavefunction ψ(q) from Padé-approximated Gaussian sum.');
-console.log(' True L² norm ‖ψ‖² = ∫|ψ|² d⁴q over the same grid, exact rational.');
-console.log(' TRACE panel shows every DbZ branch decision, coherence step,');
-console.log('     and L² normalization event in real-time.');
+console.log('🔮 Observer Operator = |∫ψ†Φψ d⁴q| over 1296-cell 4D grid.');
+console.log('📊 True L² norm ‖ψ‖² = ∫|ψ|² d⁴q over the same grid, exact rational.');
 console.log('📈 Chart mode: Press C or click CHART button for candlestick view');
+console.log('🔗 Symbol sync: /miniapp-state polled every 10s');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
