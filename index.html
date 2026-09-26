@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Codex Symbolica · Autological Visualization · Constraint-Locked v3.4</title>
+<title>Codex Symbolica · Autological Visualization · Constraint-Locked v3.5</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -319,9 +319,34 @@ line-height: 1.6;
 }
 #observerPanel .label { opacity: 0.5; }
 #observerPanel .value { color: #ffaa44; font-weight: bold; }
-#chartHeader {
+#hudConn {
 position: absolute;
 top: 20px; left: 50%;
+transform: translateX(-50%);
+z-index: 12;
+pointer-events: none;
+background: rgba(5,5,16,0.92);
+border: 1px solid #335577;
+border-radius: 6px;
+padding: 6px 14px;
+font-size: 0.55rem;
+letter-spacing: 1px;
+display: flex;
+gap: 14px;
+backdrop-filter: blur(8px);
+box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+#hudConn .hud-label { opacity: 0.5; }
+#hudConn .hud-state { font-weight: bold; }
+#hudConn .hud-conn-ok { color: #00ff88; }
+#hudConn .hud-conn-bad { color: #ff4466; }
+#hudConn .hud-conn-warn { color: #ffaa44; }
+#hudConn .hud-relay-up { color: #44ddff; }
+#hudConn .hud-relay-down { color: #ff4466; }
+#hudConn .hud-tma { color: #aa66ff; }
+#chartHeader {
+position: absolute;
+top: 60px; left: 50%;
 transform: translateX(-50%);
 z-index: 10;
 pointer-events: none;
@@ -398,8 +423,14 @@ line-height:1.6;
 <canvas id="mainCanvas"></canvas>
 <canvas id="chartCanvas"></canvas>
 
+<div id="hudConn">
+<span><span class="hud-label">CONN</span> <span class="hud-state hud-conn-bad" id="hud-conn">DISCONNECTED</span></span>
+<span><span class="hud-label">RELAY</span> <span class="hud-state hud-relay-down" id="hud-relay">UNKNOWN</span></span>
+<span><span class="hud-label">TMA</span> <span class="hud-state hud-tma" id="hud-tma">—</span></span>
+</div>
+
 <div id="info">
-<h1>⚡ CODEX SYMBOLICA · CONSTRAINT-LOCKED v3.4</h1>
+<h1>⚡ CODEX SYMBOLICA · CONSTRAINT-LOCKED v3.5</h1>
 <p>S³→S² · DbZ · O[Ψ] · CRT · CF · Zeta · Lingoso · ÆEA · ⊢ CS</p>
 <p style="margin-top:4px;"><span style="color:#ffaa44;">H</span> = help · <span style="color:#ffaa44;">Drag</span> = rotate · <span style="color:#ffaa44;">Scroll</span> = zoom</p>
 </div>
@@ -511,7 +542,7 @@ line-height:1.6;
 <div style="color:#aa66ff; font-weight:bold;" id="obs-psi-norm">0.0000</div>
 </div>
 <div id="explainPanel">
-<h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ CODEX SYMBOLICA — VISUALIZATION KEY v3.4</h3>
+<h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ CODEX SYMBOLICA — VISUALIZATION KEY v3.5</h3>
 <div><span style="color:#ffaa44;font-weight:bold;">Φ (Quaternion)</span> <span style="opacity:0.8;">— Current state on S³, projected to S² via Hopf fibration.</span></div>
 <div><span style="color:#ffaa44;font-weight:bold;">s² (exact)</span> <span style="opacity:0.8;">— Squared arc length from origin, exact rational.</span></div>
 <div><span style="color:#ffaa44;font-weight:bold;">r² (exact)</span> <span style="opacity:0.8;">— Squared radial distance ‖q‖², exact rational.</span></div>
@@ -524,6 +555,7 @@ line-height:1.6;
 <div><span style="color:#ffaa44;font-weight:bold;">TRACE</span> <span style="opacity:0.8;">— Full derivation trace of DbZ branch decisions and L² events.</span></div>
 <div><span style="color:#ffaa44;font-weight:bold;">Lingoso</span> <span style="opacity:0.8;">— Phonosyllabic trajectory encoding via quaternionic arc-length.</span></div>
 <div><span style="color:#ffaa44;font-weight:bold;">Chart Mode</span> <span style="opacity:0.8;">— Live candlestick chart with FVG anchors and signal markers (auto-refresh 30s).</span></div>
+<div><span style="color:#ffaa44;font-weight:bold;">CONN / RELAY</span> <span style="opacity:0.8;">— Bridge connectivity and Yahoo-relay health indicators.</span></div>
 <div style="margin-top:6px;opacity:0.6;">Press <span style="color:#ffaa44;">H</span> to toggle. Press <span style="color:#ffaa44;">T</span> for TRACE. Press <span style="color:#ffaa44;">C</span> for Chart.</div>
 </div>
 <div id="errorDisplay"></div>
@@ -557,9 +589,89 @@ line-height:1.6;
 <span class="legend-item"><span class="dot dot-cyan"></span> Sell Signal</span>
 </div>
 
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
 (function() {
 'use strict';
+
+// ============================================================
+// BACKEND CONFIGURATION
+// ============================================================
+// Set BACKEND_URL to the Heroku (or other HTTPS) origin that hosts
+// app.py. Leave empty to use same-origin (local tunnel mode).
+const BACKEND_URL = 'https://aeea-df7f2ade617d.herokuapp.com/';
+
+// ============================================================
+// TELEGRAM WEB APP BOOTSTRAP
+// ============================================================
+const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+let initDataRaw = '';
+let tmaActive = false;
+
+if (tg) {
+    try {
+        tg.ready();
+        tg.expand();
+        if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
+        if (typeof tg.enableClosingConfirmation === 'function') tg.enableClosingConfirmation();
+        if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#050510');
+        if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#050510');
+        initDataRaw = tg.initData || '';
+        tmaActive = Boolean(initDataRaw);
+        const theme = tg.themeParams || {};
+        const root = document.documentElement;
+        if (theme.bg_color) root.style.setProperty('--tma-bg', theme.bg_color);
+        if (theme.text_color) root.style.setProperty('--tma-text', theme.text_color);
+        const u = (tg.initDataUnsafe && tg.initDataUnsafe.user) || null;
+        const badge = document.getElementById('hud-tma');
+        if (u && u.username) badge.textContent = '@' + u.username;
+        else if (u && u.first_name) badge.textContent = u.first_name;
+        else badge.textContent = 'TMA';
+    } catch (e) {
+        console.warn('TMA init failed:', e);
+    }
+} else {
+    const badge = document.getElementById('hud-tma');
+    if (badge) badge.textContent = 'web';
+}
+
+function haptic(type) {
+    if (!tg || !tg.HapticFeedback) return;
+    try {
+        if (type === 'impact') tg.HapticFeedback.impactOccurred('medium');
+        else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+        else if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
+    } catch (e) { /* silent */ }
+}
+
+function apiUrl(path) {
+    if (BACKEND_URL && /^https?:\/\//.test(BACKEND_URL)) {
+        return BACKEND_URL.replace(/\/+$/, '') + path;
+    }
+    return path;
+}
+
+function authHeaders() {
+    const h = { 'Accept': 'application/json' };
+    if (initDataRaw) h['X-Telegram-Init-Data'] = initDataRaw;
+    return h;
+}
+
+async function postHandshake() {
+    if (!initDataRaw) return null;
+    try {
+        const r = await fetch(apiUrl('/handshake'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            body: JSON.stringify({ initData: initDataRaw }),
+        });
+        if (!r.ok) return null;
+        return await r.json();
+    } catch (e) {
+        console.warn('Handshake failed:', e);
+        return null;
+    }
+}
 
 // ============================================================
 // VIEW MODE MANAGEMENT
@@ -630,7 +742,8 @@ requestAnimationFrame(render);
 
 async function pollSymbol() {
 try {
-const res = await fetch('/miniapp-state?_=' + Date.now());
+const res = await fetch(apiUrl('/miniapp-state') + '?_=' + Date.now(), { headers: authHeaders() });
+if (!res.ok) return;
 const state = await res.json();
 if (state.symbol && state.symbol !== lastKnownSymbol) {
 lastKnownSymbol = state.symbol;
@@ -1410,21 +1523,35 @@ this.lastBarTimestamp = null;
 
 async fetchData() {
 try {
-const [ohlcvRes, stateRes] = await Promise.all([
-fetch('/ohlcv?_=' + Date.now()),
-fetch('/miniapp-state?_=' + Date.now())
+const [ohlcvRes, stateRes, signalsRes] = await Promise.all([
+fetch(apiUrl('/ohlcv') + '?_=' + Date.now(), { headers: authHeaders() }),
+fetch(apiUrl('/miniapp-state') + '?_=' + Date.now(), { headers: authHeaders() }),
+fetch(apiUrl('/signals') + '?_=' + Date.now(), { headers: authHeaders() })
 ]);
+if (!ohlcvRes.ok || !stateRes.ok) {
+document.getElementById('hud-conn').textContent = 'DISCONNECTED';
+document.getElementById('hud-conn').className = 'hud-state hud-conn-bad';
+return;
+}
 const ohlcv = await ohlcvRes.json();
 const state = await stateRes.json();
+const signals = signalsRes.ok ? await signalsRes.json() : { signals: [] };
 
 this.data = ohlcv.bars || [];
 this.symbol = state.symbol || ohlcv.symbol || '—';
 this.regime = state.regime || '—';
 this.lastUpdate = state.last_price_update || new Date().toISOString();
 this.fvgs = state.fvg_anchors || [];
-this.signals = state.recent_signals || [];
+this.signals = signals.signals || state.recent_signals || [];
 this.lastBarTimestamp = ohlcv.last_bar_timestamp || null;
 this.barCloseCount = state.bar_close_count || 0;
+
+document.getElementById('hud-conn').textContent = 'CONNECTED';
+document.getElementById('hud-conn').className = 'hud-state hud-conn-ok';
+const relayHealthy = state.relay_healthy !== false;
+const relayEl = document.getElementById('hud-relay');
+relayEl.textContent = relayHealthy ? 'UP' : 'DOWN';
+relayEl.className = 'hud-state ' + (relayHealthy ? 'hud-relay-up' : 'hud-relay-down');
 
 document.getElementById('chart-symbol').textContent = this.symbol;
 document.getElementById('chart-regime').textContent = `Regime: ${this.regime}`;
@@ -1444,6 +1571,8 @@ document.getElementById('chart-pricerange').textContent = `${minP.toFixed(2)} �
 this.render();
 } catch (e) {
 console.error('Chart fetch error:', e);
+document.getElementById('hud-conn').textContent = 'DISCONNECTED';
+document.getElementById('hud-conn').className = 'hud-state hud-conn-bad';
 }
 }
 
@@ -1580,7 +1709,6 @@ ctx.fillText(`${fvg.type === 'top' ? '▲' : '▼'} ${price.toFixed(2)}`, w - 8,
 drawSignals(ctx, w, h, minPrice, maxPrice, chartH) {
 if (!this.signals.length) return;
 
-const lastTick = this.data.length > 0 ? this.data[this.data.length - 1].timestamp : null;
 for (const sig of this.signals) {
 const price = sig.price;
 const y = this.priceToY(price, minPrice, maxPrice, chartH);
@@ -2331,7 +2459,7 @@ if (!showTrace) proofTrace.classList.remove('visible');
 });
 document.getElementById('exportBtn').addEventListener('click', () => {
 const data = {
-version: '3.4',
+version: '3.5',
 timestamp: Date.now(),
 time_exact: codex.time.toString(),
 generation: codex.gen,
@@ -2376,7 +2504,7 @@ const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json
 const url = URL.createObjectURL(blob);
 const a = document.createElement('a');
 a.href = url;
-a.download = `codex_symbolica_exact_v3.4_${Date.now()}.json`;
+a.download = `codex_symbolica_exact_v3.5_${Date.now()}.json`;
 a.click();
 URL.revokeObjectURL(url);
 });
@@ -2454,6 +2582,14 @@ render();
 showError('Render start error: ' + e.message);
 console.error('Render start error:', e);
 }
+if (tmaActive) {
+    postHandshake().then((r) => {
+        if (r && r.ok) {
+            document.getElementById('hud-conn').textContent = 'AUTHORIZED';
+            document.getElementById('hud-conn').className = 'hud-state hud-conn-ok';
+        }
+    });
+}
 }
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
 setTimeout(initializeVisualization, 50);
@@ -2462,17 +2598,19 @@ document.addEventListener('DOMContentLoaded', initializeVisualization);
 }
 
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ CODEX SYMBOLICA · CONSTRAINT-LOCKED v3.4');
+console.log('⚡ CODEX SYMBOLICA · CONSTRAINT-LOCKED v3.5');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('v2.4.0 backend + v3.4 frontend patches applied:');
-console.log('  ✓ Bar-close detection uses relay timestamp');
-console.log('  ✓ /ohlcv returns last_bar_timestamp for cache-busting');
-console.log('  ✓ /signals supports `since` filter for incremental fetch');
-console.log('  ✓ /miniapp-state returns ohlcv_count, signal_count, last_signal_at');
-console.log('  ✓ Chart auto-refreshes every 30s in chart mode');
+console.log('v3.5 split-origin + relay patches applied:');
+console.log('  ✓ BACKEND_URL constant for GitHub Pages → Heroku routing');
+console.log('  ✓ X-Telegram-Init-Data header on every authenticated fetch');
+console.log('  ✓ POST /handshake on TMA bootstrap (user_id ↔ chat_id binding)');
+console.log('  ✓ HUD shows CONN / RELAY / TMA indicators');
+console.log('  ✓ FVG anchors sourced from /miniapp-state.fvg_anchors');
+console.log('  ✓ Signals sourced from /signals endpoint (fallback to recent_signals)');
+console.log('  ✓ OHLCV timestamps honored for cache-busting');
+console.log('  ✓ Chart auto-refresh every 30s in chart mode');
 console.log('  ✓ Symbol polled every 10s and chart re-fetched on change');
-console.log('  ✓ Signal history logged for ALL imbalance events (BUY/SELL/NEUTRAL)');
-console.log('  ✓ bar_close_count tracks bar close events for diagnostics');
+console.log('  ✓ telegram-web-app.js loaded for disableVerticalSwipes / haptics');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log(' Axioms: s = r | DbZ: Re[Ψ] branching | O[Ψ]: 4D sweep');
 console.log(' Protocols: Lingoso · ÆEA δ(m−n−2) · CRT(exact) · CF · ζ(s)(symbolic)');
@@ -2487,7 +2625,7 @@ console.log('🎯 Coherence gauge tracks s/r ∈ [0.4, 1.6] → 1.0 is coherence
 console.log('🔮 Observer Operator = |∫ψ†Φψ d⁴q| over 1296-cell 4D grid.');
 console.log('📊 True L² norm ‖ψ‖² = ∫|ψ|² d⁴q over the same grid, exact rational.');
 console.log('📈 Chart mode: Press C or click CHART button for candlestick view');
-console.log('🔗 Symbol sync: /miniapp-state polled every 10s');
+console.log('🔗 Backend routing: BACKEND_URL constant (empty = same origin)');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
