@@ -717,6 +717,26 @@ html, body {
 .regime-row .flags { color: var(--purple); font-size: 0.46rem; }
 
 /* ============================================================
+   CONNECTION BADGE (new)
+   ============================================================ */
+#connBadge {
+    position: absolute;
+    top: calc(var(--toolbar-h) + 6px);
+    right: 8px;
+    z-index: 18;
+    background: rgba(5,5,16,0.92);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.5rem;
+    color: var(--text-dim);
+    pointer-events: none;
+}
+#connBadge.ok { border-color: var(--green); color: var(--green); }
+#connBadge.err { border-color: var(--red); color: var(--red); }
+#connBadge.wait { border-color: var(--gold); color: var(--gold); }
+
+/* ============================================================
    SCROLLBARS
    ============================================================ */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -766,6 +786,11 @@ html, body {
         <button class="tb-btn" id="tb-help">?</button>
     </div>
 </div>
+
+<!-- ============================================================
+     CONNECTION BADGE
+     ============================================================ -->
+<div id="connBadge" class="wait">connecting…</div>
 
 <!-- ============================================================
      CHART HEADER OVERLAY
@@ -918,26 +943,50 @@ html, body {
 
 // ============================================================
 // BACKEND CONFIGURATION
+// ------------------------------------------------------------
+// Resolution order (first match wins):
+//   1. window.__AEEA_BACKEND_URL__          (host-page override)
+//   2. ?backend=https://...                 (persisted to localStorage)
+//   3. localStorage['aeea_backend_url']
+//   4. same-origin (relative paths)
+//
+// NOTE: In the Telegram Mini App context, the frontend is served from
+// GitHub Pages. It MUST reach the Heroku bridge explicitly, therefore
+// the Web App URL configured in BotFather should include
+// ?backend=https://your-app.herokuapp.com/
 // ============================================================
+function normalizeBackend(u) {
+    if (!u) return '';
+    u = String(u).trim();
+    if (!/^https?:\/\//i.test(u)) return '';
+    return u.replace(/\/+$/, '') + '/';
+}
 function resolveBackendUrl() {
     try {
         if (typeof window.__AEEA_BACKEND_URL__ === 'string' && window.__AEEA_BACKEND_URL__.length > 0) {
-            return window.__AEEA_BACKEND_URL__.replace(/\/+$/, '') + '/';
+            const n = normalizeBackend(window.__AEEA_BACKEND_URL__);
+            if (n) return n;
         }
         const qs = new URLSearchParams(window.location.search);
         const q = qs.get('backend');
-        if (q && /^https?:\/\//.test(q)) {
-            try { localStorage.setItem('aeea_backend_url', q); } catch (e) {}
-            return q.replace(/\/+$/, '') + '/';
+        if (q) {
+            const n = normalizeBackend(q);
+            if (n) {
+                try { localStorage.setItem('aeea_backend_url', n); } catch (e) {}
+                return n;
+            }
         }
         try {
             const ls = localStorage.getItem('aeea_backend_url');
-            if (ls && /^https?:\/\//.test(ls)) return ls.replace(/\/+$/, '') + '/';
+            const n = normalizeBackend(ls);
+            if (n) return n;
         } catch (e) {}
     } catch (e) {}
     return '';
 }
+window.__AEEA_BACKEND_URL__ = 'https://aeea-df7f2ade617d.herokuapp.com/';
 const BACKEND_URL = resolveBackendUrl();
+const HAS_BACKEND = BACKEND_URL.length > 0;
 
 // ============================================================
 // TELEGRAM WEB APP BOOTSTRAP
@@ -975,7 +1024,7 @@ function haptic(type) {
 }
 
 function apiUrl(path) {
-    if (BACKEND_URL && /^https?:\/\//.test(BACKEND_URL)) {
+    if (HAS_BACKEND) {
         return BACKEND_URL.replace(/\/+$/, '') + path;
     }
     return path;
@@ -996,6 +1045,8 @@ async function apiFetch(path, opts) {
         const res = await fetch(url, Object.assign({}, opts, {
             headers: authHeaders(opts.headers),
             signal: controller.signal,
+            mode: 'cors',
+            credentials: 'omit',
         }));
         clearTimeout(timeout);
         return res;
@@ -1008,10 +1059,27 @@ async function apiFetch(path, opts) {
 async function apiJson(path, opts) {
     try {
         const res = await apiFetch(path, opts);
-        if (!res.ok) return { __error: res.status, __status: res.status };
-        return await res.json();
+        const text = await res.text();
+        let data = null;
+        if (text) {
+            try { data = JSON.parse(text); } catch (e) { data = { __parse_error: text.slice(0, 200) }; }
+        }
+        if (!res.ok) {
+            return {
+                __error: true,
+                __status: res.status,
+                __body: data,
+                error: (data && (data.error || data.detail)) || ('HTTP ' + res.status),
+            };
+        }
+        return data || {};
     } catch (e) {
-        return { __error: String(e), __network: true };
+        return {
+            __error: true,
+            __network: true,
+            __body: null,
+            error: (e && e.name === 'AbortError') ? 'timeout' : (e && e.message) || String(e),
+        };
     }
 }
 
@@ -1030,7 +1098,7 @@ async function apiDelete(path, opts) {
 }
 
 async function postHandshake() {
-    if (!initDataRaw) return null;
+    if (!initDataRaw || !HAS_BACKEND) return null;
     try {
         const r = await apiPost('/handshake', { initData: initDataRaw });
         if (r && r.ok) return r;
@@ -1039,6 +1107,16 @@ async function postHandshake() {
         console.warn('Handshake failed:', e);
         return null;
     }
+}
+
+// ============================================================
+// CONNECTION BADGE
+// ============================================================
+const connBadge = document.getElementById('connBadge');
+function setConnBadge(state, text) {
+    if (!connBadge) return;
+    connBadge.className = state;
+    connBadge.textContent = text;
 }
 
 // ============================================================
@@ -1297,6 +1375,10 @@ function openSymbolPicker() {
                     const sym = el.dataset.symbol;
                     closeModal();
                     haptic('impact');
+                    if (!HAS_BACKEND) {
+                        showError('Backend not configured. Add ?backend=https://your-app.herokuapp.com/ to the Mini App URL.', 6000);
+                        return;
+                    }
                     const r = await apiPost('/symbol', { symbol: sym });
                     if (r && r.ok) {
                         state.symbol = sym;
@@ -1304,7 +1386,9 @@ function openSymbolPicker() {
                         pushLog('info', `Symbol changed to ${sym}`);
                         fetchAll();
                     } else {
-                        showError('Symbol change failed: ' + (r && (r.error || r.detail) || 'unknown'), 4000);
+                        const detail = r && (r.error || r.detail || (r.__body && r.__body.error)) || 'unknown';
+                        showError('Symbol change failed: ' + detail, 5000);
+                        pushLog('error', 'Symbol change failed: ' + detail);
                     }
                 });
             });
@@ -1727,6 +1811,10 @@ function renderFvgList() {
 }
 
 async function commitFvg(type, price) {
+    if (!HAS_BACKEND) {
+        showError('Backend not configured.', 4000);
+        return;
+    }
     if (!price || price <= 0) {
         showError('Invalid FVG price', 3000);
         return;
@@ -1738,7 +1826,8 @@ async function commitFvg(type, price) {
         renderFvgList();
         renderChart();
     } else {
-        showError('FVG commit failed: ' + (r && (r.error || r.detail) || 'unknown'), 4000);
+        const detail = r && (r.error || r.detail || (r.__body && r.__body.error)) || 'unknown';
+        showError('FVG commit failed: ' + detail, 4000);
     }
 }
 
@@ -1799,12 +1888,17 @@ function openSettingsModal() {
                 };
                 closeModal();
                 haptic('impact');
+                if (!HAS_BACKEND) {
+                    showError('Backend not configured.', 4000);
+                    return;
+                }
                 const r = await apiPost('/settings', next);
                 if (r && r.ok) {
                     state.settings = next;
                     pushLog('info', 'Settings saved');
                 } else {
-                    showError('Settings save failed: ' + (r && (r.error || r.detail) || 'unknown'), 4000);
+                    const detail = r && (r.error || r.detail || (r.__body && r.__body.error)) || 'unknown';
+                    showError('Settings save failed: ' + detail, 4000);
                 }
             });
         }
@@ -1816,6 +1910,7 @@ function openSettingsModal() {
 // ============================================================
 document.getElementById('ot-submit').addEventListener('click', async () => {
     haptic('impact');
+    if (!HAS_BACKEND) { showError('Backend not configured.', 4000); return; }
     const side = document.getElementById('ot-side').value;
     const lot = parseFloat(document.getElementById('ot-lot').value);
     const sl = parseFloat(document.getElementById('ot-sl').value);
@@ -1825,17 +1920,20 @@ document.getElementById('ot-submit').addEventListener('click', async () => {
         pushLog('success', `${side} order placed @ ${r.entry || state.price}`);
         await fetchOrders();
     } else {
-        showError('Order failed: ' + (r && (r.error || r.detail) || 'unknown'), 4000);
+        const detail = r && (r.error || r.detail || (r.__body && r.__body.error)) || 'unknown';
+        showError('Order failed: ' + detail, 4000);
     }
 });
 document.getElementById('ot-close-all').addEventListener('click', async () => {
     haptic('impact');
+    if (!HAS_BACKEND) { showError('Backend not configured.', 4000); return; }
     const r = await apiPost('/order/close', { all: true });
     if (r && r.ok) {
         pushLog('info', 'All positions closed');
         await fetchOrders();
     } else {
-        showError('Close-all failed: ' + (r && (r.error || r.detail) || 'unknown'), 4000);
+        const detail = r && (r.error || r.detail || (r.__body && r.__body.error)) || 'unknown';
+        showError('Close-all failed: ' + detail, 4000);
     }
 });
 
@@ -2015,7 +2113,7 @@ function renderChart() {
         ctx.fillStyle = '#335577';
         ctx.font = '12px "Courier New", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('Awaiting OHLCV data…', w / 2, h / 2);
+        ctx.fillText(HAS_BACKEND ? 'Awaiting OHLCV data…' : 'Backend URL not configured — add ?backend=https://your-app.herokuapp.com/', w / 2, h / 2);
         return;
     }
     if (viewport.autoPrice) computePriceRange();
@@ -2522,15 +2620,20 @@ function noteFailure() {
     consecutiveFailures++;
     if (consecutiveFailures >= MAX_FAILURES) {
         backoffUntil = Date.now() + 30000;
+        setConnBadge('err', 'backend unreachable');
         pushLog('warn', 'Backend unreachable; backing off 30s');
+    } else {
+        setConnBadge('wait', 'retrying…');
     }
 }
 function noteSuccess() {
     consecutiveFailures = 0;
     backoffUntil = 0;
+    setConnBadge('ok', 'connected');
 }
 
 async function fetchOhlcv() {
+    if (!HAS_BACKEND) { noteFailure(); return; }
     const tf = (TIMEFRAMES.find(t => t.id === state.timeframe) || { interval: '1m' }).interval;
     const r = await apiJson('/ohlcv?limit=200&interval=' + encodeURIComponent(tf));
     if (!r || r.__error) { noteFailure(); return; }
@@ -2541,6 +2644,7 @@ async function fetchOhlcv() {
 }
 
 async function fetchMiniAppState() {
+    if (!HAS_BACKEND) { noteFailure(); return; }
     const r = await apiJson('/miniapp-state');
     if (!r || r.__error) { noteFailure(); return; }
     noteSuccess();
@@ -2581,6 +2685,7 @@ function absorbMiniAppState(ma) {
 }
 
 async function fetchSignals() {
+    if (!HAS_BACKEND) return;
     const r = await apiJson('/signals?limit=50');
     if (!r || r.__error) return;
     if (r.signals) state.signals = r.signals;
@@ -2588,6 +2693,7 @@ async function fetchSignals() {
 }
 
 async function fetchDiagnostics() {
+    if (!HAS_BACKEND) return;
     const r = await apiJson('/diagnostics');
     if (!r || r.__error) return;
     absorbDiagnostics(r);
@@ -2647,6 +2753,7 @@ function absorbDiagnostics(d) {
 }
 
 async function fetchOrders() {
+    if (!HAS_BACKEND) return;
     const r = await apiJson('/orders');
     if (!r || r.__error) return;
     if (r.orders) state.orders = r.orders;
@@ -2654,6 +2761,7 @@ async function fetchOrders() {
 }
 
 async function fetchFvgs() {
+    if (!HAS_BACKEND) return;
     const r = await apiJson('/fvg');
     if (!r || r.__error) return;
     if (r.fvgs) {
@@ -2662,6 +2770,7 @@ async function fetchFvgs() {
 }
 
 async function fetchIndicatorSeries(name) {
+    if (!HAS_BACKEND) return;
     const r = await apiJson('/indicators?name=' + encodeURIComponent(name) + '&count=80');
     if (!r || r.__error) return;
     if (r.series) {
@@ -2672,6 +2781,7 @@ async function fetchIndicatorSeries(name) {
 }
 
 async function fetchRegimeMap() {
+    if (!HAS_BACKEND) return;
     const r = await apiJson('/regime-map');
     if (!r || r.__error) return;
     if (r.regime_map) {
@@ -2681,6 +2791,7 @@ async function fetchRegimeMap() {
 }
 
 async function fetchLogs() {
+    if (!HAS_BACKEND) return;
     const r = await apiJson('/log?limit=50');
     if (!r || r.__error) return;
     if (r.logs) {
@@ -2693,6 +2804,11 @@ async function fetchLogs() {
 // MASTER FETCH
 // ============================================================
 async function fetchAll() {
+    if (!HAS_BACKEND) {
+        setConnBadge('err', 'no backend');
+        showError('Backend URL not configured. Append ?backend=https://your-app.herokuapp.com/ to the Mini App URL.', 8000);
+        return;
+    }
     if (isBackedOff()) return;
     hideError();
     await Promise.all([
@@ -2841,8 +2957,14 @@ async function boot() {
         return;
     }
     switchView('chart');
+    if (!HAS_BACKEND) {
+        setConnBadge('err', 'no backend');
+        showError('Backend URL not configured. Append ?backend=https://your-app.herokuapp.com/ to the Mini App URL, or set window.__AEEA_BACKEND_URL__ before load.', 10000);
+    } else {
+        setConnBadge('wait', 'connecting…');
+    }
     await fetchAll();
-    if (tmaActive) {
+    if (tmaActive && HAS_BACKEND) {
         const r = await postHandshake();
         if (r && r.ok) {
             pushLog('info', `Handshake OK: @${r.username || r.user_id || '?'}`);
@@ -2865,6 +2987,8 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.0.0');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
+console.log('TMA active:', tmaActive);
 console.log('MT4/TradingView-style interface:');
 console.log('  ✓ Symbol + timeframe + chart-type toolbar');
 console.log('  ✓ Interactive candlestick/bar/line/area chart');
@@ -2875,6 +2999,7 @@ console.log('  ✓ Order ticket (place/close simulated orders)');
 console.log('  ✓ Engine settings panel');
 console.log('  ✓ Regime map, log bar, signal markers');
 console.log('  ✓ Live state polling with backoff');
+console.log('  ✓ Connection badge + explicit backend errors');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
