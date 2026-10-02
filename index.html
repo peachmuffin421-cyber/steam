@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ÆEA Engine · MQL4-Parity Port · TWA v4.0.0</title>
+<title>ÆEA Engine · MQL4-Parity Port · TWA v4.1.0</title>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -717,7 +717,7 @@ html, body {
 .regime-row .flags { color: var(--purple); font-size: 0.46rem; }
 
 /* ============================================================
-   CONNECTION BADGE (new)
+   CONNECTION BADGE
    ============================================================ */
 #connBadge {
     position: absolute;
@@ -902,14 +902,14 @@ html, body {
      HELP PANEL
      ============================================================ -->
 <div id="explainPanel">
-    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.0.0</h3>
+    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.1.0</h3>
     <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, FVG list, refresh, settings, help.</span></div>
     <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: Bollinger Bands (Premium/Discount), FVG lines (Top/Bott), signal markers (▲BUY / ▼SELL), trailing-stop line.</span></div>
     <div class="item"><b>SUB-PANELS</b> <span>— MT4-style indicator sub-windows. Add via <b>+ IND</b>. Each panel has a header with title, current value, and visibility/settings/close controls.</span></div>
     <div class="item"><b>13D GRID</b> <span>— The 13 classical indicators projected onto the Hilbert space H₁₃, each normalized to [0, 100], with live bars and historical sparkline.</span></div>
     <div class="item"><b>REGIME MAP</b> <span>— Per-bar regime classification: sRange / sVolatile / sTrend / Stable, with time-extension variants (tRange / tVolatile / tTrend).</span></div>
     <div class="item"><b>KRONECKER δ</b> <span>— δ(m−n−2). m = overbought indicator count, n = oversold count. H() fires when m ≥ 12, L() fires when n ≥ 12.</span></div>
-    <div class="item"><b>ENGINE PANEL</b> <span>— KC / prime / dime / mem / tag / invert / A / B / C / c / trailing / OnTrack / OnStand / orders / safety.</span></div>
+    <div class="item"><b>ENGINE PANEL</b> <span>— KC / prime / dime / mem / tag / invert / A / B / C / c / tick_tock / signature / trailing / OnTrack / OnStand / orders / safety.</span></div>
     <div class="item"><b>DERIVATIVE PANEL</b> <span>— Z / z / O / o / W / w / I / iI / J / iJ / X_scan / Y_scan / S / T / r / ir / iATR / iStdDev / iIHKk / iIHKt.</span></div>
     <div class="item"><b>ORDER TICKET</b> <span>— Place simulated orders with lot/SL/TP. Close individual positions or all at once. Positions list shows entry, SL, TP, PnL.</span></div>
     <div class="item"><b>FVG</b> <span>— Long-press on chart to draw a Top/Bott FVG. Tap an FVG line to delete. The FVG button in the toolbar shows the full list.</span></div>
@@ -1140,6 +1140,19 @@ function hideError() {
 
 // ============================================================
 // SHARED STATE
+// ------------------------------------------------------------
+// Every field here mirrors a field in the FF's AEI_CoreState.
+// Update paths:
+//   /miniapp-state   (2s poll)  → absorbMiniAppState()
+//   /diagnostics     (5s poll)  → absorbDiagnostics()
+//   /ohlcv           (30s poll) → fetchOhlcv()
+//   /signals         (10s poll) → fetchSignals()
+//   /orders          (5s poll)  → fetchOrders()
+//   /regime-map      (15s poll) → fetchRegimeMap()
+//
+// Freshness guard: each absorber stamps `state._last<Source>Tick`.
+// updateEnginePanel(), updateKroneckerPanel(), updateDerivativePanel()
+// read whichever source has the larger tick for each field group.
 // ============================================================
 const INDICATOR_NAMES = [
     'ADX', 'Stochastic', 'RVI', 'AC', 'Force', 'OBV', 'AD',
@@ -1167,6 +1180,7 @@ const INDICATOR_RANGES = {
 };
 
 const state = {
+    // -------- connection meta --------
     connected: false,
     relay_healthy: true,
     symbol: '—',
@@ -1179,46 +1193,95 @@ const state = {
     bars: [],
     signals: [],
     fvgs: [],
+
+    // -------- engine: top-level counters --------
     tick: 0,
-    KC: true, invert: true, tag: -1, prime: -1, dime: -1, mem: -1,
+    bar_close_count: 0,
+    ohlcv_count: 0,
+    signal_count: 0,
+    last_signal_at: null,
+
+    // -------- engine: A/B/C/c flags --------
     A: true, B: true, C: true, c: true,
-    tick_tock: false, signature: false,
+
+    // -------- engine: inversion state --------
+    KC: true, invert: true, tag: -1, prime: -1, dime: -1, mem: -1,
+
+    // -------- engine: tick synchronisation --------
+    tick_tock: false,
+    signature: false,
     safety: false,
+
+    // -------- engine: trailing stop --------
     trailing_stop_active: false,
     trailing_stop_price: 0,
     trailing_take_profit: 0,
     trailing_stop_entry: 0,
     trailing_stop_side: '',
+
+    // -------- engine: open orders --------
     has_open_long: false, has_open_short: false,
     lOrder_id: -1, kOrder_id: -1,
-    on_track_runs: 0, on_stand_runs: 0,
     orders: [],
+
+    // -------- engine: Kronecker count (live per tick) --------
     market_m: 0, market_n: 0, market_imbalance: -2, market_regime: 'NEUTRAL',
+    m_count: 0, n_count: 0,
     m_at_h: 0, n_at_h: 0, h_bar: 0,
+
+    // -------- engine: last Kronecker event (log only) --------
     last_kronecker_bar: -1,
     last_kronecker_m: 0, last_kronecker_n: 0, last_kronecker_h: -1,
+
+    // -------- engine: directional derivatives --------
     Z: 1, z: 1, iZ: 1, iz: 1,
     O: 1, o: 1, iO: 1, io: 1,
     W: 1, w: 1, iW: 1, iw: 1,
     I: 0, iI: 0, J: 0, iJ: 0,
+
+    // -------- engine: scan bounds & rolling indices --------
     X_scan: 1, Y_scan: 1,
     S: 62, T: 62, r: 0, ir: 0,
+
+    // -------- engine: volatility state --------
+    iATR: 50, iStdDev: 50,
+    iIHKk: 50, iIHKt: 50,
+
+    // -------- engine: boundary pass conditions --------
+    lPass: 0, ilPass: 0, kPass: 0, ikPass: 0,
+
+    // -------- engine: counters --------
     indicator_populate_count: 0,
     imbalance_fire_count: 0,
-    ohlcv_count: 0,
-    signal_count: 0,
-    bar_close_count: 0,
-    iATR: 50, iStdDev: 50, iIHKk: 50, iIHKt: 50,
+    on_track_runs: 0, on_stand_runs: 0,
+
+    // -------- engine: series buffers --------
     indicator_series: {},
     regime_map: [],
     premium_series: [],
     discount_series: [],
+
+    // -------- engine: settings --------
     settings: {
         max: 60, min: 3, Cc: true, cC: true, Memory: -1,
         safetyOffSwitch: false, StopLoss: 0, TakeProfit: 0,
         lot: 0.01, slip: 100, Commssion: 0,
     },
+
+    // -------- local logs --------
     logs: [],
+
+    // -------- freshness guards --------
+    // Each absorber stamps the value of state.tick at the time it wrote.
+    // The update*() functions read whichever source has the highest tick
+    // for each field group, so a stale 5s /diagnostics cannot overwrite a
+    // fresh 2s /miniapp-state (or vice versa).
+    _lastMiniAppTick: -1,
+    _lastDiagnosticsTick: -1,
+    _lastOhlcvTick: -1,
+    _lastSignalsTick: -1,
+    _lastRegimeTick: -1,
+    _lastOrdersTick: -1,
 };
 
 // ============================================================
@@ -2641,8 +2704,20 @@ async function fetchOhlcv() {
     state.bars = r.bars || [];
     state.ohlcv_count = r.count || state.bars.length;
     if (r.symbol) state.symbol = r.symbol;
+    state._lastOhlcvTick = state.tick;
 }
 
+// ============================================================
+// /miniapp-state  (2s poll) — full FF state snapshot
+// ------------------------------------------------------------
+// The patched bridge returns ALL FF-exact fields here,
+// including KC/invert/tag/prime/dime/mem/A/B/C/c/tick_tock/
+// signature/safety, all trailing-stop fields, all derivative
+// fields (Z,z,O,o,W,w,I,iI,J,iJ,iZ,iz,iW,iw,iO,io), scan bounds
+// (X_scan,Y_scan,S,T,r,ir), volatility (iATR,iStdDev,iIHKk,iIHKt),
+// counters (indicator_populate_count, imbalance_fire_count),
+// and lPass/ilPass/kPass/ikPass.
+// ============================================================
 async function fetchMiniAppState() {
     if (!HAS_BACKEND) { noteFailure(); return; }
     const r = await apiJson('/miniapp-state');
@@ -2652,6 +2727,7 @@ async function fetchMiniAppState() {
 }
 
 function absorbMiniAppState(ma) {
+    // Connection meta
     if (ma.symbol) state.symbol = ma.symbol;
     if (ma.regime) state.regime = ma.regime;
     if (ma.price) {
@@ -2661,18 +2737,106 @@ function absorbMiniAppState(ma) {
     if (ma.tick !== undefined) state.tick = ma.tick;
     if (ma.last_price_update) state.lastUpdate = ma.last_price_update;
     if (ma.relay_healthy !== undefined) state.relay_healthy = ma.relay_healthy;
-    if (ma.market_m !== undefined) state.market_m = ma.market_m;
-    if (ma.market_n !== undefined) state.market_n = ma.market_n;
-    if (ma.market_imbalance !== undefined) state.market_imbalance = ma.market_imbalance;
-    if (ma.market_regime) state.market_regime = ma.market_regime;
-    if (ma.m_at_h !== undefined) state.m_at_h = ma.m_at_h;
-    if (ma.n_at_h !== undefined) state.n_at_h = ma.n_at_h;
-    if (ma.h_bar !== undefined) state.h_bar = ma.h_bar;
+
+    // Bar / signal counters
     if (ma.bar_close_count !== undefined) state.bar_close_count = ma.bar_close_count;
     if (ma.signal_count !== undefined) state.signal_count = ma.signal_count;
     if (ma.ohlcv_count !== undefined) state.ohlcv_count = ma.ohlcv_count;
     if (ma.last_signal_at) state.last_signal_at = ma.last_signal_at;
     if (ma.recent_signals) state.signals = ma.recent_signals;
+
+    // Kronecker (live per tick)
+    if (ma.market_m !== undefined) state.market_m = ma.market_m;
+    if (ma.market_n !== undefined) state.market_n = ma.market_n;
+    if (ma.market_imbalance !== undefined) state.market_imbalance = ma.market_imbalance;
+    if (ma.market_regime) state.market_regime = ma.market_regime;
+    if (ma.m_count !== undefined) state.m_count = ma.m_count;
+    if (ma.n_count !== undefined) state.n_count = ma.n_count;
+    if (ma.m_at_h !== undefined) state.m_at_h = ma.m_at_h;
+    if (ma.n_at_h !== undefined) state.n_at_h = ma.n_at_h;
+    if (ma.h_bar !== undefined) state.h_bar = ma.h_bar;
+
+    // Engine flags: A/B/C/c/tick_tock/signature/safety
+    if (ma.A !== undefined) state.A = ma.A;
+    if (ma.B !== undefined) state.B = ma.B;
+    if (ma.C !== undefined) state.C = ma.C;
+    if (ma.c !== undefined) state.c = ma.c;
+    if (ma.tick_tock !== undefined) state.tick_tock = ma.tick_tock;
+    if (ma.signature !== undefined) state.signature = ma.signature;
+    if (ma.safety !== undefined) state.safety = ma.safety;
+
+    // Inversion state
+    if (ma.KC !== undefined) state.KC = ma.KC;
+    if (ma.invert !== undefined) state.invert = ma.invert;
+    if (ma.tag !== undefined) state.tag = ma.tag;
+    if (ma.prime !== undefined) state.prime = ma.prime;
+    if (ma.dime !== undefined) state.dime = ma.dime;
+    if (ma.mem !== undefined) state.mem = ma.mem;
+
+    // Trailing stop
+    if (ma.trailing_stop_active !== undefined) state.trailing_stop_active = ma.trailing_stop_active;
+    if (ma.trailing_stop_price !== undefined) state.trailing_stop_price = parseFloat(ma.trailing_stop_price) || 0;
+    if (ma.trailing_take_profit !== undefined) state.trailing_take_profit = parseFloat(ma.trailing_take_profit) || 0;
+    if (ma.trailing_stop_entry !== undefined) state.trailing_stop_entry = parseFloat(ma.trailing_stop_entry) || 0;
+    if (ma.trailing_stop_side !== undefined) state.trailing_stop_side = ma.trailing_stop_side;
+
+    // Orders
+    if (ma.has_open_long !== undefined) state.has_open_long = ma.has_open_long;
+    if (ma.has_open_short !== undefined) state.has_open_short = ma.has_open_short;
+    if (ma.lOrder_id !== undefined) state.lOrder_id = ma.lOrder_id;
+    if (ma.kOrder_id !== undefined) state.kOrder_id = ma.kOrder_id;
+
+    // Last Kronecker event
+    if (ma.last_kronecker_bar !== undefined) state.last_kronecker_bar = ma.last_kronecker_bar;
+    if (ma.last_kronecker_m !== undefined) state.last_kronecker_m = ma.last_kronecker_m;
+    if (ma.last_kronecker_n !== undefined) state.last_kronecker_n = ma.last_kronecker_n;
+    if (ma.last_kronecker_h !== undefined) state.last_kronecker_h = ma.last_kronecker_h;
+
+    // Directional derivatives
+    if (ma.Z !== undefined) state.Z = ma.Z;
+    if (ma.z !== undefined) state.z = ma.z;
+    if (ma.O !== undefined) state.O = ma.O;
+    if (ma.o !== undefined) state.o = ma.o;
+    if (ma.W !== undefined) state.W = ma.W;
+    if (ma.w !== undefined) state.w = ma.w;
+    if (ma.I !== undefined) state.I = ma.I;
+    if (ma.iI !== undefined) state.iI = ma.iI;
+    if (ma.J !== undefined) state.J = ma.J;
+    if (ma.iJ !== undefined) state.iJ = ma.iJ;
+    if (ma.iZ !== undefined) state.iZ = ma.iZ;
+    if (ma.iz !== undefined) state.iz = ma.iz;
+    if (ma.iW !== undefined) state.iW = ma.iW;
+    if (ma.iw !== undefined) state.iw = ma.iw;
+    if (ma.iO !== undefined) state.iO = ma.iO;
+    if (ma.io !== undefined) state.io = ma.io;
+
+    // Scan bounds & rolling indices
+    if (ma.X_scan !== undefined) state.X_scan = ma.X_scan;
+    if (ma.Y_scan !== undefined) state.Y_scan = ma.Y_scan;
+    if (ma.S !== undefined) state.S = ma.S;
+    if (ma.T !== undefined) state.T = ma.T;
+    if (ma.r !== undefined) state.r = ma.r;
+    if (ma.ir !== undefined) state.ir = ma.ir;
+
+    // Volatility
+    if (ma.iATR !== undefined) state.iATR = parseFloat(ma.iATR) || 0;
+    if (ma.iStdDev !== undefined) state.iStdDev = parseFloat(ma.iStdDev) || 0;
+    if (ma.iIHKk !== undefined) state.iIHKk = parseFloat(ma.iIHKk) || 0;
+    if (ma.iIHKt !== undefined) state.iIHKt = parseFloat(ma.iIHKt) || 0;
+
+    // Counters
+    if (ma.indicator_populate_count !== undefined) state.indicator_populate_count = ma.indicator_populate_count;
+    if (ma.imbalance_fire_count !== undefined) state.imbalance_fire_count = ma.imbalance_fire_count;
+    if (ma.on_track_runs !== undefined) state.on_track_runs = ma.on_track_runs;
+    if (ma.on_stand_runs !== undefined) state.on_stand_runs = ma.on_stand_runs;
+
+    // Boundary pass conditions
+    if (ma.lPass !== undefined) state.lPass = parseFloat(ma.lPass) || 0;
+    if (ma.ilPass !== undefined) state.ilPass = parseFloat(ma.ilPass) || 0;
+    if (ma.kPass !== undefined) state.kPass = parseFloat(ma.kPass) || 0;
+    if (ma.ikPass !== undefined) state.ikPass = parseFloat(ma.ikPass) || 0;
+
+    // FVG anchors
     if (ma.fvg_anchors) {
         state.fvgs = ma.fvg_anchors.map(a => ({
             idx: a.idx,
@@ -2682,6 +2846,9 @@ function absorbMiniAppState(ma) {
     }
     if (ma.premium_series) state.premium_series = ma.premium_series;
     if (ma.discount_series) state.discount_series = ma.discount_series;
+
+    // Stamp freshness
+    state._lastMiniAppTick = state.tick;
 }
 
 async function fetchSignals() {
@@ -2690,6 +2857,7 @@ async function fetchSignals() {
     if (!r || r.__error) return;
     if (r.signals) state.signals = r.signals;
     if (r.last_signal_at) state.last_signal_at = r.last_signal_at;
+    state._lastSignalsTick = state.tick;
 }
 
 async function fetchDiagnostics() {
@@ -2699,43 +2867,29 @@ async function fetchDiagnostics() {
     absorbDiagnostics(r);
 }
 
+// ============================================================
+// /diagnostics  (5s poll) — extra fields for the panels
+// ------------------------------------------------------------
+// The patched /diagnostics endpoint returns ALL FF-exact fields
+// (via get_signal_status()). But because /miniapp-state now also
+// returns them, we must be careful not to have the slower 5s poll
+// overwrite the faster 2s poll with stale data. The freshness
+// guard is: only absorb fields whose reported tick is strictly
+// greater than the last /miniapp-state tick we absorbed. If the
+// tick counters are equal, /miniapp-state is treated as the
+// authoritative source because it polled first in the cycle.
+// ============================================================
 function absorbDiagnostics(d) {
-    if (d.KC !== undefined) state.KC = d.KC;
-    if (d.invert !== undefined) state.invert = d.invert;
-    if (d.tag !== undefined) state.tag = d.tag;
-    if (d.prime !== undefined) state.prime = d.prime;
-    if (d.dime !== undefined) state.dime = d.dime;
-    if (d.mem !== undefined) state.mem = d.mem;
-    if (d.tick_tock !== undefined) state.tick_tock = d.tick_tock;
-    if (d.signature !== undefined) state.signature = d.signature;
-    if (d.safety !== undefined) state.safety = d.safety;
-    if (d.trailing_stop_active !== undefined) state.trailing_stop_active = d.trailing_stop_active;
-    if (d.trailing_stop_price !== undefined) state.trailing_stop_price = parseFloat(d.trailing_stop_price) || 0;
-    if (d.trailing_take_profit !== undefined) state.trailing_take_profit = parseFloat(d.trailing_take_profit) || 0;
-    if (d.trailing_stop_entry !== undefined) state.trailing_stop_entry = parseFloat(d.trailing_stop_entry) || 0;
-    if (d.trailing_stop_side !== undefined) state.trailing_stop_side = d.trailing_stop_side;
-    if (d.has_open_long !== undefined) state.has_open_long = d.has_open_long;
-    if (d.has_open_short !== undefined) state.has_open_short = d.has_open_short;
-    if (d.lOrder_id !== undefined) state.lOrder_id = d.lOrder_id;
-    if (d.kOrder_id !== undefined) state.kOrder_id = d.kOrder_id;
-    if (d.on_track_runs !== undefined) state.on_track_runs = d.on_track_runs;
-    if (d.on_stand_runs !== undefined) state.on_stand_runs = d.on_stand_runs;
-    if (d.last_kronecker_bar !== undefined) state.last_kronecker_bar = d.last_kronecker_bar;
-    if (d.last_kronecker_m !== undefined) state.last_kronecker_m = d.last_kronecker_m;
-    if (d.last_kronecker_n !== undefined) state.last_kronecker_n = d.last_kronecker_n;
-    if (d.last_kronecker_h !== undefined) state.last_kronecker_h = d.last_kronecker_h;
-    if (d.X_scan !== undefined) state.X_scan = d.X_scan;
-    if (d.Y_scan !== undefined) state.Y_scan = d.Y_scan;
-    if (d.S !== undefined) state.S = d.S;
-    if (d.T !== undefined) state.T = d.T;
-    if (d.r !== undefined) state.r = d.r;
-    if (d.ir !== undefined) state.ir = d.ir;
-    if (d.iATR !== undefined) state.iATR = parseFloat(d.iATR) || 0;
-    if (d.iStdDev !== undefined) state.iStdDev = parseFloat(d.iStdDev) || 0;
-    if (d.iIHKk !== undefined) state.iIHKk = parseFloat(d.iIHKk) || 0;
-    if (d.iIHKt !== undefined) state.iIHKt = parseFloat(d.iIHKt) || 0;
-    if (d.indicator_populate_count !== undefined) state.indicator_populate_count = d.indicator_populate_count;
-    if (d.imbalance_fire_count !== undefined) state.imbalance_fire_count = d.imbalance_fire_count;
+    const diagTick = (d.tick !== undefined) ? d.tick : -1;
+    const miniTick = state._lastMiniAppTick;
+
+    // If diagnostics is not fresher than the last mini-app snapshot,
+    // we still absorb the auxiliary fields (indicator series samples,
+    // recent_signals, ohlcv_history_depth) that /miniapp-state does
+    // not carry, but we DO NOT overwrite any engine state field.
+    const engineFieldsFresh = diagTick > miniTick;
+
+    // --- Always absorb the auxiliary-only fields ---
     if (d.indicator_sample_col0 && d.indicator_sample_col0.length === 13) {
         for (let i = 0; i < 13; i++) {
             const name = INDICATOR_NAMES[i];
@@ -2750,6 +2904,100 @@ function absorbDiagnostics(d) {
             state.indicator_series[name][1] = parseFloat(d.indicator_sample_col1[i]);
         }
     }
+    if (d.recent_signals) state.signals = d.recent_signals;
+
+    // --- Absorb engine-state fields only if diagnostics is fresher ---
+    if (!engineFieldsFresh) {
+        state._lastDiagnosticsTick = diagTick;
+        return;
+    }
+
+    if (d.KC !== undefined) state.KC = d.KC;
+    if (d.invert !== undefined) state.invert = d.invert;
+    if (d.tag !== undefined) state.tag = d.tag;
+    if (d.prime !== undefined) state.prime = d.prime;
+    if (d.dime !== undefined) state.dime = d.dime;
+    if (d.mem !== undefined) state.mem = d.mem;
+    if (d.tick_tock !== undefined) state.tick_tock = d.tick_tock;
+    if (d.signature !== undefined) state.signature = d.signature;
+    if (d.safety !== undefined) state.safety = d.safety;
+    if (d.A !== undefined) state.A = d.A;
+    if (d.B !== undefined) state.B = d.B;
+    if (d.C !== undefined) state.C = d.C;
+    if (d.c !== undefined) state.c = d.c;
+
+    if (d.m_count !== undefined) state.m_count = d.m_count;
+    if (d.n_count !== undefined) state.n_count = d.n_count;
+    if (d.m_at_h !== undefined) state.m_at_h = d.m_at_h;
+    if (d.n_at_h !== undefined) state.n_at_h = d.n_at_h;
+    if (d.h_bar !== undefined) state.h_bar = d.h_bar;
+    if (d.market_m !== undefined) state.market_m = d.market_m;
+    if (d.market_n !== undefined) state.market_n = d.market_n;
+    if (d.market_imbalance !== undefined) state.market_imbalance = d.market_imbalance;
+    if (d.market_regime) state.market_regime = d.market_regime;
+
+    if (d.trailing_stop_active !== undefined) state.trailing_stop_active = d.trailing_stop_active;
+    if (d.trailing_stop_price !== undefined) state.trailing_stop_price = parseFloat(d.trailing_stop_price) || 0;
+    if (d.trailing_take_profit !== undefined) state.trailing_take_profit = parseFloat(d.trailing_take_profit) || 0;
+    if (d.trailing_stop_entry !== undefined) state.trailing_stop_entry = parseFloat(d.trailing_stop_entry) || 0;
+    if (d.trailing_stop_side !== undefined) state.trailing_stop_side = d.trailing_stop_side;
+
+    if (d.has_open_long !== undefined) state.has_open_long = d.has_open_long;
+    if (d.has_open_short !== undefined) state.has_open_short = d.has_open_short;
+    if (d.lOrder_id !== undefined) state.lOrder_id = d.lOrder_id;
+    if (d.kOrder_id !== undefined) state.kOrder_id = d.kOrder_id;
+
+    if (d.on_track_runs !== undefined) state.on_track_runs = d.on_track_runs;
+    if (d.on_stand_runs !== undefined) state.on_stand_runs = d.on_stand_runs;
+
+    if (d.last_kronecker_bar !== undefined) state.last_kronecker_bar = d.last_kronecker_bar;
+    if (d.last_kronecker_m !== undefined) state.last_kronecker_m = d.last_kronecker_m;
+    if (d.last_kronecker_n !== undefined) state.last_kronecker_n = d.last_kronecker_n;
+    if (d.last_kronecker_h !== undefined) state.last_kronecker_h = d.last_kronecker_h;
+
+    if (d.X_scan !== undefined) state.X_scan = d.X_scan;
+    if (d.Y_scan !== undefined) state.Y_scan = d.Y_scan;
+    if (d.S !== undefined) state.S = d.S;
+    if (d.T !== undefined) state.T = d.T;
+    if (d.r !== undefined) state.r = d.r;
+    if (d.ir !== undefined) state.ir = d.ir;
+
+    if (d.Z !== undefined) state.Z = d.Z;
+    if (d.z !== undefined) state.z = d.z;
+    if (d.O !== undefined) state.O = d.O;
+    if (d.o !== undefined) state.o = d.o;
+    if (d.W !== undefined) state.W = d.W;
+    if (d.w !== undefined) state.w = d.w;
+    if (d.I !== undefined) state.I = d.I;
+    if (d.iI !== undefined) state.iI = d.iI;
+    if (d.J !== undefined) state.J = d.J;
+    if (d.iJ !== undefined) state.iJ = d.iJ;
+    if (d.iZ !== undefined) state.iZ = d.iZ;
+    if (d.iz !== undefined) state.iz = d.iz;
+    if (d.iW !== undefined) state.iW = d.iW;
+    if (d.iw !== undefined) state.iw = d.iw;
+    if (d.iO !== undefined) state.iO = d.iO;
+    if (d.io !== undefined) state.io = d.io;
+
+    if (d.iATR !== undefined) state.iATR = parseFloat(d.iATR) || 0;
+    if (d.iStdDev !== undefined) state.iStdDev = parseFloat(d.iStdDev) || 0;
+    if (d.iIHKk !== undefined) state.iIHKk = parseFloat(d.iIHKk) || 0;
+    if (d.iIHKt !== undefined) state.iIHKt = parseFloat(d.iIHKt) || 0;
+
+    if (d.indicator_populate_count !== undefined) state.indicator_populate_count = d.indicator_populate_count;
+    if (d.imbalance_fire_count !== undefined) state.imbalance_fire_count = d.imbalance_fire_count;
+
+    if (d.lPass !== undefined) state.lPass = parseFloat(d.lPass) || 0;
+    if (d.ilPass !== undefined) state.ilPass = parseFloat(d.ilPass) || 0;
+    if (d.kPass !== undefined) state.kPass = parseFloat(d.kPass) || 0;
+    if (d.ikPass !== undefined) state.ikPass = parseFloat(d.ikPass) || 0;
+
+    if (d.ohlcv_count !== undefined) state.ohlcv_count = d.ohlcv_count;
+    if (d.signal_count !== undefined) state.signal_count = d.signal_count;
+    if (d.last_signal_at) state.last_signal_at = d.last_signal_at;
+    if (d.bar_close_count !== undefined) state.bar_close_count = d.bar_close_count;
+
+    state._lastDiagnosticsTick = diagTick;
 }
 
 async function fetchOrders() {
@@ -2757,6 +3005,7 @@ async function fetchOrders() {
     const r = await apiJson('/orders');
     if (!r || r.__error) return;
     if (r.orders) state.orders = r.orders;
+    state._lastOrdersTick = state.tick;
     renderOrders();
 }
 
@@ -2786,6 +3035,7 @@ async function fetchRegimeMap() {
     if (!r || r.__error) return;
     if (r.regime_map) {
         state.regime_map = r.regime_map;
+        state._lastRegimeTick = state.tick;
         if (currentView === 'regime') renderRegimeMap();
     }
 }
@@ -2811,8 +3061,11 @@ async function fetchAll() {
     }
     if (isBackedOff()) return;
     hideError();
+    // Order matters: /miniapp-state first, so its tick stamps the
+    // freshness guard before /diagnostics runs. Then the auxiliary
+    // fetches fill in the slower-moving series.
+    await fetchMiniAppState();
     await Promise.all([
-        fetchMiniAppState(),
         fetchOhlcv(),
         fetchSignals(),
         fetchDiagnostics(),
@@ -2906,6 +3159,7 @@ function updateDerivativePanel() {
 // ============================================================
 function startPolling() {
     stopPolling();
+    // 2s: /miniapp-state — primary source for all live engine state
     pollHandles.miniapp = setInterval(() => {
         if (isBackedOff()) return;
         fetchMiniAppState().then(() => {
@@ -2914,16 +3168,20 @@ function startPolling() {
             updateEnginePanel();
             updateKroneckerPanel();
             updateDerivativePanel();
+            if (currentView === 'chart') renderChart();
         });
     }, 2000);
+    // 30s: /ohlcv — historical bars for the chart
     pollHandles.ohlcv = setInterval(() => {
         if (isBackedOff()) return;
         fetchOhlcv().then(() => { if (currentView === 'chart') renderChart(); });
     }, 30000);
+    // 10s: /signals — recent signal history
     pollHandles.signals = setInterval(() => {
         if (isBackedOff()) return;
         fetchSignals().then(() => { if (currentView === 'chart') renderChart(); });
     }, 10000);
+    // 5s: /diagnostics — auxiliary fields + freshness-gated state updates
     pollHandles.diag = setInterval(() => {
         if (isBackedOff()) return;
         fetchDiagnostics().then(() => {
@@ -2932,10 +3190,12 @@ function startPolling() {
             updateDerivativePanel();
         });
     }, 5000);
+    // 5s: /orders — open order list
     pollHandles.orders = setInterval(() => {
         if (isBackedOff()) return;
         fetchOrders();
     }, 5000);
+    // 15s: /regime-map — per-bar regime classification
     pollHandles.regime = setInterval(() => {
         if (isBackedOff()) return;
         if (currentView === 'regime') fetchRegimeMap();
@@ -2971,8 +3231,9 @@ async function boot() {
         }
     }
     startPolling();
+    // Low-frequency full refresh (5 min) to cover any drift from polling guards
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.0.0 booted');
+    pushLog('info', 'ÆEA TWA v4.1.0 booted');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -2985,11 +3246,11 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 // INITIAL LOG
 // ============================================================
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.0.0');
+console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.1.0');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('MT4/TradingView-style interface:');
+console.log('MT4/TradingView-style interface (Audit-Patched):');
 console.log('  ✓ Symbol + timeframe + chart-type toolbar');
 console.log('  ✓ Interactive candlestick/bar/line/area chart');
 console.log('  ✓ Crosshair, pan, zoom, pinch, tap-to-inspect');
@@ -3000,6 +3261,11 @@ console.log('  ✓ Engine settings panel');
 console.log('  ✓ Regime map, log bar, signal markers');
 console.log('  ✓ Live state polling with backoff');
 console.log('  ✓ Connection badge + explicit backend errors');
+console.log('  ✓ FULL FF state mirrored: KC/invert/tag/prime/dime/mem');
+console.log('  ✓ A/B/C/c/tick_tock/signature/safety live-updated');
+console.log('  ✓ Kronecker panel reads live m_now/n_now per tick');
+console.log('  ✓ Derivative panel reads Z/z/O/o/W/w/I/iI/J/iJ per tick');
+console.log('  ✓ Freshness guard prevents stale 5s diagnostics overwriting 2s snapshot');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

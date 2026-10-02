@@ -1,0 +1,146 @@
+# ============================================================================
+# ÆEA MINI APP — GITIGNORE
+# Repository: aei-miniapp  (GitHub Pages frontend — Repo A)
+# Version: 4.1.0 (MQL4-Parity + MT4/TradingView TWA Edition — Audit-Patched)
+# ============================================================================
+# This repository contains exactly two committed files:
+#   • index.html  — the Telegram Web App (TWA) frontend
+#   • README.md   — frontend deployment guide
+# Everything else is either disposable or belongs in another repo.
+# ============================================================================
+# The backend lives in aei-backend (Heroku).
+# The relay   lives in aei-relay   (Cloudflare Workers).
+# Neither has any git relationship with this repo.
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# index.html BACKUPS — NEVER COMMIT
+# ----------------------------------------------------------------------------
+# Only one canonical index.html is published. Backups are local scratch.
+index.html.bak
+index.html.bak.*
+index.html.orig
+index.html.local
+index.html.*.bak
+index.html.*.orig
+index.backup.html
+*.html.bak
+*.html.orig
+
+# ----------------------------------------------------------------------------
+# ENVIRONMENT FRAGMENTS — CONTAINS SECRETS IF EVER INTRODUCED
+# ----------------------------------------------------------------------------
+# The frontend does not use a .env file. The backend URL is passed via
+# ?backend= query parameter or window.__AEEA_BACKEND_URL__. But if a local
+# dev overlay is ever added that reads from a secrets file, exclude it.
+.env
+.env.*
+!.env.example
+*.env
+!.env.example
+.local.env
+.envrc
+*.local
+*.local.*
+!*.local.example
+
+# ----------------------------------------------------------------------------
+# NODE / JS BUILD ARTIFACTS (only relevant if a bundler is added later)
+# ----------------------------------------------------------------------------
+# Currently absent — index.html is hand-written, no build step. Excluded
+# defensively so a future bundler does not pollute the published surface.
+node_modules/
+dist/
+build/
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vite/
+.rollup.cache/
+.eslintcache
+.stylelintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# ----------------------------------------------------------------------------
+# STATIC HOST DEPLOY ARTIFACTS
+# ----------------------------------------------------------------------------
+# GitHub Pages deploys directly from the branch root. These directories
+# are not used by GitHub Pages and should not be committed.
+.pages/
+.cloudflare/
+.vercel/
+.netlify/
+_site/
+public/
+!public/.gitkeep
+
+# ----------------------------------------------------------------------------
+# TEMPORARY EXPORTS / SCRATCH
+# ----------------------------------------------------------------------------
+tmp/
+temp/
+scratch/
+sandbox/
+exports/
+*.tmp
+*.bak
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+
+# ----------------------------------------------------------------------------
+# OS / IDE DEBRIS
+# ----------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# ----------------------------------------------------------------------------
+# LOCAL DEV PREVIEW CACHES
+# ----------------------------------------------------------------------------
+.livereload
+.livereload.*
+.browser-sync/
+browser-sync.log
+http-server.log
+serve.log
+python3-serve.log
+live-server.log
+
+# ----------------------------------------------------------------------------
+# LOGS
+# ----------------------------------------------------------------------------
+*.log
+logs/
+*.log.*
+
+# ----------------------------------------------------------------------------
+# CERTIFICATE / TLS (if a local HTTPS preview is ever added)
+# ----------------------------------------------------------------------------
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+certs/
+tls/
+private/
+!certs/.gitkeep
