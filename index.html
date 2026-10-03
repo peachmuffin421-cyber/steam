@@ -944,16 +944,25 @@ html, body {
 // ============================================================
 // BACKEND CONFIGURATION
 // ------------------------------------------------------------
+// Audit D-53 fix:
+// The previous revision hardcoded window.__AEEA_BACKEND_URL__ to
+// a specific Heroku app. That silently overrode any ?backend=
+// query-string parameter or localStorage override, routing every
+// fork to the original author's backend and contradicting the
+// README's "no hard-coded Heroku fallback" claim.
+//
 // Resolution order (first match wins):
 //   1. window.__AEEA_BACKEND_URL__          (host-page override)
 //   2. ?backend=https://...                 (persisted to localStorage)
 //   3. localStorage['aeea_backend_url']
 //   4. same-origin (relative paths)
 //
-// NOTE: In the Telegram Mini App context, the frontend is served from
-// GitHub Pages. It MUST reach the Heroku bridge explicitly, therefore
-// the Web App URL configured in BotFather should include
+// In the Telegram Mini App context the frontend is served from
+// GitHub Pages. It MUST reach the Heroku bridge explicitly, so
+// the Web App URL configured in BotFather must include
 // ?backend=https://your-app.herokuapp.com/
+//
+// DO NOT reintroduce a hardcoded default here.
 // ============================================================
 function normalizeBackend(u) {
     if (!u) return '';
@@ -984,7 +993,6 @@ function resolveBackendUrl() {
     } catch (e) {}
     return '';
 }
-window.__AEEA_BACKEND_URL__ = 'https://aeea-df7f2ade617d.herokuapp.com/';
 const BACKEND_URL = resolveBackendUrl();
 const HAS_BACKEND = BACKEND_URL.length > 0;
 
@@ -1142,17 +1150,29 @@ function hideError() {
 // SHARED STATE
 // ------------------------------------------------------------
 // Every field here mirrors a field in the FF's AEI_CoreState.
+//
 // Update paths:
-//   /miniapp-state   (2s poll)  → absorbMiniAppState()
-//   /diagnostics     (5s poll)  → absorbDiagnostics()
+//   /miniapp-state   (2s poll)  → absorbMiniAppState()   ← AUTHORITATIVE
+//   /diagnostics     (5s poll)  → absorbDiagnostics()    ← freshness-gated
 //   /ohlcv           (30s poll) → fetchOhlcv()
 //   /signals         (10s poll) → fetchSignals()
 //   /orders          (5s poll)  → fetchOrders()
 //   /regime-map      (15s poll) → fetchRegimeMap()
 //
-// Freshness guard: each absorber stamps `state._last<Source>Tick`.
-// updateEnginePanel(), updateKroneckerPanel(), updateDerivativePanel()
-// read whichever source has the larger tick for each field group.
+// Freshness guard (Audit D-02, D-57):
+//   Each absorber stamps `state._last<Source>Tick` with the engine's
+//   tick at the moment of the write. absorbDiagnostics() reads
+//   `_lastMiniAppTick` and refuses to overwrite engine-state fields
+//   when its own tick is not strictly greater. This eliminates the
+//   pre-4.1.0 race where the slower 5s /diagnostics poll could
+//   overwrite the faster 2s /miniapp-state snapshot with stale data.
+//
+// Kronecker Panel source (Audit D-35, D-36, D-54):
+//   The panel reads `last_kronecker_m` / `last_kronecker_n` — the
+//   authoritative m/n from the most recent H()/L() call — when
+//   available. It falls back to `market_m` / `market_n` (per-tick
+//   diagnostic) only when the engine has not yet fired a Kronecker
+//   event. This ensures the panel matches the bot's /status output.
 // ============================================================
 const INDICATOR_NAMES = [
     'ADX', 'Stochastic', 'RVI', 'AC', 'Force', 'OBV', 'AD',
@@ -1224,12 +1244,14 @@ const state = {
     lOrder_id: -1, kOrder_id: -1,
     orders: [],
 
-    // -------- engine: Kronecker count (live per tick) --------
+    // -------- engine: Kronecker count --------
+    // market_* = per-tick diagnostic (m_now / n_now)
+    // last_kronecker_* = authoritative H()/L() stamp
     market_m: 0, market_n: 0, market_imbalance: -2, market_regime: 'NEUTRAL',
     m_count: 0, n_count: 0,
     m_at_h: 0, n_at_h: 0, h_bar: 0,
 
-    // -------- engine: last Kronecker event (log only) --------
+    // -------- engine: last Kronecker event (authoritative) --------
     last_kronecker_bar: -1,
     last_kronecker_m: 0, last_kronecker_n: 0, last_kronecker_h: -1,
 
@@ -1257,6 +1279,9 @@ const state = {
 
     // -------- engine: series buffers --------
     indicator_series: {},
+    // Audit D-56: track which column each series sample came from,
+    // so the frontend does not assume [0] / [1].
+    indicator_col_index: {},
     regime_map: [],
     premium_series: [],
     discount_series: [],
@@ -1272,10 +1297,6 @@ const state = {
     logs: [],
 
     // -------- freshness guards --------
-    // Each absorber stamps the value of state.tick at the time it wrote.
-    // The update*() functions read whichever source has the highest tick
-    // for each field group, so a stale 5s /diagnostics cannot overwrite a
-    // fresh 2s /miniapp-state (or vice versa).
     _lastMiniAppTick: -1,
     _lastDiagnosticsTick: -1,
     _lastOhlcvTick: -1,
@@ -2708,15 +2729,19 @@ async function fetchOhlcv() {
 }
 
 // ============================================================
-// /miniapp-state  (2s poll) — full FF state snapshot
+// /miniapp-state  (2s poll) — AUTHORITATIVE full FF state
 // ------------------------------------------------------------
-// The patched bridge returns ALL FF-exact fields here,
-// including KC/invert/tag/prime/dime/mem/A/B/C/c/tick_tock/
-// signature/safety, all trailing-stop fields, all derivative
-// fields (Z,z,O,o,W,w,I,iI,J,iJ,iZ,iz,iW,iw,iO,io), scan bounds
-// (X_scan,Y_scan,S,T,r,ir), volatility (iATR,iStdDev,iIHKk,iIHKt),
-// counters (indicator_populate_count, imbalance_fire_count),
-// and lPass/ilPass/kPass/ikPass.
+// The patched backend returns ALL FF-exact fields here, including
+// KC/invert/tag/prime/dime/mem/A/B/C/c/tick_tock/signature/safety,
+// all trailing-stop fields, all derivative fields (Z,z,O,o,W,w,I,iI,
+// J,iJ,iZ,iz,iW,iw,iO,io), scan bounds (X_scan,Y_scan,S,T,r,ir),
+// volatility (iATR,iStdDev,iIHKk,iIHKt), counters
+// (indicator_populate_count, imbalance_fire_count), the authoritative
+// last_kronecker_m/n/h stamps from the most recent H()/L() call, and
+// boundary pass conditions (lPass,ilPass,kPass,ikPass).
+//
+// This is the primary source. The 5s /diagnostics poll is
+// freshness-gated against it (Audit D-02, D-57).
 // ============================================================
 async function fetchMiniAppState() {
     if (!HAS_BACKEND) { noteFailure(); return; }
@@ -2786,7 +2811,7 @@ function absorbMiniAppState(ma) {
     if (ma.lOrder_id !== undefined) state.lOrder_id = ma.lOrder_id;
     if (ma.kOrder_id !== undefined) state.kOrder_id = ma.kOrder_id;
 
-    // Last Kronecker event
+    // Authoritative last Kronecker event (Audit D-35, D-36, D-54)
     if (ma.last_kronecker_bar !== undefined) state.last_kronecker_bar = ma.last_kronecker_bar;
     if (ma.last_kronecker_m !== undefined) state.last_kronecker_m = ma.last_kronecker_m;
     if (ma.last_kronecker_n !== undefined) state.last_kronecker_n = ma.last_kronecker_n;
@@ -2847,7 +2872,7 @@ function absorbMiniAppState(ma) {
     if (ma.premium_series) state.premium_series = ma.premium_series;
     if (ma.discount_series) state.discount_series = ma.discount_series;
 
-    // Stamp freshness
+    // Stamp freshness (Audit D-02, D-57)
     state._lastMiniAppTick = state.tick;
 }
 
@@ -2868,40 +2893,51 @@ async function fetchDiagnostics() {
 }
 
 // ============================================================
-// /diagnostics  (5s poll) — extra fields for the panels
+// /diagnostics  (5s poll) — FRESHNESS-GATED against /miniapp-state
 // ------------------------------------------------------------
-// The patched /diagnostics endpoint returns ALL FF-exact fields
-// (via get_signal_status()). But because /miniapp-state now also
-// returns them, we must be careful not to have the slower 5s poll
-// overwrite the faster 2s poll with stale data. The freshness
-// guard is: only absorb fields whose reported tick is strictly
-// greater than the last /miniapp-state tick we absorbed. If the
-// tick counters are equal, /miniapp-state is treated as the
-// authoritative source because it polled first in the cycle.
+// Audit D-02, D-57:
+//   The patched /diagnostics endpoint returns ALL FF-exact fields
+//   (via get_signal_status()). But because /miniapp-state now also
+//   returns them, we must be careful not to have the slower 5s poll
+//   overwrite the faster 2s poll with stale data.
+//
+//   Freshness guard:
+//     - Always absorb auxiliary-only fields (indicator series samples,
+//       recent_signals, ohlcv_history_depth) that /miniapp-state does
+//       not carry.
+//     - Absorb engine-state fields ONLY when the diagnostics tick is
+//       strictly greater than the last /miniapp-state tick we absorbed.
+//
+// Audit D-56:
+//   Indicator sample columns are tagged with the current column index
+//   so downstream consumers do not assume columns [0] / [1].
 // ============================================================
 function absorbDiagnostics(d) {
     const diagTick = (d.tick !== undefined) ? d.tick : -1;
     const miniTick = state._lastMiniAppTick;
-
-    // If diagnostics is not fresher than the last mini-app snapshot,
-    // we still absorb the auxiliary fields (indicator series samples,
-    // recent_signals, ohlcv_history_depth) that /miniapp-state does
-    // not carry, but we DO NOT overwrite any engine state field.
     const engineFieldsFresh = diagTick > miniTick;
 
-    // --- Always absorb the auxiliary-only fields ---
+    // --- Always absorb auxiliary-only fields ---
+    const col0 = (d.indicator_col_index && d.indicator_col_index[0] !== undefined)
+        ? d.indicator_col_index[0] : 0;
+    const col1 = (d.indicator_col_index && d.indicator_col_index[1] !== undefined)
+        ? d.indicator_col_index[1] : 1;
     if (d.indicator_sample_col0 && d.indicator_sample_col0.length === 13) {
         for (let i = 0; i < 13; i++) {
             const name = INDICATOR_NAMES[i];
             if (!state.indicator_series[name]) state.indicator_series[name] = [];
-            state.indicator_series[name][0] = parseFloat(d.indicator_sample_col0[i]);
+            state.indicator_series[name][col0] = parseFloat(d.indicator_sample_col0[i]);
+            if (!state.indicator_col_index[name]) state.indicator_col_index[name] = [];
+            state.indicator_col_index[name][col0] = col0;
         }
     }
     if (d.indicator_sample_col1 && d.indicator_sample_col1.length === 13) {
         for (let i = 0; i < 13; i++) {
             const name = INDICATOR_NAMES[i];
             if (!state.indicator_series[name]) state.indicator_series[name] = [];
-            state.indicator_series[name][1] = parseFloat(d.indicator_sample_col1[i]);
+            state.indicator_series[name][col1] = parseFloat(d.indicator_sample_col1[i]);
+            if (!state.indicator_col_index[name]) state.indicator_col_index[name] = [];
+            state.indicator_col_index[name][col1] = col1;
         }
     }
     if (d.recent_signals) state.signals = d.recent_signals;
@@ -3119,16 +3155,33 @@ function updateEnginePanel() {
     setText('eng-orders', orders.length ? orders.join(', ') : 'none');
 }
 
+// ============================================================
+// KRONECKER PANEL
+// ------------------------------------------------------------
+// Audit D-35, D-36, D-54:
+//   The panel displays the AUTHORITATIVE m/n from the most recent
+//   H()/L() call (last_kronecker_m / last_kronecker_n) when the
+//   engine has fired at least one Kronecker event. It falls back
+//   to the per-tick diagnostic (market_m / market_n) only when no
+//   Kronecker event has fired yet — i.e. when last_kronecker_bar
+//   is still -1. This makes the panel match the bot's /status
+//   `Local m/n` field exactly.
+// ============================================================
 function updateKroneckerPanel() {
-    setText('kron-m', state.market_m);
-    setText('kron-n', state.market_n);
-    setText('kron-delta', state.market_imbalance);
-    setText('kron-h', state.h_bar);
+    const kroneckerFired = state.last_kronecker_bar >= 0;
+    const dispM = kroneckerFired ? state.last_kronecker_m : state.market_m;
+    const dispN = kroneckerFired ? state.last_kronecker_n : state.market_n;
+    const dispDelta = dispM - dispN - 2;
+
+    setText('kron-m', dispM);
+    setText('kron-n', dispN);
+    setText('kron-delta', dispDelta);
+    setText('kron-h', kroneckerFired ? state.last_kronecker_h : state.h_bar);
     setText('kron-mh', state.m_at_h);
     setText('kron-nh', state.n_at_h);
     setText('kron-kh', state.m_at_h === 1);
     setText('kron-lh', state.n_at_h === 1);
-    const gate = (state.market_m >= 12 || state.market_n >= 12) ? '✅ MET' : 'WAITING';
+    const gate = (dispM >= 12 || dispN >= 12) ? '✅ MET' : 'WAITING';
     const gateEl = document.getElementById('kron-gate');
     if (gateEl) {
         gateEl.textContent = gate;
@@ -3159,7 +3212,7 @@ function updateDerivativePanel() {
 // ============================================================
 function startPolling() {
     stopPolling();
-    // 2s: /miniapp-state — primary source for all live engine state
+    // 2s: /miniapp-state — AUTHORITATIVE source for all live engine state
     pollHandles.miniapp = setInterval(() => {
         if (isBackedOff()) return;
         fetchMiniAppState().then(() => {
@@ -3181,7 +3234,7 @@ function startPolling() {
         if (isBackedOff()) return;
         fetchSignals().then(() => { if (currentView === 'chart') renderChart(); });
     }, 10000);
-    // 5s: /diagnostics — auxiliary fields + freshness-gated state updates
+    // 5s: /diagnostics — freshness-gated against /miniapp-state
     pollHandles.diag = setInterval(() => {
         if (isBackedOff()) return;
         fetchDiagnostics().then(() => {
@@ -3263,9 +3316,11 @@ console.log('  ✓ Live state polling with backoff');
 console.log('  ✓ Connection badge + explicit backend errors');
 console.log('  ✓ FULL FF state mirrored: KC/invert/tag/prime/dime/mem');
 console.log('  ✓ A/B/C/c/tick_tock/signature/safety live-updated');
-console.log('  ✓ Kronecker panel reads live m_now/n_now per tick');
+console.log('  ✓ Kronecker panel reads authoritative last_kronecker_m/n');
 console.log('  ✓ Derivative panel reads Z/z/O/o/W/w/I/iI/J/iJ per tick');
 console.log('  ✓ Freshness guard prevents stale 5s diagnostics overwriting 2s snapshot');
+console.log('  ✓ D-53 fix: no hardcoded Heroku fallback — resolver is clean');
+console.log('  ✓ D-56 fix: indicator columns tagged, no [0]/[1] assumption');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

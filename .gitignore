@@ -1,102 +1,32 @@
 # ============================================================================
-# ÆEA MINI APP — GITIGNORE
-# Repository: aei-miniapp  (GitHub Pages frontend — Repo A)
+# ÆEA MINI APP — FRONTEND .gitignore
 # Version: 4.1.0 (MQL4-Parity + MT4/TradingView TWA Edition — Audit-Patched)
+# Repo: aei-miniapp (GitHub Pages)
 # ============================================================================
-# This repository contains exactly two committed files:
-#   • index.html  — the Telegram Web App (TWA) frontend
-#   • README.md   — frontend deployment guide
-# Everything else is either disposable or belongs in another repo.
-# ============================================================================
-# The backend lives in aei-backend (Heroku).
-# The relay   lives in aei-relay   (Cloudflare Workers).
-# Neither has any git relationship with this repo.
+#
+# The frontend is a static single-file app (index.html). There is no build
+# step, no node_modules, no bundler. This .gitignore therefore focuses on
+# editor/OS cruft and any local-only artifacts a developer might create
+# while iterating on index.html.
+#
 # ============================================================================
 
 # ----------------------------------------------------------------------------
-# index.html BACKUPS — NEVER COMMIT
+# EDITOR / IDE CRUFT
 # ----------------------------------------------------------------------------
-# Only one canonical index.html is published. Backups are local scratch.
-index.html.bak
-index.html.bak.*
-index.html.orig
-index.html.local
-index.html.*.bak
-index.html.*.orig
-index.backup.html
-*.html.bak
-*.html.orig
-
-# ----------------------------------------------------------------------------
-# ENVIRONMENT FRAGMENTS — CONTAINS SECRETS IF EVER INTRODUCED
-# ----------------------------------------------------------------------------
-# The frontend does not use a .env file. The backend URL is passed via
-# ?backend= query parameter or window.__AEEA_BACKEND_URL__. But if a local
-# dev overlay is ever added that reads from a secrets file, exclude it.
-.env
-.env.*
-!.env.example
-*.env
-!.env.example
-.local.env
-.envrc
-*.local
-*.local.*
-!*.local.example
-
-# ----------------------------------------------------------------------------
-# NODE / JS BUILD ARTIFACTS (only relevant if a bundler is added later)
-# ----------------------------------------------------------------------------
-# Currently absent — index.html is hand-written, no build step. Excluded
-# defensively so a future bundler does not pollute the published surface.
-node_modules/
-dist/
-build/
-.cache/
-.parcel-cache/
-.next/
-.nuxt/
-.vite/
-.rollup.cache/
-.eslintcache
-.stylelintcache
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-.pnpm-store/
-
-# ----------------------------------------------------------------------------
-# STATIC HOST DEPLOY ARTIFACTS
-# ----------------------------------------------------------------------------
-# GitHub Pages deploys directly from the branch root. These directories
-# are not used by GitHub Pages and should not be committed.
-.pages/
-.cloudflare/
-.vercel/
-.netlify/
-_site/
-public/
-!public/.gitkeep
-
-# ----------------------------------------------------------------------------
-# TEMPORARY EXPORTS / SCRATCH
-# ----------------------------------------------------------------------------
-tmp/
-temp/
-scratch/
-sandbox/
-exports/
-*.tmp
-*.bak
-*.orig
-*.rej
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
 
 # ----------------------------------------------------------------------------
-# OS / IDE DEBRIS
+# OS METADATA
 # ----------------------------------------------------------------------------
 .DS_Store
 .DS_Store?
@@ -106,41 +36,64 @@ exports/
 ehthumbs.db
 Thumbs.db
 desktop.ini
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-*.code-workspace
 
 # ----------------------------------------------------------------------------
-# LOCAL DEV PREVIEW CACHES
+# LOCAL DEVELOPMENT OVERRIDES
 # ----------------------------------------------------------------------------
-.livereload
-.livereload.*
-.browser-sync/
-browser-sync.log
-http-server.log
-serve.log
-python3-serve.log
-live-server.log
+# If a developer creates a local variant of index.html for testing a
+# different backend URL, keep it out of the repo.
+index.local.html
+*.local.html
+*.local.js
+*.local.css
 
 # ----------------------------------------------------------------------------
-# LOGS
+# SECRETS (SHOULD NEVER APPEAR IN A STATIC FRONTEND, BUT DEFENSIVE)
+# ----------------------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+secrets.json
+credentials.json
+
+# ----------------------------------------------------------------------------
+# GITHUB PAGES ARTIFACTS
+# ----------------------------------------------------------------------------
+# GitHub Pages serves the repo root directly. Do not commit any build
+# output, Jekyll caches, or generated site directories.
+_site/
+.jekyll-cache/
+.jekyll-metadata
+Gemfile.lock
+
+# ----------------------------------------------------------------------------
+# LOGS / TEMP
 # ----------------------------------------------------------------------------
 *.log
-logs/
-*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tmp
+*.temp
+tmp/
+temp/
 
 # ----------------------------------------------------------------------------
-# CERTIFICATE / TLS (if a local HTTPS preview is ever added)
+# ARCHIVES
 # ----------------------------------------------------------------------------
-*.pem
-*.key
-*.crt
-*.cer
-*.p12
-*.pfx
-certs/
-tls/
-private/
-!certs/.gitkeep
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# ----------------------------------------------------------------------------
+# OPTIONAL LOCAL SERVER TOOLING
+# ----------------------------------------------------------------------------
+# If a developer uses `python -m http.server`, `npx serve`, or similar,
+# these directories may appear.
+dist/
+build/
+.cache/
+.parcel-cache/
