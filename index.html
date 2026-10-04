@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ÆEA Engine · MQL4-Parity Port · TWA v4.1.0</title>
+<title>ÆEA Engine · MQL4-Parity Port · TWA v4.1.1</title>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -40,10 +40,30 @@ html, body {
     --pink: #ff66aa;
     --white: #ffffff;
     --toolbar-h: 44px;
-    --dock-h: 220px;
+    /* v4.1.1 C15: dock height raised 220 -> 240 to hold BB legend + toasts */
+    --dock-h: 240px;
     --logbar-h: 26px;
+    --toast-w: 260px;
 }
 .hidden { display: none !important; }
+
+/* ============================================================
+   v4.1.1 C1: CANDLE COLOR CONSTANTS
+   ------------------------------------------------------------
+   Locked by Audit §9.1:
+     Bullish candle body + wick  = #4488ff  (blue)
+     Bearish candle body + wick  = #ff4466  (red)
+   The previous v4.1.0 palette was #00ff88 (green) / #ff4466 (red).
+   These constants are consumed only by drawCandles(); signal
+   markers keep their own BUY=#00ff88 / SELL=#ff4466 palette.
+   ============================================================ */
+:root {
+    --candle-bull: #4488ff;
+    --candle-bear: #ff4466;
+    --signal-buy:  #00ff88;
+    --signal-sell: #ff4466;
+    --signal-neutral: #ffaa44;
+}
 
 /* ============================================================
    CANVAS LAYER
@@ -162,6 +182,7 @@ html, body {
 .tb-btn.active { background: #2a4a6a; border-color: var(--cyan); color: #fff; }
 .tb-btn.primary { border-color: var(--green); color: var(--green); }
 .tb-btn.danger { border-color: var(--red); color: var(--red); }
+.tb-btn.bb-on { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.08); }
 .tb-symbol {
     font-size: 0.72rem;
     font-weight: bold;
@@ -211,6 +232,120 @@ html, body {
 #chartHeader .regime { color: var(--gold); font-size: 0.55rem; margin-top: 1px; }
 #chartHeader .imbalance { color: var(--purple); font-size: 0.5rem; margin-top: 1px; }
 #chartHeader .last-update { color: var(--text-dim); font-size: 0.45rem; margin-top: 1px; }
+
+/* ============================================================
+   v4.1.1 C2: BOLLINGER FAMILY LEGEND
+   ------------------------------------------------------------
+   Collapsible legend showing the period-3 and period-60 anchor
+   colors of the BB family. Collapsed by default to save screen
+   space on 360px phones.
+   ============================================================ */
+#bbLegend {
+    position: absolute;
+    top: calc(var(--toolbar-h) + 6px);
+    left: 8px;
+    z-index: 12;
+    background: rgba(5,5,16,0.92);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.5rem;
+    pointer-events: auto;
+    display: none;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+#bbLegend.open { display: block; }
+#bbLegend .bb-title {
+    color: var(--cyan);
+    font-weight: bold;
+    letter-spacing: 1px;
+    font-size: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+#bbLegend .bb-body { margin-top: 4px; }
+#bbLegend .bb-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1px 0;
+    color: var(--text-dim);
+}
+#bbLegend .bb-swatch {
+    display: inline-block;
+    width: 18px;
+    height: 3px;
+    border-radius: 1px;
+}
+#bbLegend .bb-swatch.upper { background: rgba(0,255,136,0.75); }
+#bbLegend .bb-swatch.lower { background: rgba(255,255,255,0.75); }
+
+/* ============================================================
+   v4.1.1 C5: TOAST STACK
+   ------------------------------------------------------------
+   Signal + execution notifications. Signal toasts use a green
+   border (BUY) or red border (SELL); execution toasts use a gold
+   border. 6s auto-dismiss; swipe-left to dismiss early.
+   ============================================================ */
+#toastStack {
+    position: absolute;
+    top: calc(var(--toolbar-h) + 80px);
+    right: 8px;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: var(--toast-w);
+    pointer-events: none;
+}
+.toast {
+    pointer-events: auto;
+    background: rgba(5,5,16,0.96);
+    border-left: 3px solid var(--gold);
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 0.55rem;
+    line-height: 1.4;
+    color: var(--text);
+    box-shadow: 0 3px 14px rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: toast-in 0.18s ease-out;
+    transition: transform 0.18s, opacity 0.18s;
+    cursor: pointer;
+    max-width: var(--toast-w);
+    word-wrap: break-word;
+}
+.toast.signal-buy  { border-left-color: var(--signal-buy); }
+.toast.signal-sell { border-left-color: var(--signal-sell); }
+.toast.signal-neutral { border-left-color: var(--signal-neutral); }
+.toast.execution   { border-left-color: var(--gold); }
+.toast.exec-buy    { border-left-color: var(--signal-buy); }
+.toast.exec-sell   { border-left-color: var(--signal-sell); }
+.toast.exec-close  { border-left-color: var(--purple); }
+.toast.dismissing  { transform: translateX(110%); opacity: 0; }
+.toast .toast-title {
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: var(--cyan);
+    font-size: 0.52rem;
+    margin-bottom: 1px;
+}
+.toast.signal-buy  .toast-title { color: var(--signal-buy); }
+.toast.signal-sell .toast-title { color: var(--signal-sell); }
+.toast.signal-neutral .toast-title { color: var(--signal-neutral); }
+.toast.exec-buy  .toast-title { color: var(--signal-buy); }
+.toast.exec-sell .toast-title { color: var(--signal-sell); }
+.toast.exec-close .toast-title { color: var(--purple); }
+.toast .toast-line { color: var(--text-dim); }
+.toast .toast-line .v { color: var(--text-bright); font-weight: bold; }
+@keyframes toast-in {
+    from { transform: translateX(110%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
 
 /* ============================================================
    OHLC CROSSHAIR READOUT
@@ -455,6 +590,12 @@ html, body {
     margin-top: 12px;
 }
 .modal .modal-actions .tb-btn { padding: 6px 12px; }
+.modal .modal-note {
+    color: var(--text-dim);
+    font-size: 0.5rem;
+    margin-top: 6px;
+    line-height: 1.5;
+}
 
 /* ============================================================
    SYMBOL PICKER
@@ -778,6 +919,7 @@ html, body {
     <div class="tb-group">
         <button class="tb-btn" id="tb-add-indicator">+ IND</button>
         <button class="tb-btn" id="tb-fvg-list">FVG</button>
+        <button class="tb-btn" id="tb-bb-toggle">BB×58</button>
     </div>
     <span class="tb-sep"></span>
     <div class="tb-group">
@@ -793,6 +935,19 @@ html, body {
 <div id="connBadge" class="wait">connecting…</div>
 
 <!-- ============================================================
+     v4.1.1 C2: BOLLINGER FAMILY LEGEND
+     ============================================================ -->
+<div id="bbLegend">
+    <div class="bb-title" id="bbLegendTitle">BB×58 <span id="bbLegendToggle">[+]</span></div>
+    <div class="bb-body hidden" id="bbLegendBody">
+        <div class="bb-row"><span class="bb-swatch upper"></span> Upper (green, p3→p60)</div>
+        <div class="bb-row"><span class="bb-swatch lower"></span> Lower (white, p3→p60)</div>
+        <div class="bb-row" style="margin-top:3px;">Period 3 = faintest · Period 60 = strongest</div>
+        <div class="bb-row">Population σ, dev=2, close, shift=0</div>
+    </div>
+</div>
+
+<!-- ============================================================
      CHART HEADER OVERLAY
      ============================================================ -->
 <div id="chartHeader">
@@ -801,6 +956,11 @@ html, body {
     <div class="imbalance" id="chart-imbalance">m=0 · n=0 · δ=-2</div>
     <div class="last-update" id="chart-lastupdate">Updated: —</div>
 </div>
+
+<!-- ============================================================
+     v4.1.1 C5: TOAST STACK
+     ============================================================ -->
+<div id="toastStack"></div>
 
 <!-- ============================================================
      CROSSHAIR READOUT
@@ -868,15 +1028,15 @@ html, body {
         </div>
         <div class="ot-row">
             <label>Lot</label>
-            <input id="ot-lot" type="number" step="0.01" value="0.01">
+            <input id="ot-lot" type="text" inputmode="decimal" value="0.01">
         </div>
         <div class="ot-row">
             <label>SL</label>
-            <input id="ot-sl" type="number" step="0.00001" value="0">
+            <input id="ot-sl" type="text" inputmode="decimal" value="0">
         </div>
         <div class="ot-row">
             <label>TP</label>
-            <input id="ot-tp" type="number" step="0.00001" value="0">
+            <input id="ot-tp" type="text" inputmode="decimal" value="0">
         </div>
         <div class="ot-buttons">
             <button class="tb-btn primary" id="ot-submit">PLACE</button>
@@ -902,17 +1062,20 @@ html, body {
      HELP PANEL
      ============================================================ -->
 <div id="explainPanel">
-    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.1.0</h3>
-    <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, FVG list, refresh, settings, help.</span></div>
-    <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: Bollinger Bands (Premium/Discount), FVG lines (Top/Bott), signal markers (▲BUY / ▼SELL), trailing-stop line.</span></div>
-    <div class="item"><b>SUB-PANELS</b> <span>— MT4-style indicator sub-windows. Add via <b>+ IND</b>. Each panel has a header with title, current value, and visibility/settings/close controls.</span></div>
-    <div class="item"><b>13D GRID</b> <span>— The 13 classical indicators projected onto the Hilbert space H₁₃, each normalized to [0, 100], with live bars and historical sparkline.</span></div>
-    <div class="item"><b>REGIME MAP</b> <span>— Per-bar regime classification: sRange / sVolatile / sTrend / Stable, with time-extension variants (tRange / tVolatile / tTrend).</span></div>
-    <div class="item"><b>KRONECKER δ</b> <span>— δ(m−n−2). m = overbought indicator count, n = oversold count. H() fires when m ≥ 12, L() fires when n ≥ 12.</span></div>
+    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.1.1</h3>
+    <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, FVG list, <b>BB×58</b> toggle, refresh, settings, help.</span></div>
+    <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#4488ff;">blue</span>, bearish = <span style="color:#ff4466;">red</span>. (v4.1.1 palette.)</span></div>
+    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient (faint at p3 → strong at p60). Lower bands: white gradient. Toggle via <b>BB×58</b>.</span></div>
+    <div class="item"><b>TOASTS</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch (Diamond, Ruby, Hawk, Dove, Bull, Bear, Whisky, Wine, Watter, Blood, A, B, Top, Bott). Tap to dismiss.</span></div>
+    <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Premium/Discount), FVG lines, signal markers, trailing-stop line.</span></div>
+    <div class="item"><b>SUB-PANELS</b> <span>— MT4-style indicator sub-windows. Add via <b>+ IND</b>.</span></div>
+    <div class="item"><b>13D GRID</b> <span>— The 13 classical indicators projected onto H₁₃, normalized to [0, 100].</span></div>
+    <div class="item"><b>REGIME MAP</b> <span>— Per-bar regime classification: sRange / sVolatile / sTrend / Stable, with time-extension variants.</span></div>
+    <div class="item"><b>KRONECKER δ</b> <span>— δ(m−n−2). m = overbought count, n = oversold count. H() fires when m ≥ 12, L() fires when n ≥ 12.</span></div>
     <div class="item"><b>ENGINE PANEL</b> <span>— KC / prime / dime / mem / tag / invert / A / B / C / c / tick_tock / signature / trailing / OnTrack / OnStand / orders / safety.</span></div>
     <div class="item"><b>DERIVATIVE PANEL</b> <span>— Z / z / O / o / W / w / I / iI / J / iJ / X_scan / Y_scan / S / T / r / ir / iATR / iStdDev / iIHKk / iIHKt.</span></div>
-    <div class="item"><b>ORDER TICKET</b> <span>— Place simulated orders with lot/SL/TP. Close individual positions or all at once. Positions list shows entry, SL, TP, PnL.</span></div>
-    <div class="item"><b>FVG</b> <span>— Long-press on chart to draw a Top/Bott FVG. Tap an FVG line to delete. The FVG button in the toolbar shows the full list.</span></div>
+    <div class="item"><b>ORDER TICKET</b> <span>— Place simulated orders with lot/SL/TP. Numeric fields accept exact decimal strings.</span></div>
+    <div class="item"><b>FVG</b> <span>— Long-press on chart to draw a Top/Bott FVG. Tap an FVG line to delete.</span></div>
     <div class="item"><b>LOG BAR</b> <span>— Last engine events. Tap to expand to the full log.</span></div>
     <div style="margin-top:8px; opacity:0.6;">Keyboard: C=chart | G=grid | R=regime | H=help | F5=refresh | Esc=close modal.</div>
 </div>
@@ -944,25 +1107,13 @@ html, body {
 // ============================================================
 // BACKEND CONFIGURATION
 // ------------------------------------------------------------
-// Audit D-53 fix:
-// The previous revision hardcoded window.__AEEA_BACKEND_URL__ to
-// a specific Heroku app. That silently overrode any ?backend=
-// query-string parameter or localStorage override, routing every
-// fork to the original author's backend and contradicting the
-// README's "no hard-coded Heroku fallback" claim.
-//
+// Audit D-53 fix (carried from v4.1.0):
 // Resolution order (first match wins):
 //   1. window.__AEEA_BACKEND_URL__          (host-page override)
 //   2. ?backend=https://...                 (persisted to localStorage)
 //   3. localStorage['aeea_backend_url']
 //   4. same-origin (relative paths)
-//
-// In the Telegram Mini App context the frontend is served from
-// GitHub Pages. It MUST reach the Heroku bridge explicitly, so
-// the Web App URL configured in BotFather must include
-// ?backend=https://your-app.herokuapp.com/
-//
-// DO NOT reintroduce a hardcoded default here.
+// No hardcoded default. A fork must be explicitly configured.
 // ============================================================
 function normalizeBackend(u) {
     if (!u) return '';
@@ -1147,32 +1298,97 @@ function hideError() {
 }
 
 // ============================================================
-// SHARED STATE
+// v4.1.1 C5: TOAST STACK
 // ------------------------------------------------------------
-// Every field here mirrors a field in the FF's AEI_CoreState.
-//
-// Update paths:
-//   /miniapp-state   (2s poll)  → absorbMiniAppState()   ← AUTHORITATIVE
-//   /diagnostics     (5s poll)  → absorbDiagnostics()    ← freshness-gated
-//   /ohlcv           (30s poll) → fetchOhlcv()
-//   /signals         (10s poll) → fetchSignals()
-//   /orders          (5s poll)  → fetchOrders()
-//   /regime-map      (15s poll) → fetchRegimeMap()
-//
-// Freshness guard (Audit D-02, D-57):
-//   Each absorber stamps `state._last<Source>Tick` with the engine's
-//   tick at the moment of the write. absorbDiagnostics() reads
-//   `_lastMiniAppTick` and refuses to overwrite engine-state fields
-//   when its own tick is not strictly greater. This eliminates the
-//   pre-4.1.0 race where the slower 5s /diagnostics poll could
-//   overwrite the faster 2s /miniapp-state snapshot with stale data.
-//
-// Kronecker Panel source (Audit D-35, D-36, D-54):
-//   The panel reads `last_kronecker_m` / `last_kronecker_n` — the
-//   authoritative m/n from the most recent H()/L() call — when
-//   available. It falls back to `market_m` / `market_n` (per-tick
-//   diagnostic) only when the engine has not yet fired a Kronecker
-//   event. This ensures the panel matches the bot's /status output.
+// Signal toasts fire on every _signal(). Execution toasts fire on
+// every execution-layer dispatch (Diamond, Ruby, Hawk, Dove, Bull,
+// Bear, Whisky, Wine, Watter, Blood, A, B, Top, Bott). Both are
+// fetched from /toasts?since=<seq> every 2s (piggybacked on the
+// /miniapp-state poll). Auto-dismiss after 6s; tap to dismiss early.
+// ============================================================
+const toastStack = document.getElementById('toastStack');
+let toastSeqCursor = 0;
+const TOAST_AUTODISMISS_MS = 6000;
+const MAX_TOASTS_VISIBLE = 6;
+
+function dismissToast(el) {
+    if (!el || el.classList.contains('dismissing')) return;
+    el.classList.add('dismissing');
+    setTimeout(() => {
+        try { el.remove(); } catch (e) {}
+    }, 200);
+}
+
+function pushToast(toast) {
+    if (!toastStack) return;
+    // Cap the visible stack.
+    while (toastStack.children.length >= MAX_TOASTS_VISIBLE) {
+        toastStack.removeChild(toastStack.firstChild);
+    }
+    const el = document.createElement('div');
+    el.className = 'toast';
+    if (toast.kind === 'signal') {
+        if (toast.type === 'BUY') el.classList.add('signal-buy');
+        else if (toast.type === 'SELL') el.classList.add('signal-sell');
+        else el.classList.add('signal-neutral');
+        el.innerHTML =
+            '<div class="toast-title">🎯 SIGNAL · ' + escapeHtml(toast.type || '?') + '</div>' +
+            '<div class="toast-line">Price <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
+            '<div class="toast-line">m <span class="v">' + escapeHtml(String(toast.m ?? '—')) + '</span> · n <span class="v">' + escapeHtml(String(toast.n ?? '—')) + '</span> · h <span class="v">' + escapeHtml(String(toast.h ?? '—')) + '</span></div>' +
+            '<div class="toast-line">' + escapeHtml(toast.regime || '') + ' · tick ' + escapeHtml(String(toast.tick ?? '—')) + '</div>';
+    } else {
+        const execMap = {
+            'Bull': '🐂', 'Bear': '🐻', 'Whisky': '🥃', 'Wine': '🍷',
+            'Watter': '💧', 'Blood': '🩸', 'Hawk': '🦅', 'Dove': '🕊️',
+            'Diamond': '🔷', 'Ruby': '🔻', 'Top': '▲', 'Bott': '▼',
+            'A': '🅰️', 'B': '🅱️',
+        };
+        const emoji = execMap[toast.event] || '⚡';
+        if (toast.side === 'BUY') el.classList.add('exec-buy');
+        else if (toast.side === 'SELL') el.classList.add('exec-sell');
+        else if (toast.side === 'CLOSE') el.classList.add('exec-close');
+        else el.classList.add('execution');
+        const reason = toast.reason ? (' · ' + escapeHtml(toast.reason)) : '';
+        el.innerHTML =
+            '<div class="toast-title">' + emoji + ' ' + escapeHtml(toast.event || 'EXEC') + '</div>' +
+            '<div class="toast-line">' + escapeHtml(toast.side || 'NONE') + ' · <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
+            '<div class="toast-line">ticket ' + escapeHtml(String(toast.ticket ?? '—')) + ' · tick ' + escapeHtml(String(toast.tick ?? '—')) + reason + '</div>';
+    }
+    el.addEventListener('click', () => dismissToast(el));
+    // Simple swipe-left to dismiss.
+    let startX = 0;
+    el.addEventListener('touchstart', (e) => { if (e.touches.length === 1) startX = e.touches[0].clientX; }, { passive: true });
+    el.addEventListener('touchend', (e) => {
+        if (e.changedTouches.length === 1) {
+            const dx = e.changedTouches[0].clientX - startX;
+            if (dx < -40) dismissToast(el);
+        }
+    });
+    toastStack.appendChild(el);
+    setTimeout(() => dismissToast(el), TOAST_AUTODISMISS_MS);
+    haptic(toast.kind === 'signal' ? 'success' : 'impact');
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function fetchToasts() {
+    if (!HAS_BACKEND) return;
+    const r = await apiJson('/toasts?since=' + toastSeqCursor);
+    if (!r || r.__error) return;
+    if (Array.isArray(r.toasts)) {
+        for (const t of r.toasts) {
+            pushToast(t);
+        }
+    }
+    if (typeof r.latest_seq === 'number') {
+        toastSeqCursor = r.latest_seq;
+    }
+}
+
+// ============================================================
+// SHARED STATE
 // ============================================================
 const INDICATOR_NAMES = [
     'ADX', 'Stochastic', 'RVI', 'AC', 'Force', 'OBV', 'AD',
@@ -1200,7 +1416,6 @@ const INDICATOR_RANGES = {
 };
 
 const state = {
-    // -------- connection meta --------
     connected: false,
     relay_healthy: true,
     symbol: '—',
@@ -1214,89 +1429,72 @@ const state = {
     signals: [],
     fvgs: [],
 
-    // -------- engine: top-level counters --------
     tick: 0,
     bar_close_count: 0,
     ohlcv_count: 0,
     signal_count: 0,
     last_signal_at: null,
 
-    // -------- engine: A/B/C/c flags --------
     A: true, B: true, C: true, c: true,
-
-    // -------- engine: inversion state --------
     KC: true, invert: true, tag: -1, prime: -1, dime: -1, mem: -1,
+    tick_tock: false, signature: false, safety: false,
 
-    // -------- engine: tick synchronisation --------
-    tick_tock: false,
-    signature: false,
-    safety: false,
-
-    // -------- engine: trailing stop --------
     trailing_stop_active: false,
     trailing_stop_price: 0,
     trailing_take_profit: 0,
     trailing_stop_entry: 0,
     trailing_stop_side: '',
 
-    // -------- engine: open orders --------
     has_open_long: false, has_open_short: false,
     lOrder_id: -1, kOrder_id: -1,
     orders: [],
 
-    // -------- engine: Kronecker count --------
-    // market_* = per-tick diagnostic (m_now / n_now)
-    // last_kronecker_* = authoritative H()/L() stamp
     market_m: 0, market_n: 0, market_imbalance: -2, market_regime: 'NEUTRAL',
     m_count: 0, n_count: 0,
     m_at_h: 0, n_at_h: 0, h_bar: 0,
 
-    // -------- engine: last Kronecker event (authoritative) --------
     last_kronecker_bar: -1,
     last_kronecker_m: 0, last_kronecker_n: 0, last_kronecker_h: -1,
 
-    // -------- engine: directional derivatives --------
     Z: 1, z: 1, iZ: 1, iz: 1,
     O: 1, o: 1, iO: 1, io: 1,
     W: 1, w: 1, iW: 1, iw: 1,
     I: 0, iI: 0, J: 0, iJ: 0,
 
-    // -------- engine: scan bounds & rolling indices --------
     X_scan: 1, Y_scan: 1,
     S: 62, T: 62, r: 0, ir: 0,
 
-    // -------- engine: volatility state --------
     iATR: 50, iStdDev: 50,
     iIHKk: 50, iIHKt: 50,
 
-    // -------- engine: boundary pass conditions --------
     lPass: 0, ilPass: 0, kPass: 0, ikPass: 0,
 
-    // -------- engine: counters --------
     indicator_populate_count: 0,
     imbalance_fire_count: 0,
     on_track_runs: 0, on_stand_runs: 0,
 
-    // -------- engine: series buffers --------
     indicator_series: {},
-    // Audit D-56: track which column each series sample came from,
-    // so the frontend does not assume [0] / [1].
     indicator_col_index: {},
     regime_map: [],
     premium_series: [],
     discount_series: [],
 
-    // -------- engine: settings --------
     settings: {
         max: 60, min: 3, Cc: true, cC: true, Memory: -1,
-        safetyOffSwitch: false, StopLoss: 0, TakeProfit: 0,
-        lot: 0.01, slip: 100, Commssion: 0,
+        safetyOffSwitch: false, StopLoss: "0", TakeProfit: "0",
+        lot: "0.01", slip: 100, Commssion: "0",
     },
 
-    // -------- local logs --------
-    logs: [],
+    // v4.1.1 C2: BB family toggle. When true, drawBollingerFamily()
+    // renders 58 upper bands (green gradient) and 58 lower bands
+    // (white gradient) under the candles.
+    bbFamilyEnabled: true,
 
-    // -------- freshness guards --------
+    // v4.1.1 C13: log merge state. We keep client-local entries
+    // separate so server polls don't wipe them.
+    logs_local: [],
+    logs_server: [],
+
     _lastMiniAppTick: -1,
     _lastDiagnosticsTick: -1,
     _lastOhlcvTick: -1,
@@ -1367,24 +1565,51 @@ document.addEventListener('click', (e) => {
 });
 
 // ============================================================
-// LOG RING BUFFER
+// v4.1.1 C13: LOG RING BUFFER (merge client + server)
+// ------------------------------------------------------------
+// Client-local entries (settings saved, symbol changed, toasts, etc.)
+// live in state.logs_local and are never overwritten by server polls.
+// Server entries live in state.logs_server and are replaced on each
+// /log fetch. renderLogBar() merges both, sorts by timestamp, and
+// shows the tail.
 // ============================================================
 const MAX_CLIENT_LOGS = 200;
+const MAX_SERVER_LOGS = 200;
+const MAX_MERGED_LOGS = 400;
+
 function pushLog(level, msg) {
-    const entry = { ts: new Date(), level, msg };
-    state.logs.push(entry);
-    if (state.logs.length > MAX_CLIENT_LOGS) state.logs.shift();
+    const entry = { ts: new Date(), level, msg, source: 'client' };
+    state.logs_local.push(entry);
+    if (state.logs_local.length > MAX_CLIENT_LOGS) state.logs_local.shift();
     renderLogBar();
 }
+
+function mergeLogs() {
+    const merged = [];
+    const seen = new Set();
+    const all = state.logs_local.concat(state.logs_server);
+    all.sort((a, b) => (a.ts instanceof Date ? a.ts : new Date(a.ts)).getTime() - (b.ts instanceof Date ? b.ts : new Date(b.ts)).getTime());
+    for (const e of all) {
+        const ts = e.ts instanceof Date ? e.ts : new Date(e.ts);
+        const key = ts.getTime() + '|' + (e.msg || '');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push({ ts, level: e.level || 'info', msg: e.msg || '' });
+    }
+    if (merged.length > MAX_MERGED_LOGS) return merged.slice(-MAX_MERGED_LOGS);
+    return merged;
+}
+
 function renderLogBar() {
     const el = document.getElementById('logEntries');
     if (!el) return;
-    const recent = state.logs.slice(-6).reverse();
+    const merged = mergeLogs();
+    const recent = merged.slice(-6).reverse();
     if (recent.length === 0) { el.textContent = '—'; return; }
     el.innerHTML = recent.map(e => {
         const t = e.ts.toISOString().substring(11, 19);
         const cls = e.level === 'error' ? 'log-lvl-err' : (e.level === 'warn' ? 'log-lvl-warn' : 'log-lvl-info');
-        const safe = String(e.msg).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+        const safe = escapeHtml(e.msg);
         return `<span class="log-entry"><span class="log-ts">${t}</span> <span class="${cls}">[${e.level}]</span> <span class="log-msg">${safe}</span></span>`;
     }).join('');
 }
@@ -1430,6 +1655,37 @@ document.getElementById('tb-tf').addEventListener('click', () => { haptic('light
 document.getElementById('tb-charttype').addEventListener('click', () => { haptic('light'); toggleChartType(); });
 document.getElementById('tb-add-indicator').addEventListener('click', () => { haptic('light'); openIndicatorPicker(); });
 document.getElementById('tb-fvg-list').addEventListener('click', () => { haptic('light'); toggleFvgList(); });
+
+// v4.1.1 C2: BB×58 toolbar toggle
+const bbToggleBtn = document.getElementById('tb-bb-toggle');
+const bbLegend = document.getElementById('bbLegend');
+const bbLegendBody = document.getElementById('bbLegendBody');
+const bbLegendToggle = document.getElementById('bbLegendToggle');
+
+function syncBbToggleUi() {
+    if (state.bbFamilyEnabled) {
+        bbToggleBtn.classList.add('bb-on');
+        bbToggleBtn.classList.remove('active');
+        bbLegend.classList.add('open');
+    } else {
+        bbToggleBtn.classList.remove('bb-on');
+        bbLegend.classList.remove('open');
+    }
+}
+bbToggleBtn.addEventListener('click', () => {
+    haptic('light');
+    state.bbFamilyEnabled = !state.bbFamilyEnabled;
+    syncBbToggleUi();
+    pushLog('info', 'Bollinger family ' + (state.bbFamilyEnabled ? 'ON' : 'OFF') + ' (periods 3..60)');
+    if (currentView === 'chart') renderChart();
+});
+document.getElementById('bbLegendTitle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    haptic('light');
+    bbLegendBody.classList.toggle('hidden');
+    bbLegendToggle.textContent = bbLegendBody.classList.contains('hidden') ? '[+]' : '[−]';
+});
+syncBbToggleUi();
 
 // ============================================================
 // SYMBOL PICKER
@@ -1931,26 +2187,40 @@ function deleteNearestFvg(price) {
 }
 
 // ============================================================
-// SETTINGS MODAL
+// v4.1.1 C7 + C8: SETTINGS MODAL
+// ------------------------------------------------------------
+// C7: on open, fetch GET /settings to populate live values.
+// C8: numeric fields are sent as exact decimal strings; the backend
+//     parses them via Fraction.from_decimal_string().
 // ============================================================
-function openSettingsModal() {
-    const s = state.settings;
+async function openSettingsModal() {
+    let liveSettings = null;
+    if (HAS_BACKEND) {
+        const r = await apiJson('/settings');
+        if (r && !r.__error) liveSettings = r;
+    }
+    const s = liveSettings || state.settings;
+    const asStr = (v) => (v === null || v === undefined) ? '' : String(v);
     const html = `
-        <h3>⚙ Engine Settings</h3>
-        <div class="modal-row"><label>max (X_PERIOD)</label><input id="set-max" type="number" value="${s.max}"></div>
-        <div class="modal-row"><label>min (Y_START)</label><input id="set-min" type="number" value="${s.min}"></div>
+        <h3>⚙ Engine Settings (MT4-parity inputs)</h3>
+        <div class="modal-row"><label>Commssion</label><input id="set-com" type="text" inputmode="decimal" value="${asStr(s.Commssion)}"></div>
+        <div class="modal-row"><label>StopLoss</label><input id="set-sl" type="text" inputmode="decimal" value="${asStr(s.StopLoss)}"></div>
+        <div class="modal-row"><label>TakeProfit</label><input id="set-tp" type="text" inputmode="decimal" value="${asStr(s.TakeProfit)}"></div>
+        <div class="modal-row"><label>lot</label><input id="set-lot" type="text" inputmode="decimal" value="${asStr(s.lot)}"></div>
+        <div class="modal-row"><label>slip</label><input id="set-slip" type="number" value="${asStr(s.slip)}"></div>
+        <div class="modal-row"><label>max (X_PERIOD)</label><input id="set-max" type="number" value="${asStr(s.max)}"></div>
+        <div class="modal-row"><label>min (Y_START)</label><input id="set-min" type="number" value="${asStr(s.min)}"></div>
         <div class="modal-row"><label>Cc</label><input id="set-Cc" type="checkbox" ${s.Cc ? 'checked' : ''}></div>
         <div class="modal-row"><label>cC</label><input id="set-cC" type="checkbox" ${s.cC ? 'checked' : ''}></div>
-        <div class="modal-row"><label>Memory</label><input id="set-mem" type="number" value="${s.Memory}"></div>
+        <div class="modal-row"><label>Memory</label><input id="set-mem" type="number" value="${asStr(s.Memory)}"></div>
         <div class="modal-row"><label>safetyOffSwitch</label><input id="set-safety" type="checkbox" ${s.safetyOffSwitch ? 'checked' : ''}></div>
-        <div class="modal-row"><label>StopLoss</label><input id="set-sl" type="number" value="${s.StopLoss}"></div>
-        <div class="modal-row"><label>TakeProfit</label><input id="set-tp" type="number" value="${s.TakeProfit}"></div>
-        <div class="modal-row"><label>lot</label><input id="set-lot" type="number" step="0.01" value="${s.lot}"></div>
-        <div class="modal-row"><label>slip</label><input id="set-slip" type="number" value="${s.slip}"></div>
-        <div class="modal-row"><label>Commssion</label><input id="set-com" type="number" value="${s.Commssion}"></div>
         <div class="modal-actions">
             <button class="tb-btn" id="set-cancel">Cancel</button>
             <button class="tb-btn primary" id="set-save">Save</button>
+        </div>
+        <div class="modal-note">
+            Numeric inputs are transmitted as exact decimal strings and parsed server-side via <code>Fraction.from_decimal_string()</code>.
+            Validation: <code>max &gt; min ≥ 3</code>, <code>StopLoss ≥ 0</code>, <code>TakeProfit ≥ 0</code>, <code>lot &gt; 0</code>, <code>slip ≥ 0</code>, <code>Commssion ≥ 0</code>.
         </div>
     `;
     openModal(html, {
@@ -1964,11 +2234,11 @@ function openSettingsModal() {
                     cC: root.querySelector('#set-cC').checked,
                     Memory: parseInt(root.querySelector('#set-mem').value, 10),
                     safetyOffSwitch: root.querySelector('#set-safety').checked,
-                    StopLoss: parseFloat(root.querySelector('#set-sl').value),
-                    TakeProfit: parseFloat(root.querySelector('#set-tp').value),
-                    lot: parseFloat(root.querySelector('#set-lot').value),
+                    StopLoss: root.querySelector('#set-sl').value.trim(),
+                    TakeProfit: root.querySelector('#set-tp').value.trim(),
+                    lot: root.querySelector('#set-lot').value.trim(),
                     slip: parseInt(root.querySelector('#set-slip').value, 10),
-                    Commssion: parseFloat(root.querySelector('#set-com').value),
+                    Commssion: root.querySelector('#set-com').value.trim(),
                 };
                 closeModal();
                 haptic('impact');
@@ -1978,11 +2248,12 @@ function openSettingsModal() {
                 }
                 const r = await apiPost('/settings', next);
                 if (r && r.ok) {
-                    state.settings = next;
+                    state.settings = Object.assign({}, state.settings, next);
                     pushLog('info', 'Settings saved');
                 } else {
                     const detail = r && (r.error || r.detail || (r.__body && r.__body.error)) || 'unknown';
-                    showError('Settings save failed: ' + detail, 4000);
+                    showError('Settings save failed: ' + detail, 5000);
+                    pushLog('error', 'Settings save failed: ' + detail);
                 }
             });
         }
@@ -1991,14 +2262,15 @@ function openSettingsModal() {
 
 // ============================================================
 // ORDER TICKET WIRING
+// Numeric fields are transmitted as exact decimal strings (C8).
 // ============================================================
 document.getElementById('ot-submit').addEventListener('click', async () => {
     haptic('impact');
     if (!HAS_BACKEND) { showError('Backend not configured.', 4000); return; }
     const side = document.getElementById('ot-side').value;
-    const lot = parseFloat(document.getElementById('ot-lot').value);
-    const sl = parseFloat(document.getElementById('ot-sl').value);
-    const tp = parseFloat(document.getElementById('ot-tp').value);
+    const lot = document.getElementById('ot-lot').value.trim();
+    const sl = document.getElementById('ot-sl').value.trim();
+    const tp = document.getElementById('ot-tp').value.trim();
     const r = await apiPost('/order', { side, lot, sl, tp });
     if (r && r.ok) {
         pushLog('success', `${side} order placed @ ${r.entry || state.price}`);
@@ -2162,6 +2434,24 @@ function computePriceRange() {
         if (b.low < lo) lo = b.low;
         if (b.high > hi) hi = b.high;
     }
+    // v4.1.1 C2: include BB family extremes so the bands fit on screen.
+    if (state.bbFamilyEnabled && state.bars && state.bars.length > 0) {
+        const bb = computeBollingerFamily();
+        if (bb) {
+            for (const band of bb.upper) {
+                for (let i = leftEdge; i < rightEdge && i < band.length; i++) {
+                    const v = band[i];
+                    if (isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; }
+                }
+            }
+            for (const band of bb.lower) {
+                for (let i = leftEdge; i < rightEdge && i < band.length; i++) {
+                    const v = band[i];
+                    if (isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; }
+                }
+            }
+        }
+    }
     for (const f of state.fvgs) {
         const p = parseFloat(f.price);
         if (!isNaN(p)) { if (p < lo) lo = p; if (p > hi) hi = p; }
@@ -2184,6 +2474,138 @@ function computePriceRange() {
 }
 
 // ============================================================
+// v4.1.1 C2: BOLLINGER FAMILY — periods 3..60
+// ------------------------------------------------------------
+// MQL4 parity:
+//   iBands(NULL, 0, j, 2, 0, PRICE_CLOSE, MODE_UPPER, shift)
+//   iBands(NULL, 0, j, 2, 0, PRICE_CLOSE, MODE_LOWER, shift)
+// Period j is an integer in [3, 60]. Deviation = 2. Applied price
+// = close. Bands shift = 0. Std is POPULATION σ (divisor = period),
+// matching MQL4's iBands implementation.
+//
+// The family is computed client-side from state.bars (the same
+// OHLCV that /ohlcv returns). This is exactly equivalent to what
+// the FF computes inside Normalize() for each j in [y+1, x-1].
+//
+// Upper bands: green gradient. alpha ramps from 0.06 (p=3) to
+//              0.28 (p=60). rgba(0,255,136,α).
+// Lower bands: white gradient. alpha ramps from 0.06 (p=3) to
+//              0.28 (p=60). rgba(255,255,255,α).
+//
+// Result is memoized by (bars.length, bars[last].timestamp, last close).
+// ============================================================
+const BB_MIN_PERIOD = 3;
+const BB_MAX_PERIOD = 60;
+let _bbCache = null;
+let _bbCacheKey = '';
+
+function computeBollingerFamily() {
+    if (!state.bars || state.bars.length < BB_MAX_PERIOD + 1) return null;
+    const n = state.bars.length;
+    const lastBar = state.bars[n - 1];
+    const key = n + '|' + (lastBar.timestamp || '') + '|' + lastBar.close;
+    if (_bbCache && _bbCacheKey === key) return _bbCache;
+
+    // Precompute close array once.
+    const closes = new Array(n);
+    for (let i = 0; i < n; i++) closes[i] = state.bars[i].close;
+
+    // Running-sum SMAs via sliding window would be O(n) per period;
+    // given n <= 200 and 58 periods, a direct O(n·p) is < 12k ops.
+    // We use direct for clarity and MQL4 parity.
+    const upper = [];
+    const lower = [];
+    const upperA = [];
+    const lowerA = [];
+    const upperColors = [];
+    const lowerColors = [];
+
+    for (let p = BB_MIN_PERIOD; p <= BB_MAX_PERIOD; p++) {
+        const up = new Array(n).fill(NaN);
+        const lo = new Array(n).fill(NaN);
+        for (let i = p - 1; i < n; i++) {
+            // SMA over closes[i-p+1 .. i]
+            let sum = 0;
+            for (let k = i - p + 1; k <= i; k++) sum += closes[k];
+            const mean = sum / p;
+            // Population variance (divisor = p), matching MQL4.
+            let vsum = 0;
+            for (let k = i - p + 1; k <= i; k++) {
+                const d = closes[k] - mean;
+                vsum += d * d;
+            }
+            const variance = vsum / p;
+            const sd = Math.sqrt(variance);
+            up[i] = mean + 2 * sd;
+            lo[i] = mean - 2 * sd;
+        }
+        upper.push(up);
+        lower.push(lo);
+        // Gradient: alpha 0.06 (p=3) → 0.28 (p=60), linear.
+        const t = (p - BB_MIN_PERIOD) / (BB_MAX_PERIOD - BB_MIN_PERIOD);
+        const a = 0.06 + (0.28 - 0.06) * t;
+        upperA.push(a);
+        lowerA.push(a);
+        upperColors.push('rgba(0,255,136,' + a.toFixed(3) + ')');
+        lowerColors.push('rgba(255,255,255,' + a.toFixed(3) + ')');
+    }
+    _bbCache = { upper, lower, upperColors, lowerColors, periods: BB_MAX_PERIOD - BB_MIN_PERIOD + 1 };
+    _bbCacheKey = key;
+    return _bbCache;
+}
+
+function drawBollingerFamily() {
+    if (!state.bbFamilyEnabled) return;
+    const bb = computeBollingerFamily();
+    if (!bb) return;
+    const ctx = chartCtx;
+    const plotW = chartW - PADDING.left - PADDING.right;
+    const totalBars = state.bars.length;
+    const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
+    const rightEdge = totalBars - viewport.offsetBars;
+    const leftEdge = rightEdge - visibleCount;
+    const step = plotW / visibleCount;
+    const baseX = PADDING.left + step / 2;
+
+    // Draw under candles. Faintest first (period 3), strongest last
+    // (period 60), so the longest-period band is on top of the stack
+    // and reads as the most prominent — matching the audit spec.
+    ctx.lineWidth = 1;
+    for (let pi = 0; pi < bb.periods; pi++) {
+        const upArr = bb.upper[pi];
+        const loArr = bb.lower[pi];
+        // Upper band
+        ctx.strokeStyle = bb.upperColors[pi];
+        ctx.beginPath();
+        let started = false;
+        for (let i = leftEdge; i < rightEdge; i++) {
+            if (i < 0 || i >= totalBars) continue;
+            const v = upArr[i];
+            if (!isFinite(v)) { started = false; continue; }
+            const x = baseX + (i - leftEdge) * step;
+            const y = priceToY(v);
+            if (!started) { ctx.moveTo(x, y); started = true; }
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        // Lower band
+        ctx.strokeStyle = bb.lowerColors[pi];
+        ctx.beginPath();
+        started = false;
+        for (let i = leftEdge; i < rightEdge; i++) {
+            if (i < 0 || i >= totalBars) continue;
+            const v = loArr[i];
+            if (!isFinite(v)) { started = false; continue; }
+            const x = baseX + (i - leftEdge) * step;
+            const y = priceToY(v);
+            if (!started) { ctx.moveTo(x, y); started = true; }
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+}
+
+// ============================================================
 // CHART RENDERER — MASTER
 // ============================================================
 function renderChart() {
@@ -2203,7 +2625,9 @@ function renderChart() {
     if (viewport.autoPrice) computePriceRange();
     drawRegimeBackground();
     drawGrid();
-    drawBBOverlays();
+    // v4.1.1 C2: draw BB family UNDER the topological anchors and candles.
+    drawBollingerFamily();
+    drawTopologicalAnchors();
     drawCandles();
     drawFVGOverlays();
     drawTrailingStopLine();
@@ -2248,7 +2672,10 @@ function drawGrid() {
     }
 }
 
-function drawBBOverlays() {
+// v4.1.1 C14: renamed from drawBBOverlays() — this draws the
+// topological Premium/Discount anchors, NOT Bollinger Bands.
+// The BB family is drawn by drawBollingerFamily().
+function drawTopologicalAnchors() {
     const ctx = chartCtx;
     const prem = state.premium_series || [];
     const disc = state.discount_series || [];
@@ -2294,6 +2721,12 @@ function drawBBOverlays() {
     ctx.setLineDash([]);
 }
 
+// ============================================================
+// v4.1.1 C1: drawCandles — bullish #4488ff, bearish #ff4466
+// ------------------------------------------------------------
+// The bullish/bearish decision is unchanged (close >= open => bullish).
+// Only the color palette changed.
+// ============================================================
 function drawCandles() {
     const ctx = chartCtx;
     const plotW = chartW - PADDING.left - PADDING.right;
@@ -2304,6 +2737,8 @@ function drawCandles() {
     const step = plotW / visibleCount;
     const bw = Math.max(CANDLE_MIN_WIDTH, Math.min(CANDLE_MAX_WIDTH, viewport.barWidth));
     const type = state.chartType;
+    const BULL = '#4488ff';
+    const BEAR = '#ff4466';
     if (type === 'LINE' || type === 'AREA') {
         ctx.beginPath();
         let firstY = null;
@@ -2340,8 +2775,8 @@ function drawCandles() {
         const yClose = priceToY(bar.close);
         const yHigh = priceToY(bar.high);
         const yLow = priceToY(bar.low);
-        const isGreen = bar.close >= bar.open;
-        const color = isGreen ? '#00ff88' : '#ff4466';
+        const isBull = bar.close >= bar.open;
+        const color = isBull ? BULL : BEAR;
         if (type === 'CANDLES') {
             ctx.strokeStyle = color;
             ctx.lineWidth = 1;
@@ -2441,6 +2876,8 @@ function drawSignalMarkers() {
         if (y < PADDING.top || y > chartH - PADDING.bottom) continue;
         const isBuy = sig.type === 'BUY';
         const isSell = sig.type === 'SELL';
+        // Signal markers keep the v4.1.0 palette (BUY=green, SELL=red,
+        // NEUTRAL=gold) — only the CANDLE colors changed in v4.1.1.
         ctx.fillStyle = isBuy ? '#00ff88' : (isSell ? '#ff4466' : '#ffaa44');
         ctx.beginPath();
         if (isBuy) {
@@ -2692,7 +3129,7 @@ function updateCrosshairReadout(x, y) {
 // ============================================================
 // DATA FETCHING
 // ============================================================
-let pollHandles = { miniapp: null, ohlcv: null, signals: null, diag: null, orders: null, regime: null };
+let pollHandles = { miniapp: null, ohlcv: null, signals: null, diag: null, orders: null, regime: null, log: null, toasts: null };
 let consecutiveFailures = 0;
 const MAX_FAILURES = 3;
 let backoffUntil = 0;
@@ -2726,23 +3163,10 @@ async function fetchOhlcv() {
     state.ohlcv_count = r.count || state.bars.length;
     if (r.symbol) state.symbol = r.symbol;
     state._lastOhlcvTick = state.tick;
+    // Invalidate BB cache when bars change.
+    _bbCacheKey = '';
 }
 
-// ============================================================
-// /miniapp-state  (2s poll) — AUTHORITATIVE full FF state
-// ------------------------------------------------------------
-// The patched backend returns ALL FF-exact fields here, including
-// KC/invert/tag/prime/dime/mem/A/B/C/c/tick_tock/signature/safety,
-// all trailing-stop fields, all derivative fields (Z,z,O,o,W,w,I,iI,
-// J,iJ,iZ,iz,iW,iw,iO,io), scan bounds (X_scan,Y_scan,S,T,r,ir),
-// volatility (iATR,iStdDev,iIHKk,iIHKt), counters
-// (indicator_populate_count, imbalance_fire_count), the authoritative
-// last_kronecker_m/n/h stamps from the most recent H()/L() call, and
-// boundary pass conditions (lPass,ilPass,kPass,ikPass).
-//
-// This is the primary source. The 5s /diagnostics poll is
-// freshness-gated against it (Audit D-02, D-57).
-// ============================================================
 async function fetchMiniAppState() {
     if (!HAS_BACKEND) { noteFailure(); return; }
     const r = await apiJson('/miniapp-state');
@@ -2752,7 +3176,6 @@ async function fetchMiniAppState() {
 }
 
 function absorbMiniAppState(ma) {
-    // Connection meta
     if (ma.symbol) state.symbol = ma.symbol;
     if (ma.regime) state.regime = ma.regime;
     if (ma.price) {
@@ -2763,14 +3186,12 @@ function absorbMiniAppState(ma) {
     if (ma.last_price_update) state.lastUpdate = ma.last_price_update;
     if (ma.relay_healthy !== undefined) state.relay_healthy = ma.relay_healthy;
 
-    // Bar / signal counters
     if (ma.bar_close_count !== undefined) state.bar_close_count = ma.bar_close_count;
     if (ma.signal_count !== undefined) state.signal_count = ma.signal_count;
     if (ma.ohlcv_count !== undefined) state.ohlcv_count = ma.ohlcv_count;
     if (ma.last_signal_at) state.last_signal_at = ma.last_signal_at;
     if (ma.recent_signals) state.signals = ma.recent_signals;
 
-    // Kronecker (live per tick)
     if (ma.market_m !== undefined) state.market_m = ma.market_m;
     if (ma.market_n !== undefined) state.market_n = ma.market_n;
     if (ma.market_imbalance !== undefined) state.market_imbalance = ma.market_imbalance;
@@ -2781,7 +3202,6 @@ function absorbMiniAppState(ma) {
     if (ma.n_at_h !== undefined) state.n_at_h = ma.n_at_h;
     if (ma.h_bar !== undefined) state.h_bar = ma.h_bar;
 
-    // Engine flags: A/B/C/c/tick_tock/signature/safety
     if (ma.A !== undefined) state.A = ma.A;
     if (ma.B !== undefined) state.B = ma.B;
     if (ma.C !== undefined) state.C = ma.C;
@@ -2790,7 +3210,6 @@ function absorbMiniAppState(ma) {
     if (ma.signature !== undefined) state.signature = ma.signature;
     if (ma.safety !== undefined) state.safety = ma.safety;
 
-    // Inversion state
     if (ma.KC !== undefined) state.KC = ma.KC;
     if (ma.invert !== undefined) state.invert = ma.invert;
     if (ma.tag !== undefined) state.tag = ma.tag;
@@ -2798,26 +3217,22 @@ function absorbMiniAppState(ma) {
     if (ma.dime !== undefined) state.dime = ma.dime;
     if (ma.mem !== undefined) state.mem = ma.mem;
 
-    // Trailing stop
     if (ma.trailing_stop_active !== undefined) state.trailing_stop_active = ma.trailing_stop_active;
     if (ma.trailing_stop_price !== undefined) state.trailing_stop_price = parseFloat(ma.trailing_stop_price) || 0;
     if (ma.trailing_take_profit !== undefined) state.trailing_take_profit = parseFloat(ma.trailing_take_profit) || 0;
     if (ma.trailing_stop_entry !== undefined) state.trailing_stop_entry = parseFloat(ma.trailing_stop_entry) || 0;
     if (ma.trailing_stop_side !== undefined) state.trailing_stop_side = ma.trailing_stop_side;
 
-    // Orders
     if (ma.has_open_long !== undefined) state.has_open_long = ma.has_open_long;
     if (ma.has_open_short !== undefined) state.has_open_short = ma.has_open_short;
     if (ma.lOrder_id !== undefined) state.lOrder_id = ma.lOrder_id;
     if (ma.kOrder_id !== undefined) state.kOrder_id = ma.kOrder_id;
 
-    // Authoritative last Kronecker event (Audit D-35, D-36, D-54)
     if (ma.last_kronecker_bar !== undefined) state.last_kronecker_bar = ma.last_kronecker_bar;
     if (ma.last_kronecker_m !== undefined) state.last_kronecker_m = ma.last_kronecker_m;
     if (ma.last_kronecker_n !== undefined) state.last_kronecker_n = ma.last_kronecker_n;
     if (ma.last_kronecker_h !== undefined) state.last_kronecker_h = ma.last_kronecker_h;
 
-    // Directional derivatives
     if (ma.Z !== undefined) state.Z = ma.Z;
     if (ma.z !== undefined) state.z = ma.z;
     if (ma.O !== undefined) state.O = ma.O;
@@ -2835,7 +3250,6 @@ function absorbMiniAppState(ma) {
     if (ma.iO !== undefined) state.iO = ma.iO;
     if (ma.io !== undefined) state.io = ma.io;
 
-    // Scan bounds & rolling indices
     if (ma.X_scan !== undefined) state.X_scan = ma.X_scan;
     if (ma.Y_scan !== undefined) state.Y_scan = ma.Y_scan;
     if (ma.S !== undefined) state.S = ma.S;
@@ -2843,25 +3257,21 @@ function absorbMiniAppState(ma) {
     if (ma.r !== undefined) state.r = ma.r;
     if (ma.ir !== undefined) state.ir = ma.ir;
 
-    // Volatility
     if (ma.iATR !== undefined) state.iATR = parseFloat(ma.iATR) || 0;
     if (ma.iStdDev !== undefined) state.iStdDev = parseFloat(ma.iStdDev) || 0;
     if (ma.iIHKk !== undefined) state.iIHKk = parseFloat(ma.iIHKk) || 0;
     if (ma.iIHKt !== undefined) state.iIHKt = parseFloat(ma.iIHKt) || 0;
 
-    // Counters
     if (ma.indicator_populate_count !== undefined) state.indicator_populate_count = ma.indicator_populate_count;
     if (ma.imbalance_fire_count !== undefined) state.imbalance_fire_count = ma.imbalance_fire_count;
     if (ma.on_track_runs !== undefined) state.on_track_runs = ma.on_track_runs;
     if (ma.on_stand_runs !== undefined) state.on_stand_runs = ma.on_stand_runs;
 
-    // Boundary pass conditions
     if (ma.lPass !== undefined) state.lPass = parseFloat(ma.lPass) || 0;
     if (ma.ilPass !== undefined) state.ilPass = parseFloat(ma.ilPass) || 0;
     if (ma.kPass !== undefined) state.kPass = parseFloat(ma.kPass) || 0;
     if (ma.ikPass !== undefined) state.ikPass = parseFloat(ma.ikPass) || 0;
 
-    // FVG anchors
     if (ma.fvg_anchors) {
         state.fvgs = ma.fvg_anchors.map(a => ({
             idx: a.idx,
@@ -2872,7 +3282,6 @@ function absorbMiniAppState(ma) {
     if (ma.premium_series) state.premium_series = ma.premium_series;
     if (ma.discount_series) state.discount_series = ma.discount_series;
 
-    // Stamp freshness (Audit D-02, D-57)
     state._lastMiniAppTick = state.tick;
 }
 
@@ -2892,32 +3301,11 @@ async function fetchDiagnostics() {
     absorbDiagnostics(r);
 }
 
-// ============================================================
-// /diagnostics  (5s poll) — FRESHNESS-GATED against /miniapp-state
-// ------------------------------------------------------------
-// Audit D-02, D-57:
-//   The patched /diagnostics endpoint returns ALL FF-exact fields
-//   (via get_signal_status()). But because /miniapp-state now also
-//   returns them, we must be careful not to have the slower 5s poll
-//   overwrite the faster 2s poll with stale data.
-//
-//   Freshness guard:
-//     - Always absorb auxiliary-only fields (indicator series samples,
-//       recent_signals, ohlcv_history_depth) that /miniapp-state does
-//       not carry.
-//     - Absorb engine-state fields ONLY when the diagnostics tick is
-//       strictly greater than the last /miniapp-state tick we absorbed.
-//
-// Audit D-56:
-//   Indicator sample columns are tagged with the current column index
-//   so downstream consumers do not assume columns [0] / [1].
-// ============================================================
 function absorbDiagnostics(d) {
     const diagTick = (d.tick !== undefined) ? d.tick : -1;
     const miniTick = state._lastMiniAppTick;
     const engineFieldsFresh = diagTick > miniTick;
 
-    // --- Always absorb auxiliary-only fields ---
     const col0 = (d.indicator_col_index && d.indicator_col_index[0] !== undefined)
         ? d.indicator_col_index[0] : 0;
     const col1 = (d.indicator_col_index && d.indicator_col_index[1] !== undefined)
@@ -2942,7 +3330,6 @@ function absorbDiagnostics(d) {
     }
     if (d.recent_signals) state.signals = d.recent_signals;
 
-    // --- Absorb engine-state fields only if diagnostics is fresher ---
     if (!engineFieldsFresh) {
         state._lastDiagnosticsTick = diagTick;
         return;
@@ -3076,12 +3463,18 @@ async function fetchRegimeMap() {
     }
 }
 
+// v4.1.1 C13: server logs go into state.logs_server, NOT state.logs.
 async function fetchLogs() {
     if (!HAS_BACKEND) return;
     const r = await apiJson('/log?limit=50');
     if (!r || r.__error) return;
     if (r.logs) {
-        state.logs = r.logs.map(l => ({ ts: new Date(l.ts), level: l.level || 'info', msg: l.msg || '' }));
+        state.logs_server = r.logs.map(l => ({
+            ts: new Date(l.ts),
+            level: l.level || 'info',
+            msg: l.msg || '',
+            source: 'server',
+        }));
         renderLogBar();
     }
 }
@@ -3097,9 +3490,6 @@ async function fetchAll() {
     }
     if (isBackedOff()) return;
     hideError();
-    // Order matters: /miniapp-state first, so its tick stamps the
-    // freshness guard before /diagnostics runs. Then the auxiliary
-    // fetches fill in the slower-moving series.
     await fetchMiniAppState();
     await Promise.all([
         fetchOhlcv(),
@@ -3109,6 +3499,7 @@ async function fetchAll() {
         fetchOrders(),
         fetchRegimeMap(),
         fetchLogs(),
+        fetchToasts(),
     ]);
     state.connected = true;
     updateEnginePanel();
@@ -3155,18 +3546,6 @@ function updateEnginePanel() {
     setText('eng-orders', orders.length ? orders.join(', ') : 'none');
 }
 
-// ============================================================
-// KRONECKER PANEL
-// ------------------------------------------------------------
-// Audit D-35, D-36, D-54:
-//   The panel displays the AUTHORITATIVE m/n from the most recent
-//   H()/L() call (last_kronecker_m / last_kronecker_n) when the
-//   engine has fired at least one Kronecker event. It falls back
-//   to the per-tick diagnostic (market_m / market_n) only when no
-//   Kronecker event has fired yet — i.e. when last_kronecker_bar
-//   is still -1. This makes the panel match the bot's /status
-//   `Local m/n` field exactly.
-// ============================================================
 function updateKroneckerPanel() {
     const kroneckerFired = state.last_kronecker_bar >= 0;
     const dispM = kroneckerFired ? state.last_kronecker_m : state.market_m;
@@ -3209,6 +3588,9 @@ function updateDerivativePanel() {
 
 // ============================================================
 // POLLING MODEL
+// ------------------------------------------------------------
+// v4.1.1 C6: dedicated 3s /log poll.
+// v4.1.1 C5: /toasts polled at 2s alongside /miniapp-state.
 // ============================================================
 function startPolling() {
     stopPolling();
@@ -3224,6 +3606,17 @@ function startPolling() {
             if (currentView === 'chart') renderChart();
         });
     }, 2000);
+    // 2s: /toasts — signal + execution notifications (C5)
+    pollHandles.toasts = setInterval(() => {
+        if (isBackedOff()) return;
+        fetchToasts();
+    }, 2000);
+    // 3s: /log — dedicated poll so execution-layer lines reach the
+    // TWA within one cycle (C6). Merged with client-local entries (C13).
+    pollHandles.log = setInterval(() => {
+        if (isBackedOff()) return;
+        fetchLogs();
+    }, 3000);
     // 30s: /ohlcv — historical bars for the chart
     pollHandles.ohlcv = setInterval(() => {
         if (isBackedOff()) return;
@@ -3284,9 +3677,8 @@ async function boot() {
         }
     }
     startPolling();
-    // Low-frequency full refresh (5 min) to cover any drift from polling guards
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.1.0 booted');
+    pushLog('info', 'ÆEA TWA v4.1.1 booted');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -3299,28 +3691,21 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 // INITIAL LOG
 // ============================================================
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.1.0');
+console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.1.1');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('MT4/TradingView-style interface (Audit-Patched):');
-console.log('  ✓ Symbol + timeframe + chart-type toolbar');
-console.log('  ✓ Interactive candlestick/bar/line/area chart');
-console.log('  ✓ Crosshair, pan, zoom, pinch, tap-to-inspect');
-console.log('  ✓ Indicator sub-panels (add/remove/configure)');
-console.log('  ✓ FVG drawing tools (long-press context menu)');
-console.log('  ✓ Order ticket (place/close simulated orders)');
-console.log('  ✓ Engine settings panel');
-console.log('  ✓ Regime map, log bar, signal markers');
-console.log('  ✓ Live state polling with backoff');
-console.log('  ✓ Connection badge + explicit backend errors');
-console.log('  ✓ FULL FF state mirrored: KC/invert/tag/prime/dime/mem');
-console.log('  ✓ A/B/C/c/tick_tock/signature/safety live-updated');
-console.log('  ✓ Kronecker panel reads authoritative last_kronecker_m/n');
-console.log('  ✓ Derivative panel reads Z/z/O/o/W/w/I/iI/J/iJ per tick');
-console.log('  ✓ Freshness guard prevents stale 5s diagnostics overwriting 2s snapshot');
-console.log('  ✓ D-53 fix: no hardcoded Heroku fallback — resolver is clean');
-console.log('  ✓ D-56 fix: indicator columns tagged, no [0]/[1] assumption');
+console.log('v4.1.1 changes:');
+console.log('  ✓ C1: Bullish candles #4488ff (blue), bearish #ff4466 (red)');
+console.log('  ✓ C2: BB family periods 3..60 — upper green gradient, lower white gradient');
+console.log('  ✓ C2: BB×58 toolbar toggle + collapsible legend');
+console.log('  ✓ C5: Toast stack — signal + execution notifications (2s /toasts poll)');
+console.log('  ✓ C6: Dedicated 3s /log poll');
+console.log('  ✓ C7: Settings modal fetches live values via GET /settings');
+console.log('  ✓ C8: Numeric inputs transmitted as exact decimal strings');
+console.log('  ✓ C13: Client-local log entries survive server poll merge');
+console.log('  ✓ C14: drawBBOverlays → drawTopologicalAnchors; new drawBollingerFamily');
+console.log('  ✓ C15: Dock height 240px; BB legend collapsible');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
