@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ÆEA Engine · MQL4-Parity Port · TWA v4.1.1</title>
+<title>ÆEA Engine · MQL4-Parity Port · TWA v4.1.2</title>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -40,30 +40,18 @@ html, body {
     --pink: #ff66aa;
     --white: #ffffff;
     --toolbar-h: 44px;
-    /* v4.1.1 C15: dock height raised 220 -> 240 to hold BB legend + toasts */
-    --dock-h: 240px;
-    --logbar-h: 26px;
-    --toast-w: 260px;
-}
-.hidden { display: none !important; }
-
-/* ============================================================
-   v4.1.1 C1: CANDLE COLOR CONSTANTS
-   ------------------------------------------------------------
-   Locked by Audit §9.1:
-     Bullish candle body + wick  = #4488ff  (blue)
-     Bearish candle body + wick  = #ff4466  (red)
-   The previous v4.1.0 palette was #00ff88 (green) / #ff4466 (red).
-   These constants are consumed only by drawCandles(); signal
-   markers keep their own BUY=#00ff88 / SELL=#ff4466 palette.
-   ============================================================ */
-:root {
+    /* v4.1.2 (C-3.11 / M-14): candle variables are consumed by
+       drawCandles() via getCssVar() — no longer dead. */
     --candle-bull: #4488ff;
     --candle-bear: #ff4466;
     --signal-buy:  #00ff88;
     --signal-sell: #ff4466;
     --signal-neutral: #ffaa44;
+    --dock-h: 240px;
+    --logbar-h: 26px;
+    --toast-w: 260px;
 }
+.hidden { display: none !important; }
 
 /* ============================================================
    CANVAS LAYER
@@ -209,7 +197,7 @@ html, body {
 .tb-price.down { color: var(--red); }
 
 /* ============================================================
-   CHART HEADER OVERLAY (floating, MT4-style)
+   CHART HEADER OVERLAY
    ============================================================ */
 #chartHeader {
     position: absolute;
@@ -234,11 +222,7 @@ html, body {
 #chartHeader .last-update { color: var(--text-dim); font-size: 0.45rem; margin-top: 1px; }
 
 /* ============================================================
-   v4.1.1 C2: BOLLINGER FAMILY LEGEND
-   ------------------------------------------------------------
-   Collapsible legend showing the period-3 and period-60 anchor
-   colors of the BB family. Collapsed by default to save screen
-   space on 360px phones.
+   BOLLINGER FAMILY LEGEND
    ============================================================ */
 #bbLegend {
     position: absolute;
@@ -284,11 +268,7 @@ html, body {
 #bbLegend .bb-swatch.lower { background: rgba(255,255,255,0.75); }
 
 /* ============================================================
-   v4.1.1 C5: TOAST STACK
-   ------------------------------------------------------------
-   Signal + execution notifications. Signal toasts use a green
-   border (BUY) or red border (SELL); execution toasts use a gold
-   border. 6s auto-dismiss; swipe-left to dismiss early.
+   TOAST STACK
    ============================================================ */
 #toastStack {
     position: absolute;
@@ -368,7 +348,7 @@ html, body {
 #crosshairReadout .val { color: var(--text-bright); font-weight: bold; }
 
 /* ============================================================
-   BOTTOM DOCK (Engine / Kronecker / Derivative / Order Ticket)
+   BOTTOM DOCK
    ============================================================ */
 #bottomDock {
     position: absolute;
@@ -780,7 +760,7 @@ html, body {
 }
 
 /* ============================================================
-   CONTEXT MENU (long-press on chart)
+   CONTEXT MENU
    ============================================================ */
 #contextMenu {
     position: absolute;
@@ -888,19 +868,9 @@ html, body {
 </head>
 <body>
 
-<!-- ============================================================
-     CHART CANVAS
-     ============================================================ -->
 <canvas id="chartCanvas"></canvas>
-
-<!-- ============================================================
-     SUB-PANEL STACK
-     ============================================================ -->
 <div id="subPanelStack"></div>
 
-<!-- ============================================================
-     TOP TOOLBAR
-     ============================================================ -->
 <div id="toolbar">
     <button class="tb-symbol" id="tb-symbol">—</button>
     <span class="tb-price" id="tb-price">—</span>
@@ -929,27 +899,18 @@ html, body {
     </div>
 </div>
 
-<!-- ============================================================
-     CONNECTION BADGE
-     ============================================================ -->
 <div id="connBadge" class="wait">connecting…</div>
 
-<!-- ============================================================
-     v4.1.1 C2: BOLLINGER FAMILY LEGEND
-     ============================================================ -->
 <div id="bbLegend">
     <div class="bb-title" id="bbLegendTitle">BB×58 <span id="bbLegendToggle">[+]</span></div>
     <div class="bb-body hidden" id="bbLegendBody">
         <div class="bb-row"><span class="bb-swatch upper"></span> Upper (green, p3→p60)</div>
         <div class="bb-row"><span class="bb-swatch lower"></span> Lower (white, p3→p60)</div>
         <div class="bb-row" style="margin-top:3px;">Period 3 = faintest · Period 60 = strongest</div>
-        <div class="bb-row">Population σ, dev=2, close, shift=0</div>
+        <div class="bb-row">Population σ (BigInt-backed), dev=2, close, shift=0</div>
     </div>
 </div>
 
-<!-- ============================================================
-     CHART HEADER OVERLAY
-     ============================================================ -->
 <div id="chartHeader">
     <div class="symbol" id="chart-symbol">—</div>
     <div class="regime" id="chart-regime">Regime: —</div>
@@ -957,35 +918,20 @@ html, body {
     <div class="last-update" id="chart-lastupdate">Updated: —</div>
 </div>
 
-<!-- ============================================================
-     v4.1.1 C5: TOAST STACK
-     ============================================================ -->
 <div id="toastStack"></div>
 
-<!-- ============================================================
-     CROSSHAIR READOUT
-     ============================================================ -->
 <div id="crosshairReadout"></div>
 
-<!-- ============================================================
-     FVG LIST PANEL
-     ============================================================ -->
 <div id="fvgListPanel">
     <div style="color:var(--cyan);font-weight:bold;margin-bottom:4px;">FVG ANCHORS</div>
     <div id="fvgListItems"></div>
 </div>
 
-<!-- ============================================================
-     REGIME MAP PANEL
-     ============================================================ -->
 <div id="regimeMapPanel">
     <h3>REGIME CLASSIFICATION MAP</h3>
     <div id="regimeMapRows"></div>
 </div>
 
-<!-- ============================================================
-     BOTTOM DOCK
-     ============================================================ -->
 <div id="bottomDock">
     <div class="dockPanel" id="enginePanel">
         <div class="dock-title">Engine State</div>
@@ -1046,26 +992,17 @@ html, body {
     </div>
 </div>
 
-<!-- ============================================================
-     LOG BAR
-     ============================================================ -->
 <div id="logBar">
     <span id="logEntries">—</span>
 </div>
 
-<!-- ============================================================
-     ERROR DISPLAY
-     ============================================================ -->
 <div id="errorDisplay"></div>
 
-<!-- ============================================================
-     HELP PANEL
-     ============================================================ -->
 <div id="explainPanel">
-    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.1.1</h3>
+    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.1.2</h3>
     <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, FVG list, <b>BB×58</b> toggle, refresh, settings, help.</span></div>
-    <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#4488ff;">blue</span>, bearish = <span style="color:#ff4466;">red</span>. (v4.1.1 palette.)</span></div>
-    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient (faint at p3 → strong at p60). Lower bands: white gradient. Toggle via <b>BB×58</b>.</span></div>
+    <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#4488ff;">blue</span>, bearish = <span style="color:#ff4466;">red</span>.</span></div>
+    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.1.2 computes σ via BigInt-backed exact arithmetic.</span></div>
     <div class="item"><b>TOASTS</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch (Diamond, Ruby, Hawk, Dove, Bull, Bear, Whisky, Wine, Watter, Blood, A, B, Top, Bott). Tap to dismiss.</span></div>
     <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Premium/Discount), FVG lines, signal markers, trailing-stop line.</span></div>
     <div class="item"><b>SUB-PANELS</b> <span>— MT4-style indicator sub-windows. Add via <b>+ IND</b>.</span></div>
@@ -1080,9 +1017,6 @@ html, body {
     <div style="margin-top:8px; opacity:0.6;">Keyboard: C=chart | G=grid | R=regime | H=help | F5=refresh | Esc=close modal.</div>
 </div>
 
-<!-- ============================================================
-     CONTEXT MENU
-     ============================================================ -->
 <div id="contextMenu">
     <div class="ctx-item" data-action="fvg-top">Draw FVG Top here</div>
     <div class="ctx-item" data-action="fvg-bott">Draw FVG Bott here</div>
@@ -1092,9 +1026,6 @@ html, body {
     <div class="ctx-item" data-action="cancel">Cancel</div>
 </div>
 
-<!-- ============================================================
-     MODAL BACKDROP
-     ============================================================ -->
 <div class="modal-backdrop" id="modalBackdrop">
     <div class="modal" id="modalContent"></div>
 </div>
@@ -1104,17 +1035,29 @@ html, body {
 (function() {
 'use strict';
 
-// ============================================================
-// BACKEND CONFIGURATION
-// ------------------------------------------------------------
-// Audit D-53 fix (carried from v4.1.0):
-// Resolution order (first match wins):
-//   1. window.__AEEA_BACKEND_URL__          (host-page override)
-//   2. ?backend=https://...                 (persisted to localStorage)
-//   3. localStorage['aeea_backend_url']
-//   4. same-origin (relative paths)
-// No hardcoded default. A fork must be explicitly configured.
-// ============================================================
+/* ============================================================
+   BACKEND CONFIGURATION
+   ------------------------------------------------------------
+   v4.1.2 (C-3.1): DEFAULT_BACKENDS fallback array. A fork author
+   edits DEFAULT_BACKENDS[0] to their Heroku origin, so that even
+   if Telegram's WebView strips the ?backend= query string and
+   localStorage is empty on first visit, the TWA knows where the
+   backend lives.
+
+   Resolution order (first match wins):
+     1. window.__AEEA_BACKEND_URL__  (host-page override)
+     2. ?backend=https://...          (persisted to localStorage)
+     3. localStorage['aeea_backend_url']
+     4. DEFAULT_BACKENDS[i] for each i
+     5. same-origin (relative paths)
+   ============================================================ */
+const DEFAULT_BACKENDS = [
+    // ▸ FORK AUTHOR: replace with your Heroku origin, e.g.
+    //     'https://your-app-name.herokuapp.com/'
+    // Leave as '' to force explicit configuration via ?backend=.
+    '',
+];
+
 function normalizeBackend(u) {
     if (!u) return '';
     u = String(u).trim();
@@ -1141,15 +1084,19 @@ function resolveBackendUrl() {
             const n = normalizeBackend(ls);
             if (n) return n;
         } catch (e) {}
+        for (const candidate of DEFAULT_BACKENDS) {
+            const n = normalizeBackend(candidate);
+            if (n) return n;
+        }
     } catch (e) {}
     return '';
 }
 const BACKEND_URL = resolveBackendUrl();
 const HAS_BACKEND = BACKEND_URL.length > 0;
 
-// ============================================================
-// TELEGRAM WEB APP BOOTSTRAP
-// ============================================================
+/* ============================================================
+   TELEGRAM WEB APP BOOTSTRAP
+   ============================================================ */
 const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
 let initDataRaw = '';
 let tmaActive = false;
@@ -1268,9 +1215,9 @@ async function postHandshake() {
     }
 }
 
-// ============================================================
-// CONNECTION BADGE
-// ============================================================
+/* ============================================================
+   CONNECTION BADGE
+   ============================================================ */
 const connBadge = document.getElementById('connBadge');
 function setConnBadge(state, text) {
     if (!connBadge) return;
@@ -1278,12 +1225,22 @@ function setConnBadge(state, text) {
     connBadge.textContent = text;
 }
 
-// ============================================================
-// ERROR DISPLAY
-// ============================================================
+/* ============================================================
+   ERROR DISPLAY
+   ------------------------------------------------------------
+   v4.1.2 (C-3.2): backendErrorLatched ensures the "no backend"
+   banner fires exactly once and is not re-shown by the 5-minute
+   fetchAll() interval.
+   ============================================================ */
 const errorDisplay = document.getElementById('errorDisplay');
 let errorHideHandle = null;
+let backendErrorLatched = false;
+
 function showError(msg, autoHideMs) {
+    if (msg && msg.indexOf('Backend URL not configured') !== -1) {
+        if (backendErrorLatched) return;
+        backendErrorLatched = true;
+    }
     errorDisplay.textContent = '⚠️ ' + msg;
     errorDisplay.style.display = 'block';
     console.error(msg);
@@ -1297,15 +1254,17 @@ function hideError() {
     if (errorHideHandle) { clearTimeout(errorHideHandle); errorHideHandle = null; }
 }
 
-// ============================================================
-// v4.1.1 C5: TOAST STACK
-// ------------------------------------------------------------
-// Signal toasts fire on every _signal(). Execution toasts fire on
-// every execution-layer dispatch (Diamond, Ruby, Hawk, Dove, Bull,
-// Bear, Whisky, Wine, Watter, Blood, A, B, Top, Bott). Both are
-// fetched from /toasts?since=<seq> every 2s (piggybacked on the
-// /miniapp-state poll). Auto-dismiss after 6s; tap to dismiss early.
-// ============================================================
+/* ============================================================
+   TOAST STACK
+   ------------------------------------------------------------
+   v4.1.2 (C-3.5): fetchToasts() inspects first_available_seq
+   returned by /toasts. If the client's cursor has fallen behind
+   the server's eviction point, we surface a warning to the log
+   bar so the loss is observable, then advance the cursor to the
+   server's latest_seq. Toasts that are actually returned are
+   pushed via pushToast(); the cursor only advances past toasts
+   the client received or acknowledged as evicted.
+   ============================================================ */
 const toastStack = document.getElementById('toastStack');
 let toastSeqCursor = 0;
 const TOAST_AUTODISMISS_MS = 6000;
@@ -1321,7 +1280,6 @@ function dismissToast(el) {
 
 function pushToast(toast) {
     if (!toastStack) return;
-    // Cap the visible stack.
     while (toastStack.children.length >= MAX_TOASTS_VISIBLE) {
         toastStack.removeChild(toastStack.firstChild);
     }
@@ -1355,7 +1313,6 @@ function pushToast(toast) {
             '<div class="toast-line">ticket ' + escapeHtml(String(toast.ticket ?? '—')) + ' · tick ' + escapeHtml(String(toast.tick ?? '—')) + reason + '</div>';
     }
     el.addEventListener('click', () => dismissToast(el));
-    // Simple swipe-left to dismiss.
     let startX = 0;
     el.addEventListener('touchstart', (e) => { if (e.touches.length === 1) startX = e.touches[0].clientX; }, { passive: true });
     el.addEventListener('touchend', (e) => {
@@ -1377,19 +1334,33 @@ async function fetchToasts() {
     if (!HAS_BACKEND) return;
     const r = await apiJson('/toasts?since=' + toastSeqCursor);
     if (!r || r.__error) return;
+    // C-3.5: detect eviction. If the server's first_available_seq is
+    // beyond our cursor+1, we lost toasts; surface it and advance.
+    if (typeof r.first_available_seq === 'number' && toastSeqCursor > 0 && toastSeqCursor < r.first_available_seq - 1) {
+        const lost = r.first_available_seq - toastSeqCursor - 1;
+        pushLog('warn', `Toast buffer evicted ${lost} entries (cursor ${toastSeqCursor} → ${r.first_available_seq - 1})`);
+        toastSeqCursor = r.first_available_seq - 1;
+    }
     if (Array.isArray(r.toasts)) {
         for (const t of r.toasts) {
             pushToast(t);
+            if (typeof t.seq === 'number' && t.seq > toastSeqCursor) {
+                toastSeqCursor = t.seq;
+            }
         }
     }
-    if (typeof r.latest_seq === 'number') {
+    if (typeof r.latest_seq === 'number' && r.latest_seq > toastSeqCursor) {
         toastSeqCursor = r.latest_seq;
     }
 }
 
-// ============================================================
-// SHARED STATE
-// ============================================================
+/* ============================================================
+   SHARED STATE
+   ------------------------------------------------------------
+   v4.1.2 (C-3.4 / M-15): engine_initialized is absorbed from
+   /miniapp-state so the client knows when the backend has
+   crossed the first-tick threshold.
+   ============================================================ */
 const INDICATOR_NAMES = [
     'ADX', 'Stochastic', 'RVI', 'AC', 'Force', 'OBV', 'AD',
     'MFI', 'Momentum', 'DeMarker', 'WPR', 'CCI', 'RSI'
@@ -1418,6 +1389,7 @@ const INDICATOR_RANGES = {
 const state = {
     connected: false,
     relay_healthy: true,
+    engine_initialized: false,
     symbol: '—',
     price: 0,
     prevPrice: 0,
@@ -1485,13 +1457,8 @@ const state = {
         lot: "0.01", slip: 100, Commssion: "0",
     },
 
-    // v4.1.1 C2: BB family toggle. When true, drawBollingerFamily()
-    // renders 58 upper bands (green gradient) and 58 lower bands
-    // (white gradient) under the candles.
     bbFamilyEnabled: true,
 
-    // v4.1.1 C13: log merge state. We keep client-local entries
-    // separate so server polls don't wipe them.
     logs_local: [],
     logs_server: [],
 
@@ -1503,9 +1470,9 @@ const state = {
     _lastOrdersTick: -1,
 };
 
-// ============================================================
-// MODAL INFRASTRUCTURE
-// ============================================================
+/* ============================================================
+   MODAL INFRASTRUCTURE
+   ============================================================ */
 const modalBackdrop = document.getElementById('modalBackdrop');
 const modalContent = document.getElementById('modalContent');
 let modalOpen = false;
@@ -1528,9 +1495,9 @@ modalBackdrop.addEventListener('click', (e) => {
     if (e.target === modalBackdrop) closeModal();
 });
 
-// ============================================================
-// CONTEXT MENU
-// ============================================================
+/* ============================================================
+   CONTEXT MENU
+   ============================================================ */
 const contextMenu = document.getElementById('contextMenu');
 let contextMenuState = { open: false, x: 0, y: 0, barIndex: -1, price: 0 };
 
@@ -1564,15 +1531,13 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// ============================================================
-// v4.1.1 C13: LOG RING BUFFER (merge client + server)
-// ------------------------------------------------------------
-// Client-local entries (settings saved, symbol changed, toasts, etc.)
-// live in state.logs_local and are never overwritten by server polls.
-// Server entries live in state.logs_server and are replaced on each
-// /log fetch. renderLogBar() merges both, sorts by timestamp, and
-// shows the tail.
-// ============================================================
+/* ============================================================
+   LOG RING BUFFER (merge client + server)
+   ------------------------------------------------------------
+   v4.1.2 (C-3.13): dedup by full entry hash (ts + level + msg +
+   source), not by (ts, msg). Two identical-timestamp entries
+   with different levels or sources both survive.
+   ============================================================ */
 const MAX_CLIENT_LOGS = 200;
 const MAX_SERVER_LOGS = 200;
 const MAX_MERGED_LOGS = 400;
@@ -1584,16 +1549,21 @@ function pushLog(level, msg) {
     renderLogBar();
 }
 
+function entryHash(e) {
+    const ts = e.ts instanceof Date ? e.ts.toISOString() : String(e.ts);
+    return ts + '|' + (e.level || 'info') + '|' + (e.msg || '') + '|' + (e.source || '');
+}
+
 function mergeLogs() {
     const merged = [];
     const seen = new Set();
     const all = state.logs_local.concat(state.logs_server);
     all.sort((a, b) => (a.ts instanceof Date ? a.ts : new Date(a.ts)).getTime() - (b.ts instanceof Date ? b.ts : new Date(b.ts)).getTime());
     for (const e of all) {
+        const h = entryHash(e);
+        if (seen.has(h)) continue;
+        seen.add(h);
         const ts = e.ts instanceof Date ? e.ts : new Date(e.ts);
-        const key = ts.getTime() + '|' + (e.msg || '');
-        if (seen.has(key)) continue;
-        seen.add(key);
         merged.push({ ts, level: e.level || 'info', msg: e.msg || '' });
     }
     if (merged.length > MAX_MERGED_LOGS) return merged.slice(-MAX_MERGED_LOGS);
@@ -1614,9 +1584,9 @@ function renderLogBar() {
     }).join('');
 }
 
-// ============================================================
-// VIEW MANAGEMENT
-// ============================================================
+/* ============================================================
+   VIEW MANAGEMENT
+   ============================================================ */
 let currentView = 'chart';
 
 function switchView(view) {
@@ -1637,9 +1607,9 @@ function switchView(view) {
     }
 }
 
-// ============================================================
-// TOOLBAR WIRING
-// ============================================================
+/* ============================================================
+   TOOLBAR WIRING
+   ============================================================ */
 document.getElementById('tb-view-chart').addEventListener('click', () => { haptic('light'); switchView('chart'); });
 document.getElementById('tb-view-grid').addEventListener('click', () => { haptic('light'); switchView('grid'); });
 document.getElementById('tb-view-regime').addEventListener('click', () => { haptic('light'); switchView('regime'); });
@@ -1656,7 +1626,6 @@ document.getElementById('tb-charttype').addEventListener('click', () => { haptic
 document.getElementById('tb-add-indicator').addEventListener('click', () => { haptic('light'); openIndicatorPicker(); });
 document.getElementById('tb-fvg-list').addEventListener('click', () => { haptic('light'); toggleFvgList(); });
 
-// v4.1.1 C2: BB×58 toolbar toggle
 const bbToggleBtn = document.getElementById('tb-bb-toggle');
 const bbLegend = document.getElementById('bbLegend');
 const bbLegendBody = document.getElementById('bbLegendBody');
@@ -1687,9 +1656,9 @@ document.getElementById('bbLegendTitle').addEventListener('click', (e) => {
 });
 syncBbToggleUi();
 
-// ============================================================
-// SYMBOL PICKER
-// ============================================================
+/* ============================================================
+   SYMBOL PICKER
+   ============================================================ */
 const SYMBOLS = [
     'BTC-USD', 'ETH-USD', 'XRP-USD', 'ADA-USD', 'SOL-USD', 'DOGE-USD',
     'LTC-USD', 'LINK-USD', 'DOT-USD', 'AVAX-USD', 'MATIC-USD', 'UNI-USD',
@@ -1737,9 +1706,9 @@ function openSymbolPicker() {
     });
 }
 
-// ============================================================
-// TIMEFRAME PICKER
-// ============================================================
+/* ============================================================
+   TIMEFRAME PICKER
+   ============================================================ */
 const TIMEFRAMES = [
     { id: '1m', label: '1m', interval: '1m' },
     { id: '5m', label: '5m', interval: '5m' },
@@ -1779,9 +1748,9 @@ function openTimeframePicker() {
     });
 }
 
-// ============================================================
-// CHART TYPE TOGGLE
-// ============================================================
+/* ============================================================
+   CHART TYPE TOGGLE
+   ============================================================ */
 const CHART_TYPES = ['CANDLES', 'BARS', 'LINE', 'AREA'];
 function toggleChartType() {
     const i = CHART_TYPES.indexOf(state.chartType);
@@ -1791,9 +1760,9 @@ function toggleChartType() {
     renderChart();
 }
 
-// ============================================================
-// INDICATOR SUB-PANELS
-// ============================================================
+/* ============================================================
+   INDICATOR SUB-PANELS
+   ============================================================ */
 const subPanelStack = document.getElementById('subPanelStack');
 const subPanels = [];
 let nextSubPanelId = 1;
@@ -1994,9 +1963,9 @@ function openSubPanelSettings(sp) {
     });
 }
 
-// ============================================================
-// INDICATOR PICKER
-// ============================================================
+/* ============================================================
+   INDICATOR PICKER
+   ============================================================ */
 const ADDABLE_INDICATORS = [
     'ADX', 'Stochastic', 'RVI', 'AC', 'Force', 'OBV', 'AD',
     'MFI', 'Momentum', 'DeMarker', 'WPR', 'CCI', 'RSI',
@@ -2029,9 +1998,9 @@ function openIndicatorPicker() {
     });
 }
 
-// ============================================================
-// 13D GRID MODAL
-// ============================================================
+/* ============================================================
+   13D GRID MODAL
+   ============================================================ */
 function openGridModal() {
     const html = `
         <h3>📊 13D HILBERT SPACE PROJECTION</h3>
@@ -2084,9 +2053,9 @@ function renderGridBody(container) {
     container.innerHTML = html;
 }
 
-// ============================================================
-// REGIME MAP
-// ============================================================
+/* ============================================================
+   REGIME MAP
+   ============================================================ */
 function renderRegimeMap() {
     const container = document.getElementById('regimeMapRows');
     if (!container) return;
@@ -2115,9 +2084,9 @@ function renderRegimeMap() {
     container.innerHTML = html;
 }
 
-// ============================================================
-// FVG LIST PANEL
-// ============================================================
+/* ============================================================
+   FVG LIST PANEL
+   ============================================================ */
 function toggleFvgList() {
     const p = document.getElementById('fvgListPanel');
     p.classList.toggle('open');
@@ -2186,13 +2155,13 @@ function deleteNearestFvg(price) {
     }
 }
 
-// ============================================================
-// v4.1.1 C7 + C8: SETTINGS MODAL
-// ------------------------------------------------------------
-// C7: on open, fetch GET /settings to populate live values.
-// C8: numeric fields are sent as exact decimal strings; the backend
-//     parses them via Fraction.from_decimal_string().
-// ============================================================
+/* ============================================================
+   SETTINGS MODAL
+   ------------------------------------------------------------
+   v4.1.2 (C-3.8): Memory field validated. Empty value sends -1
+   rather than NaN.
+   v4.1.2 (C-3.9): max >= min + 2 validated client-side.
+   ============================================================ */
 async function openSettingsModal() {
     let liveSettings = null;
     if (HAS_BACKEND) {
@@ -2220,19 +2189,28 @@ async function openSettingsModal() {
         </div>
         <div class="modal-note">
             Numeric inputs are transmitted as exact decimal strings and parsed server-side via <code>Fraction.from_decimal_string()</code>.
-            Validation: <code>max &gt; min ≥ 3</code>, <code>StopLoss ≥ 0</code>, <code>TakeProfit ≥ 0</code>, <code>lot &gt; 0</code>, <code>slip ≥ 0</code>, <code>Commssion ≥ 0</code>.
+            Validation: <code>max ≥ min + 2 ≥ 5</code>, <code>StopLoss ≥ 0</code>, <code>TakeProfit ≥ 0</code>, <code>lot &gt; 0</code>, <code>slip ≥ 0</code>, <code>Commssion ≥ 0</code>.
         </div>
     `;
     openModal(html, {
         onMount: (root) => {
             root.querySelector('#set-cancel').addEventListener('click', closeModal);
             root.querySelector('#set-save').addEventListener('click', async () => {
+                const maxStr = root.querySelector('#set-max').value.trim();
+                const minStr = root.querySelector('#set-min').value.trim();
+                const memStr = root.querySelector('#set-mem').value.trim();
+                const max = parseInt(maxStr, 10);
+                const min = parseInt(minStr, 10);
+                if (!isNaN(max) && !isNaN(min) && max < min + 2) {
+                    showError('Validation: max must be ≥ min + 2 (X_PERIOD > Y_START + 2)', 5000);
+                    return;
+                }
                 const next = {
-                    max: parseInt(root.querySelector('#set-max').value, 10),
-                    min: parseInt(root.querySelector('#set-min').value, 10),
+                    max: isNaN(max) ? undefined : max,
+                    min: isNaN(min) ? undefined : min,
                     Cc: root.querySelector('#set-Cc').checked,
                     cC: root.querySelector('#set-cC').checked,
-                    Memory: parseInt(root.querySelector('#set-mem').value, 10),
+                    Memory: memStr === '' ? -1 : parseInt(memStr, 10),
                     safetyOffSwitch: root.querySelector('#set-safety').checked,
                     StopLoss: root.querySelector('#set-sl').value.trim(),
                     TakeProfit: root.querySelector('#set-tp').value.trim(),
@@ -2240,6 +2218,8 @@ async function openSettingsModal() {
                     slip: parseInt(root.querySelector('#set-slip').value, 10),
                     Commssion: root.querySelector('#set-com').value.trim(),
                 };
+                if (next.max === undefined) delete next.max;
+                if (next.min === undefined) delete next.min;
                 closeModal();
                 haptic('impact');
                 if (!HAS_BACKEND) {
@@ -2260,10 +2240,9 @@ async function openSettingsModal() {
     });
 }
 
-// ============================================================
-// ORDER TICKET WIRING
-// Numeric fields are transmitted as exact decimal strings (C8).
-// ============================================================
+/* ============================================================
+   ORDER TICKET WIRING
+   ============================================================ */
 document.getElementById('ot-submit').addEventListener('click', async () => {
     haptic('impact');
     if (!HAS_BACKEND) { showError('Backend not configured.', 4000); return; }
@@ -2319,9 +2298,9 @@ function renderOrders() {
     });
 }
 
-// ============================================================
-// KEYBOARD SHORTCUTS
-// ============================================================
+/* ============================================================
+   KEYBOARD SHORTCUTS
+   ============================================================ */
 document.addEventListener('keydown', (e) => {
     if (modalOpen && e.key === 'Escape') { closeModal(); return; }
     if (e.key === 'c' || e.key === 'C') switchView('chart');
@@ -2334,9 +2313,9 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'F5') { e.preventDefault(); fetchAll(); }
 });
 
-// ============================================================
-// CHART CANVAS SETUP
-// ============================================================
+/* ============================================================
+   CHART CANVAS SETUP
+   ============================================================ */
 const chartCanvas = document.getElementById('chartCanvas');
 const chartCtx = chartCanvas.getContext('2d');
 let chartW = 0, chartH = 0, chartDpr = 1;
@@ -2385,9 +2364,9 @@ window.addEventListener('resize', () => {
     renderChart();
 });
 
-// ============================================================
-// PRICE ↔ Y MAPPING
-// ============================================================
+/* ============================================================
+   PRICE ↔ Y MAPPING
+   ============================================================ */
 function priceToY(price) {
     const range = (viewport.priceMax - viewport.priceMin) || 1;
     const ratio = (price - viewport.priceMin) / range;
@@ -2419,9 +2398,9 @@ function xToBarIndex(x) {
     return Math.max(0, Math.min(totalBars - 1, idx));
 }
 
-// ============================================================
-// PRICE RANGE AUTO-SCALING
-// ============================================================
+/* ============================================================
+   PRICE RANGE AUTO-SCALING
+   ============================================================ */
 function computePriceRange() {
     if (!state.bars || state.bars.length === 0) return;
     const plotW = chartW - PADDING.left - PADDING.right;
@@ -2434,7 +2413,6 @@ function computePriceRange() {
         if (b.low < lo) lo = b.low;
         if (b.high > hi) hi = b.high;
     }
-    // v4.1.1 C2: include BB family extremes so the bands fit on screen.
     if (state.bbFamilyEnabled && state.bars && state.bars.length > 0) {
         const bb = computeBollingerFamily();
         if (bb) {
@@ -2473,84 +2451,81 @@ function computePriceRange() {
     viewport.priceMax = hi + span * 0.06;
 }
 
-// ============================================================
-// v4.1.1 C2: BOLLINGER FAMILY — periods 3..60
-// ------------------------------------------------------------
-// MQL4 parity:
-//   iBands(NULL, 0, j, 2, 0, PRICE_CLOSE, MODE_UPPER, shift)
-//   iBands(NULL, 0, j, 2, 0, PRICE_CLOSE, MODE_LOWER, shift)
-// Period j is an integer in [3, 60]. Deviation = 2. Applied price
-// = close. Bands shift = 0. Std is POPULATION σ (divisor = period),
-// matching MQL4's iBands implementation.
-//
-// The family is computed client-side from state.bars (the same
-// OHLCV that /ohlcv returns). This is exactly equivalent to what
-// the FF computes inside Normalize() for each j in [y+1, x-1].
-//
-// Upper bands: green gradient. alpha ramps from 0.06 (p=3) to
-//              0.28 (p=60). rgba(0,255,136,α).
-// Lower bands: white gradient. alpha ramps from 0.06 (p=3) to
-//              0.28 (p=60). rgba(255,255,255,α).
-//
-// Result is memoized by (bars.length, bars[last].timestamp, last close).
-// ============================================================
+/* ============================================================
+   BOLLINGER FAMILY — periods 3..60
+   ------------------------------------------------------------
+   v4.1.2 (C-3.10a): The SMA and variance accumulators run in
+   BigInt at a fixed 1e12 scale. The only float64 step is the
+   final Math.sqrt, which is irrational and cannot be represented
+   exactly in ECMAScript.
+   v4.1.2 (C-3.10b): The cache key is (bars array identity,
+   last bar timestamp, last bar close). External `_bbCacheKey`
+   invalidation is no longer needed.
+   ============================================================ */
 const BB_MIN_PERIOD = 3;
 const BB_MAX_PERIOD = 60;
+const BB_SCALE = 1000000000000n;
 let _bbCache = null;
-let _bbCacheKey = '';
+let _bbCacheBarsRef = null;
+let _bbCacheLastTs = '';
+let _bbCacheLastClose = NaN;
+
+function bbToBigFixed(x) {
+    return BigInt(Math.round(x * 1e12));
+}
+function bbFromBigFixed(bi) {
+    return Number(bi) / 1e12;
+}
 
 function computeBollingerFamily() {
     if (!state.bars || state.bars.length < BB_MAX_PERIOD + 1) return null;
     const n = state.bars.length;
     const lastBar = state.bars[n - 1];
-    const key = n + '|' + (lastBar.timestamp || '') + '|' + lastBar.close;
-    if (_bbCache && _bbCacheKey === key) return _bbCache;
+    if (_bbCache &&
+        _bbCacheBarsRef === state.bars &&
+        _bbCacheLastTs === (lastBar.timestamp || '') &&
+        _bbCacheLastClose === lastBar.close) {
+        return _bbCache;
+    }
+    const closesBig = new Array(n);
+    for (let i = 0; i < n; i++) closesBig[i] = bbToBigFixed(state.bars[i].close);
 
-    // Precompute close array once.
-    const closes = new Array(n);
-    for (let i = 0; i < n; i++) closes[i] = state.bars[i].close;
-
-    // Running-sum SMAs via sliding window would be O(n) per period;
-    // given n <= 200 and 58 periods, a direct O(n·p) is < 12k ops.
-    // We use direct for clarity and MQL4 parity.
     const upper = [];
     const lower = [];
-    const upperA = [];
-    const lowerA = [];
     const upperColors = [];
     const lowerColors = [];
 
     for (let p = BB_MIN_PERIOD; p <= BB_MAX_PERIOD; p++) {
         const up = new Array(n).fill(NaN);
         const lo = new Array(n).fill(NaN);
+        const pBig = BigInt(p);
         for (let i = p - 1; i < n; i++) {
-            // SMA over closes[i-p+1 .. i]
-            let sum = 0;
-            for (let k = i - p + 1; k <= i; k++) sum += closes[k];
-            const mean = sum / p;
-            // Population variance (divisor = p), matching MQL4.
-            let vsum = 0;
+            let sum = 0n;
+            for (let k = i - p + 1; k <= i; k++) sum += closesBig[k];
+            const meanBig = sum / pBig;
+            let vsum = 0n;
             for (let k = i - p + 1; k <= i; k++) {
-                const d = closes[k] - mean;
+                const d = closesBig[k] - meanBig;
                 vsum += d * d;
             }
-            const variance = vsum / p;
+            const varianceBig = vsum / (pBig * BB_SCALE);
+            const variance = bbFromBigFixed(varianceBig);
             const sd = Math.sqrt(variance);
+            const mean = bbFromBigFixed(meanBig);
             up[i] = mean + 2 * sd;
             lo[i] = mean - 2 * sd;
         }
         upper.push(up);
         lower.push(lo);
-        // Gradient: alpha 0.06 (p=3) → 0.28 (p=60), linear.
         const t = (p - BB_MIN_PERIOD) / (BB_MAX_PERIOD - BB_MIN_PERIOD);
         const a = 0.06 + (0.28 - 0.06) * t;
-        upperA.push(a);
-        lowerA.push(a);
         upperColors.push('rgba(0,255,136,' + a.toFixed(3) + ')');
         lowerColors.push('rgba(255,255,255,' + a.toFixed(3) + ')');
     }
     _bbCache = { upper, lower, upperColors, lowerColors, periods: BB_MAX_PERIOD - BB_MIN_PERIOD + 1 };
-    _bbCacheKey = key;
+    _bbCacheBarsRef = state.bars;
+    _bbCacheLastTs = lastBar.timestamp || '';
+    _bbCacheLastClose = lastBar.close;
     return _bbCache;
 }
 
@@ -2567,14 +2542,10 @@ function drawBollingerFamily() {
     const step = plotW / visibleCount;
     const baseX = PADDING.left + step / 2;
 
-    // Draw under candles. Faintest first (period 3), strongest last
-    // (period 60), so the longest-period band is on top of the stack
-    // and reads as the most prominent — matching the audit spec.
     ctx.lineWidth = 1;
     for (let pi = 0; pi < bb.periods; pi++) {
         const upArr = bb.upper[pi];
         const loArr = bb.lower[pi];
-        // Upper band
         ctx.strokeStyle = bb.upperColors[pi];
         ctx.beginPath();
         let started = false;
@@ -2588,7 +2559,6 @@ function drawBollingerFamily() {
             else ctx.lineTo(x, y);
         }
         ctx.stroke();
-        // Lower band
         ctx.strokeStyle = bb.lowerColors[pi];
         ctx.beginPath();
         started = false;
@@ -2605,9 +2575,9 @@ function drawBollingerFamily() {
     }
 }
 
-// ============================================================
-// CHART RENDERER — MASTER
-// ============================================================
+/* ============================================================
+   CHART RENDERER — MASTER
+   ============================================================ */
 function renderChart() {
     const w = chartCanvas._width || 0;
     const h = chartCanvas._height || 0;
@@ -2625,7 +2595,6 @@ function renderChart() {
     if (viewport.autoPrice) computePriceRange();
     drawRegimeBackground();
     drawGrid();
-    // v4.1.1 C2: draw BB family UNDER the topological anchors and candles.
     drawBollingerFamily();
     drawTopologicalAnchors();
     drawCandles();
@@ -2638,9 +2607,9 @@ function renderChart() {
     updateToolbarPrice();
 }
 
-// ============================================================
-// CHART RENDERER — COMPONENTS
-// ============================================================
+/* ============================================================
+   CHART RENDERER — COMPONENTS
+   ============================================================ */
 function drawRegimeBackground() {
     const regimeColors = {
         'sRange':    'rgba(68, 170, 255, 0.04)',
@@ -2672,9 +2641,6 @@ function drawGrid() {
     }
 }
 
-// v4.1.1 C14: renamed from drawBBOverlays() — this draws the
-// topological Premium/Discount anchors, NOT Bollinger Bands.
-// The BB family is drawn by drawBollingerFamily().
 function drawTopologicalAnchors() {
     const ctx = chartCtx;
     const prem = state.premium_series || [];
@@ -2721,12 +2687,21 @@ function drawTopologicalAnchors() {
     ctx.setLineDash([]);
 }
 
-// ============================================================
-// v4.1.1 C1: drawCandles — bullish #4488ff, bearish #ff4466
-// ------------------------------------------------------------
-// The bullish/bearish decision is unchanged (close >= open => bullish).
-// Only the color palette changed.
-// ============================================================
+/* ============================================================
+   drawCandles — v4.1.2 (C-3.11 / M-14): colors are read from
+   the CSS custom properties --candle-bull / --candle-bear, so
+   the declared variables are no longer dead. Fallback constants
+   preserve the FF-parity palette if the CSS fails to load.
+   ============================================================ */
+function getCssVar(name, fallback) {
+    try {
+        const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        return v || fallback;
+    } catch (e) {
+        return fallback;
+    }
+}
+
 function drawCandles() {
     const ctx = chartCtx;
     const plotW = chartW - PADDING.left - PADDING.right;
@@ -2737,8 +2712,8 @@ function drawCandles() {
     const step = plotW / visibleCount;
     const bw = Math.max(CANDLE_MIN_WIDTH, Math.min(CANDLE_MAX_WIDTH, viewport.barWidth));
     const type = state.chartType;
-    const BULL = '#4488ff';
-    const BEAR = '#ff4466';
+    const BULL = getCssVar('--candle-bull', '#4488ff');
+    const BEAR = getCssVar('--candle-bear', '#ff4466');
     if (type === 'LINE' || type === 'AREA') {
         ctx.beginPath();
         let firstY = null;
@@ -2876,8 +2851,6 @@ function drawSignalMarkers() {
         if (y < PADDING.top || y > chartH - PADDING.bottom) continue;
         const isBuy = sig.type === 'BUY';
         const isSell = sig.type === 'SELL';
-        // Signal markers keep the v4.1.0 palette (BUY=green, SELL=red,
-        // NEUTRAL=gold) — only the CANDLE colors changed in v4.1.1.
         ctx.fillStyle = isBuy ? '#00ff88' : (isSell ? '#ff4466' : '#ffaa44');
         ctx.beginPath();
         if (isBuy) {
@@ -2951,9 +2924,9 @@ function drawCrosshair() {
     ctx.fillText(price.toFixed(4), chartW - PADDING.right + 4, y + 3);
 }
 
-// ============================================================
-// CHART HEADER / TOOLBAR UPDATES
-// ============================================================
+/* ============================================================
+   CHART HEADER / TOOLBAR UPDATES
+   ============================================================ */
 function updateChartHeader() {
     const symEl = document.getElementById('chart-symbol');
     if (symEl) symEl.textContent = state.symbol || '—';
@@ -2985,9 +2958,9 @@ function updateToolbarPrice() {
     }
 }
 
-// ============================================================
-// CHART INTERACTIONS — POINTER EVENTS
-// ============================================================
+/* ============================================================
+   CHART INTERACTIONS — POINTER EVENTS
+   ============================================================ */
 let longPressTimer = null;
 let longPressFired = false;
 
@@ -3126,9 +3099,9 @@ function updateCrosshairReadout(x, y) {
     `;
 }
 
-// ============================================================
-// DATA FETCHING
-// ============================================================
+/* ============================================================
+   DATA FETCHING
+   ============================================================ */
 let pollHandles = { miniapp: null, ohlcv: null, signals: null, diag: null, orders: null, regime: null, log: null, toasts: null };
 let consecutiveFailures = 0;
 const MAX_FAILURES = 3;
@@ -3163,8 +3136,8 @@ async function fetchOhlcv() {
     state.ohlcv_count = r.count || state.bars.length;
     if (r.symbol) state.symbol = r.symbol;
     state._lastOhlcvTick = state.tick;
-    // Invalidate BB cache when bars change.
-    _bbCacheKey = '';
+    // C-3.10b: do NOT invalidate the BB cache here. computeBollingerFamily()
+    // detects array-identity changes itself.
 }
 
 async function fetchMiniAppState() {
@@ -3185,6 +3158,8 @@ function absorbMiniAppState(ma) {
     if (ma.tick !== undefined) state.tick = ma.tick;
     if (ma.last_price_update) state.lastUpdate = ma.last_price_update;
     if (ma.relay_healthy !== undefined) state.relay_healthy = ma.relay_healthy;
+    // C-3.4 / M-15: absorb engine_initialized.
+    if (ma.engine_initialized !== undefined) state.engine_initialized = ma.engine_initialized;
 
     if (ma.bar_close_count !== undefined) state.bar_close_count = ma.bar_close_count;
     if (ma.signal_count !== undefined) state.signal_count = ma.signal_count;
@@ -3306,29 +3281,34 @@ function absorbDiagnostics(d) {
     const miniTick = state._lastMiniAppTick;
     const engineFieldsFresh = diagTick > miniTick;
 
-    const col0 = (d.indicator_col_index && d.indicator_col_index[0] !== undefined)
-        ? d.indicator_col_index[0] : 0;
-    const col1 = (d.indicator_col_index && d.indicator_col_index[1] !== undefined)
-        ? d.indicator_col_index[1] : 1;
-    if (d.indicator_sample_col0 && d.indicator_sample_col0.length === 13) {
-        for (let i = 0; i < 13; i++) {
-            const name = INDICATOR_NAMES[i];
-            if (!state.indicator_series[name]) state.indicator_series[name] = [];
-            state.indicator_series[name][col0] = parseFloat(d.indicator_sample_col0[i]);
-            if (!state.indicator_col_index[name]) state.indicator_col_index[name] = [];
-            state.indicator_col_index[name][col0] = col0;
+    // C-3.3: indicator-matrix absorption is now gated by the same
+    // freshness check as engine-state absorption. A stale /diagnostics
+    // response cannot overwrite the indicator series with older data.
+    if (engineFieldsFresh) {
+        const col0 = (d.indicator_col_index && d.indicator_col_index[0] !== undefined)
+            ? d.indicator_col_index[0] : 0;
+        const col1 = (d.indicator_col_index && d.indicator_col_index[1] !== undefined)
+            ? d.indicator_col_index[1] : 1;
+        if (d.indicator_sample_col0 && d.indicator_sample_col0.length === 13) {
+            for (let i = 0; i < 13; i++) {
+                const name = INDICATOR_NAMES[i];
+                if (!state.indicator_series[name]) state.indicator_series[name] = [];
+                state.indicator_series[name][col0] = parseFloat(d.indicator_sample_col0[i]);
+                if (!state.indicator_col_index[name]) state.indicator_col_index[name] = [];
+                state.indicator_col_index[name][col0] = col0;
+            }
         }
-    }
-    if (d.indicator_sample_col1 && d.indicator_sample_col1.length === 13) {
-        for (let i = 0; i < 13; i++) {
-            const name = INDICATOR_NAMES[i];
-            if (!state.indicator_series[name]) state.indicator_series[name] = [];
-            state.indicator_series[name][col1] = parseFloat(d.indicator_sample_col1[i]);
-            if (!state.indicator_col_index[name]) state.indicator_col_index[name] = [];
-            state.indicator_col_index[name][col1] = col1;
+        if (d.indicator_sample_col1 && d.indicator_sample_col1.length === 13) {
+            for (let i = 0; i < 13; i++) {
+                const name = INDICATOR_NAMES[i];
+                if (!state.indicator_series[name]) state.indicator_series[name] = [];
+                state.indicator_series[name][col1] = parseFloat(d.indicator_sample_col1[i]);
+                if (!state.indicator_col_index[name]) state.indicator_col_index[name] = [];
+                state.indicator_col_index[name][col1] = col1;
+            }
         }
+        if (d.recent_signals) state.signals = d.recent_signals;
     }
-    if (d.recent_signals) state.signals = d.recent_signals;
 
     if (!engineFieldsFresh) {
         state._lastDiagnosticsTick = diagTick;
@@ -3463,7 +3443,6 @@ async function fetchRegimeMap() {
     }
 }
 
-// v4.1.1 C13: server logs go into state.logs_server, NOT state.logs.
 async function fetchLogs() {
     if (!HAS_BACKEND) return;
     const r = await apiJson('/log?limit=50');
@@ -3479,9 +3458,9 @@ async function fetchLogs() {
     }
 }
 
-// ============================================================
-// MASTER FETCH
-// ============================================================
+/* ============================================================
+   MASTER FETCH
+   ============================================================ */
 async function fetchAll() {
     if (!HAS_BACKEND) {
         setConnBadge('err', 'no backend');
@@ -3509,9 +3488,9 @@ async function fetchAll() {
     else if (currentView === 'regime') renderRegimeMap();
 }
 
-// ============================================================
-// PANEL UPDATES
-// ============================================================
+/* ============================================================
+   PANEL UPDATES
+   ============================================================ */
 function setText(id, text, cls) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -3586,15 +3565,21 @@ function updateDerivativePanel() {
     setText('der-ihkt', state.iIHKt.toFixed(1));
 }
 
-// ============================================================
-// POLLING MODEL
-// ------------------------------------------------------------
-// v4.1.1 C6: dedicated 3s /log poll.
-// v4.1.1 C5: /toasts polled at 2s alongside /miniapp-state.
-// ============================================================
+/* ============================================================
+   POLLING MODEL
+   ------------------------------------------------------------
+   2s  /miniapp-state  — authoritative live state
+   2s  /toasts         — signal + execution notifications
+   3s  /log            — dedicated server-log poll
+   30s /ohlcv          — historical bars
+   10s /signals        — recent signal history
+   5s  /diagnostics    — full engine snapshot (freshness-gated)
+   5s  /orders         — open order list
+   15s /regime-map     — per-bar classification (only when active)
+   300s fetchAll()     — full refresh safety net
+   ============================================================ */
 function startPolling() {
     stopPolling();
-    // 2s: /miniapp-state — AUTHORITATIVE source for all live engine state
     pollHandles.miniapp = setInterval(() => {
         if (isBackedOff()) return;
         fetchMiniAppState().then(() => {
@@ -3606,28 +3591,22 @@ function startPolling() {
             if (currentView === 'chart') renderChart();
         });
     }, 2000);
-    // 2s: /toasts — signal + execution notifications (C5)
     pollHandles.toasts = setInterval(() => {
         if (isBackedOff()) return;
         fetchToasts();
     }, 2000);
-    // 3s: /log — dedicated poll so execution-layer lines reach the
-    // TWA within one cycle (C6). Merged with client-local entries (C13).
     pollHandles.log = setInterval(() => {
         if (isBackedOff()) return;
         fetchLogs();
     }, 3000);
-    // 30s: /ohlcv — historical bars for the chart
     pollHandles.ohlcv = setInterval(() => {
         if (isBackedOff()) return;
         fetchOhlcv().then(() => { if (currentView === 'chart') renderChart(); });
     }, 30000);
-    // 10s: /signals — recent signal history
     pollHandles.signals = setInterval(() => {
         if (isBackedOff()) return;
         fetchSignals().then(() => { if (currentView === 'chart') renderChart(); });
     }, 10000);
-    // 5s: /diagnostics — freshness-gated against /miniapp-state
     pollHandles.diag = setInterval(() => {
         if (isBackedOff()) return;
         fetchDiagnostics().then(() => {
@@ -3636,12 +3615,10 @@ function startPolling() {
             updateDerivativePanel();
         });
     }, 5000);
-    // 5s: /orders — open order list
     pollHandles.orders = setInterval(() => {
         if (isBackedOff()) return;
         fetchOrders();
     }, 5000);
-    // 15s: /regime-map — per-bar regime classification
     pollHandles.regime = setInterval(() => {
         if (isBackedOff()) return;
         if (currentView === 'regime') fetchRegimeMap();
@@ -3654,9 +3631,9 @@ function stopPolling() {
     });
 }
 
-// ============================================================
-// BOOT
-// ============================================================
+/* ============================================================
+   BOOT
+   ============================================================ */
 async function boot() {
     if (!resizeChart()) {
         setTimeout(boot, 200);
@@ -3678,7 +3655,7 @@ async function boot() {
     }
     startPolling();
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.1.1 booted');
+    pushLog('info', 'ÆEA TWA v4.1.2 booted');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -3687,25 +3664,26 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     document.addEventListener('DOMContentLoaded', boot);
 }
 
-// ============================================================
-// INITIAL LOG
-// ============================================================
+/* ============================================================
+   INITIAL LOG
+   ============================================================ */
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.1.1');
+console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.1.2');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('v4.1.1 changes:');
-console.log('  ✓ C1: Bullish candles #4488ff (blue), bearish #ff4466 (red)');
-console.log('  ✓ C2: BB family periods 3..60 — upper green gradient, lower white gradient');
-console.log('  ✓ C2: BB×58 toolbar toggle + collapsible legend');
-console.log('  ✓ C5: Toast stack — signal + execution notifications (2s /toasts poll)');
-console.log('  ✓ C6: Dedicated 3s /log poll');
-console.log('  ✓ C7: Settings modal fetches live values via GET /settings');
-console.log('  ✓ C8: Numeric inputs transmitted as exact decimal strings');
-console.log('  ✓ C13: Client-local log entries survive server poll merge');
-console.log('  ✓ C14: drawBBOverlays → drawTopologicalAnchors; new drawBollingerFamily');
-console.log('  ✓ C15: Dock height 240px; BB legend collapsible');
+console.log('v4.1.2 changes:');
+console.log('  ✓ C-3.1: DEFAULT_BACKENDS fallback array');
+console.log('  ✓ C-3.2: Error banner fires once (latched)');
+console.log('  ✓ C-3.3: Indicator matrix gated by freshness');
+console.log('  ✓ C-3.4 / M-15: engine_initialized absorbed');
+console.log('  ✓ C-3.5: Toast cursor detects eviction via first_available_seq');
+console.log('  ✓ C-3.8: Memory field validated — empty sends -1');
+console.log('  ✓ C-3.9: max >= min + 2 validated');
+console.log('  ✓ C-3.10a: BigInt-backed BB fraction');
+console.log('  ✓ C-3.10b: Bars-identity cache key');
+console.log('  ✓ C-3.11 / M-14: CSS candle variables wired');
+console.log('  ✓ C-3.13: Dedup by full entry hash');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

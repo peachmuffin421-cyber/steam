@@ -1,6 +1,6 @@
 # ============================================================================
 # ÆEA MINI APP — FRONTEND .gitignore
-# Version: 4.1.1 (MQL4-Parity + MT4/TradingView TWA Edition — Audit-Patched)
+# Version: 4.1.2 (Audit-Patched — Semantics-Restored Edition)
 # Repo: aei-miniapp (GitHub Pages)
 # ============================================================================
 #
@@ -40,15 +40,13 @@ desktop.ini
 # ----------------------------------------------------------------------------
 # LOCAL DEVELOPMENT OVERRIDES
 # ----------------------------------------------------------------------------
-# If a developer creates a local variant of index.html for testing a
-# different backend URL, keep it out of the repo.
 index.local.html
 *.local.html
 *.local.js
 *.local.css
 
 # ----------------------------------------------------------------------------
-# SECRETS (SHOULD NEVER APPEAR IN A STATIC FRONTEND, BUT DEFENSIVE)
+# SECRETS (DEFENSIVE — STATIC FRONTEND SHOULD HAVE NONE)
 # ----------------------------------------------------------------------------
 .env
 .env.local
@@ -59,8 +57,6 @@ credentials.json
 # ----------------------------------------------------------------------------
 # GITHUB PAGES ARTIFACTS
 # ----------------------------------------------------------------------------
-# GitHub Pages serves the repo root directly. Do not commit any build
-# output, Jekyll caches, or generated site directories.
 _site/
 .jekyll-cache/
 .jekyll-metadata
@@ -91,8 +87,6 @@ temp/
 # ----------------------------------------------------------------------------
 # OPTIONAL LOCAL SERVER TOOLING
 # ----------------------------------------------------------------------------
-# If a developer uses `python -m http.server`, `npx serve`, or similar,
-# these directories may appear.
 dist/
 build/
 .cache/
