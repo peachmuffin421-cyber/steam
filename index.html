@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ÆEA Engine · MQL4-Parity Port · TWA v4.3.0</title>
+<title>ÆEA Engine · MQL4-Parity Port · TWA v4.4.0</title>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -230,7 +230,7 @@ html, body {
     position: absolute;
     top: calc(var(--toolbar-h) + 6px);
     left: 8px;
-    z-index: 12;
+    z-index: 13;
     background: rgba(5,5,16,0.92);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -272,11 +272,12 @@ html, body {
 /* ============================================================
    ARC PROJECTION LEGEND
    ============================================================ */
+/* E-9: stacked below the BB×58 legend when both are open. */
 #arcLegend {
     position: absolute;
-    top: calc(var(--toolbar-h) + 6px);
+    top: calc(var(--toolbar-h) + 52px);
     left: 8px;
-    z-index: 12;
+    z-index: 13;
     background: rgba(5,5,16,0.92);
     border: 1px solid var(--projection-color);
     border-radius: 6px;
@@ -977,6 +978,8 @@ html, body {
         <div class="arc-row" style="margin-top:3px;">Branch: <span id="arc-branch" style="color:var(--projection-color);">—</span></div>
         <div class="arc-row">Horizon: <span id="arc-horizon" style="color:var(--projection-color);">—</span> bars</div>
         <div class="arc-row">Provider: <span id="arc-provider" style="color:var(--projection-color);">—</span></div>
+        <div class="arc-row">Trigger: <span id="arc-trigger" style="color:var(--projection-color);">—</span></div>
+        <div class="arc-row" style="margin-top:3px;">Scroll left past the last bar to reach the projected TP →</div>
     </div>
 </div>
 
@@ -1015,6 +1018,7 @@ html, body {
         <div class="row"><span class="lbl">safety</span><span class="val" id="eng-safety">false</span></div>
         <div class="row"><span class="lbl">Provider</span><span class="val-proj" id="eng-provider">—</span></div>
         <div class="row"><span class="lbl">Volume</span><span class="val" id="eng-volume">0</span></div>
+        <div class="row"><span class="lbl">LastMsg</span><span class="val" id="eng-lastmsg">—</span></div>
     </div>
 
     <div class="dockPanel" id="kroneckerPanel">
@@ -1047,6 +1051,7 @@ html, body {
         <div class="row"><span class="lbl">Center</span><span class="val" id="proj-center">—</span></div>
         <div class="row"><span class="lbl">Damping</span><span class="val" id="proj-damping">—</span></div>
         <div class="row"><span class="lbl">Provider</span><span class="val-proj" id="proj-provider">—</span></div>
+        <div class="row"><span class="lbl">Trigger</span><span class="val-proj" id="proj-trigger">—</span></div>
         <div class="row"><span class="lbl">Next</span><span class="val" id="proj-next">—</span><span class="lbl">End</span><span class="val" id="proj-end">—</span></div>
         <div class="row"><span class="lbl">Updated</span><span class="val" id="proj-updated">—</span></div>
     </div>
@@ -1084,21 +1089,22 @@ html, body {
 <div id="errorDisplay"></div>
 
 <div id="explainPanel">
-    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.3.0</h3>
+    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.0</h3>
     <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, FVG list, <b>BB×58</b> toggle, <b>ARC</b> projection toggle, refresh, settings, help.</span></div>
     <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span> (MQL4 <code>clrBlue</code>/<code>clrRed</code> parity).</span></div>
-    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.3.0 computes σ via BigInt-backed exact arithmetic.</span></div>
-    <div class="item"><b>ARC PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Premium/Discount band). Drawn dashed ahead of the last bar. All arithmetic is Decimal-exact on the backend.</span></div>
-    <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; FVG toasts fire on every anchor commit/remove. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat — the bot responds to the user, causing a native push notification.</span></div>
+    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.4.0 computes σ via BigInt-backed exact arithmetic.</span></div>
+    <div class="item"><b>ARC PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Premium/Discount band). Drawn dashed ahead of the last bar. <b>Recomputed only when a Bull/Bear/Hawk/Dove/Whisky/Wine/Watter/Blood/Diamond/Ruby execution fires</b>, plus once on engine init, once on symbol change, and on explicit refresh. All arithmetic is Decimal-exact on the backend.</span></div>
+    <div class="item"><b>SCROLL-AHEAD</b> <span>— Drag the chart left past the last bar to scroll into the projected region. The projected endpoint (likely take-profit level) is reachable directly on the chart. The viewport's forward extent is bounded by <code>projection.path.length</code>.</span></div>
+    <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; FVG toasts fire on every anchor commit/remove. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat, <b>threaded as a reply to your most recent command</b> — the bot responds to the user on every event, causing a native push notification.</span></div>
     <div class="item"><b>PROVIDER</b> <span>— The relay dispatches crypto symbols to Binance klines (real volume) with CoinGecko fallback and Yahoo tertiary. Equities/futures use Yahoo only. The current provider is shown in the Engine Panel and the Projection Panel.</span></div>
     <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Premium/Discount), FVG lines, signal markers, trailing-stop line, arc projection.</span></div>
     <div class="item"><b>SUB-PANELS</b> <span>— MT4-style indicator sub-windows. Add via <b>+ IND</b>.</span></div>
     <div class="item"><b>13D GRID</b> <span>— The 13 classical indicators projected onto H₁₃, normalized to [0, 100].</span></div>
     <div class="item"><b>REGIME MAP</b> <span>— Per-bar regime classification: sRange / sVolatile / sTrend / Stable, with time-extension variants.</span></div>
     <div class="item"><b>KRONECKER δ</b> <span>— δ(m−n−2). m = overbought count, n = oversold count. H() fires when m ≥ 12, L() fires when n ≥ 12.</span></div>
-    <div class="item"><b>ENGINE PANEL</b> <span>— KC / prime / dime / mem / tag / invert / A / B / C / c / tick_tock / signature / trailing / OnTrack / OnStand / orders / safety / provider / volume.</span></div>
+    <div class="item"><b>ENGINE PANEL</b> <span>— KC / prime / dime / mem / tag / invert / A / B / C / c / tick_tock / signature / trailing / OnTrack / OnStand / orders / safety / provider / volume / LastMsg.</span></div>
     <div class="item"><b>DERIVATIVE PANEL</b> <span>— Z / z / O / o / W / w / I / iI / J / iJ / X_scan / Y_scan / S / T / r / ir / iATR / iStdDev / iIHKk / iIHKt.</span></div>
-    <div class="item"><b>PROJECTION PANEL</b> <span>— Branch / horizon / slope / amplitude / center / damping / provider / next / end / updated.</span></div>
+    <div class="item"><b>PROJECTION PANEL</b> <span>— Branch / horizon / slope / amplitude / center / damping / provider / trigger / next / end / updated.</span></div>
     <div class="item"><b>ORDER TICKET</b> <span>— Place simulated orders with lot/SL/TP. Numeric fields accept exact decimal strings.</span></div>
     <div class="item"><b>FVG</b> <span>— Long-press on chart to draw a Top/Bott FVG. Tap an FVG line to delete.</span></div>
     <div class="item"><b>LOG BAR</b> <span>— Last engine events. Tap to expand to the full log.</span></div>
@@ -1545,6 +1551,7 @@ const state = {
 
     provider: '',
     last_volume: 0,
+    last_inbound_message_id: null,
 
     projection: {
         path: [],
@@ -1553,10 +1560,11 @@ const state = {
         current_price: 0,
         signal_level: 0,
         regime: 'Unknown',
+        trigger: '',
         enabled: true,
     },
     _projectionBarsRef: null,
-    _projectionComputedAt: '',
+    _lastProjectionComputedAt: '',
 
     settings: {
         max: 60, min: 3, Cc: true, cC: true, Memory: -1,
@@ -2197,7 +2205,8 @@ function renderGridBody(container) {
             <b>M() count:</b> number of indicators > 66.6 (with HH/LL boundary conditions) · <b>N() count:</b> number of indicators &lt; 33.3<br>
             <b>H() fires when m ≥ 12 · L() fires when n ≥ 12 → Kronecker δ(m−n−2) = 1</b><br>
             <b>Live:</b> m = <span style="color:#00ff88;">${state.market_m}</span> · n = <span style="color:#ff4466;">${state.market_n}</span> · δ = <span style="color:#ffaa44;">${state.market_imbalance}</span> · regime = ${state.regime}<br>
-            <b>Provider:</b> <span style="color:#aa66ff;">${state.provider || '—'}</span> · <b>Volume:</b> ${state.last_volume}
+            <b>Provider:</b> <span style="color:#aa66ff;">${state.provider || '—'}</span> · <b>Volume:</b> ${state.last_volume}<br>
+            <b>Projection:</b> <span style="color:#aa66ff;">${(state.projection.meta && state.projection.meta.kind) || '—'}</span> · trigger = ${state.projection.trigger || '—'} · @ ${state.projection.computed_at || 'never'}
         </div>
     `;
     container.innerHTML = html;
@@ -2536,52 +2545,90 @@ function yToPrice(y) {
     const ratio = 1 - (y - PADDING.top) / plotH;
     return viewport.priceMin + ratio * (viewport.priceMax - viewport.priceMin);
 }
-function barToX(barIndexInView) {
+
+/* ============================================================
+   E-5: SCROLL-AHEAD VISIBLE-RANGE
+   ============================================================
+   The visible-range helper is centralized so every renderer that
+   needs leftEdge/rightEdge/visibleCount/step agrees on the same
+   numbers. When the projection is enabled and the user has dragged
+   the viewport into the forward region (offsetBars < 0), the right
+   edge is extended by the number of projected bars actually visible
+   so the dashed path is drawn in the correct screen positions and
+   the price axis accounts for the forward extremum.
+   ============================================================ */
+function getVisibleRange() {
     const plotW = chartW - PADDING.left - PADDING.right;
     const totalBars = state.bars.length;
-    const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
-    const rightEdge = totalBars - viewport.offsetBars;
+    const baseVisibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
+    const projLen = (state.projection.enabled && state.projection.path) ? state.projection.path.length : 0;
+    // Forward extra: how far into the projected region the viewport has scrolled.
+    // offsetBars >= 0 → no forward extent (backward scroll, normal).
+    // offsetBars <  0 → forward extent = min(projLen, -offsetBars) projected bars
+    //                    sit to the right of the last real bar.
+    const forwardExtra = (viewport.offsetBars < 0)
+        ? Math.min(projLen, -viewport.offsetBars)
+        : 0;
+    const visibleCount = baseVisibleCount;
+    const rightEdge = totalBars - viewport.offsetBars; // may exceed totalBars when offsetBars < 0
     const leftEdge = rightEdge - visibleCount;
     const step = plotW / visibleCount;
+    return {
+        plotW, totalBars, visibleCount, rightEdge, leftEdge, step,
+        baseX: PADDING.left + step / 2,
+        projLen, forwardExtra,
+    };
+}
+
+function barToX(barIndexInView) {
+    const { step, leftEdge } = getVisibleRange();
     return PADDING.left + (barIndexInView - leftEdge) * step + step / 2;
 }
 function xToBarIndex(x) {
-    const plotW = chartW - PADDING.left - PADDING.right;
-    const totalBars = state.bars.length;
-    const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
-    const rightEdge = totalBars - viewport.offsetBars;
-    const leftEdge = rightEdge - visibleCount;
-    const step = plotW / visibleCount;
+    const { step, leftEdge, totalBars } = getVisibleRange();
     const idx = leftEdge + Math.round((x - PADDING.left - step / 2) / step);
     return Math.max(0, Math.min(totalBars - 1, idx));
 }
 
 /* ============================================================
-   PRICE RANGE AUTO-SCALING (includes projection)
+   PRICE RANGE AUTO-SCALING (includes projection forward region)
    ============================================================ */
 function computePriceRange() {
     if (!state.bars || state.bars.length === 0) return;
-    const plotW = chartW - PADDING.left - PADDING.right;
-    const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
-    const rightEdge = state.bars.length - viewport.offsetBars;
-    const leftEdge = Math.max(0, rightEdge - visibleCount);
+    const { totalBars, rightEdge, leftEdge } = getVisibleRange();
     let lo = Infinity, hi = -Infinity;
-    for (let i = leftEdge; i < rightEdge && i < state.bars.length; i++) {
+    // Real bars in the visible range (clamped to [0, totalBars))
+    const realRight = Math.min(rightEdge, totalBars);
+    const realLeft = Math.max(0, leftEdge);
+    for (let i = realLeft; i < realRight; i++) {
         const b = state.bars[i];
+        if (!b) continue;
         if (b.low < lo) lo = b.low;
         if (b.high > hi) hi = b.high;
+    }
+    // Projection forward bars that fall into the visible region
+    if (state.projection.enabled && state.projection.path && state.projection.path.length > 0) {
+        for (const step_k of state.projection.path) {
+            const x = totalBars - 1 + step_k.step;
+            if (x < leftEdge || x >= rightEdge) continue;
+            const v = parseFloat(step_k.price);
+            if (!isNaN(v) && v > 0) {
+                if (v < lo) lo = v;
+                if (v > hi) hi = v;
+            }
+        }
     }
     if (state.bbFamilyEnabled && state.bars && state.bars.length > 0) {
         const bb = computeBollingerFamily();
         if (bb) {
             for (const band of bb.upper) {
-                for (let i = leftEdge; i < rightEdge && i < band.length; i++) {
+                for (let i = realLeft; i < realRight; i++) {
                     const v = band[i];
                     if (isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; }
                 }
             }
             for (const band of bb.lower) {
-                for (let i = leftEdge; i < rightEdge && i < band.length; i++) {
+                for (let i = realLeft; i < realRight; i++) {
                     const v = band[i];
                     if (isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; }
                 }
@@ -2599,12 +2646,6 @@ function computePriceRange() {
     for (const p of state.discount_series || []) {
         const v = parseFloat(p);
         if (!isNaN(v) && v > 0) { if (v < lo) lo = v; if (v > hi) hi = v; }
-    }
-    if (state.projection.enabled && state.projection.path && state.projection.path.length > 0) {
-        for (const step of state.projection.path) {
-            const v = parseFloat(step.price);
-            if (!isNaN(v) && v > 0) { if (v < lo) lo = v; if (v > hi) hi = v; }
-        }
     }
     if (!isFinite(lo) || !isFinite(hi)) {
         lo = state.price * 0.99;
@@ -2709,13 +2750,9 @@ function drawBollingerFamily() {
     const bb = computeBollingerFamily();
     if (!bb) return;
     const ctx = chartCtx;
-    const plotW = chartW - PADDING.left - PADDING.right;
-    const totalBars = state.bars.length;
-    const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
-    const rightEdge = totalBars - viewport.offsetBars;
-    const leftEdge = rightEdge - visibleCount;
-    const step = plotW / visibleCount;
-    const baseX = PADDING.left + step / 2;
+    const { totalBars, rightEdge, leftEdge, step, baseX } = getVisibleRange();
+    const realRight = Math.min(rightEdge, totalBars);
+    const realLeft = Math.max(0, leftEdge);
 
     ctx.lineWidth = 1;
     for (let pi = 0; pi < bb.periods; pi++) {
@@ -2724,8 +2761,7 @@ function drawBollingerFamily() {
         ctx.strokeStyle = bb.upperColors[pi];
         ctx.beginPath();
         let started = false;
-        for (let i = leftEdge; i < rightEdge; i++) {
-            if (i < 0 || i >= totalBars) continue;
+        for (let i = realLeft; i < realRight; i++) {
             const v = upArr[i];
             if (!isFinite(v)) { started = false; continue; }
             const x = baseX + (i - leftEdge) * step;
@@ -2737,8 +2773,7 @@ function drawBollingerFamily() {
         ctx.strokeStyle = bb.lowerColors[pi];
         ctx.beginPath();
         started = false;
-        for (let i = leftEdge; i < rightEdge; i++) {
-            if (i < 0 || i >= totalBars) continue;
+        for (let i = realLeft; i < realRight; i++) {
             const v = loArr[i];
             if (!isFinite(v)) { started = false; continue; }
             const x = baseX + (i - leftEdge) * step;
@@ -2751,40 +2786,57 @@ function drawBollingerFamily() {
 }
 
 /* ============================================================
-   ARC PROJECTION RENDERER
+   E-5: ARC PROJECTION RENDERER (scroll-ahead aware)
+   ============================================================
+   The projection's first path point (step=1) sits one bar to the
+   right of the last real bar. When the viewport is at offsetBars>=0
+   and the projection extends past the visible right edge, the path
+   is clipped naturally by the canvas. When the viewport is scrolled
+   forward (offsetBars<0), the visible-range helper extends the right
+   edge so that the projected bars are drawn in their true forward
+   positions. The anchor circle is drawn at the last real bar's close.
    ============================================================ */
 function drawArcProjection() {
     if (!state.projection.enabled) return;
     const proj = state.projection;
     if (!proj || !proj.path || proj.path.length === 0) return;
     const ctx = chartCtx;
-    const plotW = chartW - PADDING.left - PADDING.right;
-    const totalBars = state.bars.length;
+    const { totalBars, leftEdge, step, baseX } = getVisibleRange();
     if (totalBars === 0) return;
-    const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
-    const rightEdge = totalBars - viewport.offsetBars;
-    const leftEdge = rightEdge - visibleCount;
-    const step = plotW / visibleCount;
-    const baseX = PADDING.left + step / 2;
-    const anchorX = baseX + (totalBars - 1 - leftEdge) * step;
-    const anchorY = priceToY(parseFloat(proj.current_price) || state.price);
+
+    // D-38: explicit isFinite check instead of || fallback so a valid
+    // string "0.0" doesn't get replaced by the live price.
+    const anchorPriceParsed = parseFloat(proj.current_price);
+    const anchorPrice = isFinite(anchorPriceParsed) && anchorPriceParsed > 0
+        ? anchorPriceParsed
+        : state.price;
+    const anchorBarIdx = totalBars - 1;
+    const anchorX = baseX + (anchorBarIdx - leftEdge) * step;
+    const anchorY = priceToY(anchorPrice);
     const projColor = getCssVar('--projection-color', '#aa66ff');
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(anchorX, anchorY);
+    // Build the forward point list. step_k.step = 1 corresponds to the
+    // first projected bar, which sits one full bar step to the right of
+    // the last real bar (bar index totalBars in the extended indexing).
     const points = [{ x: anchorX, y: anchorY }];
     for (let i = 0; i < proj.path.length; i++) {
         const step_k = proj.path[i];
         const v = parseFloat(step_k.price);
         if (!isFinite(v)) continue;
-        const x = baseX + (totalBars - 1 + step_k.step - leftEdge) * step;
+        const projectedBarIdx = anchorBarIdx + step_k.step;
+        const x = baseX + (projectedBarIdx - leftEdge) * step;
         const y = priceToY(v);
         points.push({ x, y });
-        ctx.lineTo(x, y);
     }
+    if (points.length < 2) return;
+
+    // Soft gradient fill between the path and the price axis bottom
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
     ctx.lineTo(points[points.length - 1].x, chartH - PADDING.bottom);
-    ctx.lineTo(anchorX, chartH - PADDING.bottom);
+    ctx.lineTo(points[0].x, chartH - PADDING.bottom);
     ctx.closePath();
     const grad = ctx.createLinearGradient(0, PADDING.top, 0, chartH - PADDING.bottom);
     grad.addColorStop(0, 'rgba(170,102,255,0.18)');
@@ -2793,49 +2845,47 @@ function drawArcProjection() {
     ctx.fill();
     ctx.restore();
 
+    // Dashed path with a soft outer glow
     ctx.save();
     ctx.strokeStyle = projColor;
     ctx.lineWidth = 2;
     ctx.setLineDash([6, 4]);
     ctx.beginPath();
-    ctx.moveTo(anchorX, anchorY);
-    for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(points[i].x, points[i].y);
-    }
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.globalAlpha = 0.35;
     ctx.strokeStyle = projColor;
     ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.moveTo(anchorX, anchorY);
-    for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(points[i].x, points[i].y);
-    }
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
     ctx.stroke();
     ctx.globalAlpha = 1.0;
     ctx.restore();
 
+    // Anchor dot at the last real bar's close
     ctx.fillStyle = projColor;
     ctx.beginPath();
     ctx.arc(anchorX, anchorY, 3.5, 0, 2 * Math.PI);
     ctx.fill();
 
-    if (points.length > 1) {
-        const last = points[points.length - 1];
-        ctx.fillStyle = projColor;
-        ctx.beginPath();
-        ctx.arc(last.x, last.y, 3, 0, 2 * Math.PI);
-        ctx.fill();
-        const branch = (proj.meta && proj.meta.kind) ? proj.meta.kind : '—';
-        const endPrice = proj.path[proj.path.length - 1].price;
-        ctx.fillStyle = projColor;
-        ctx.font = 'bold 9px "Courier New", monospace';
-        ctx.textAlign = 'left';
-        const label = `${branch} → ${endPrice}`;
-        const labelY = Math.max(PADDING.top + 8, Math.min(chartH - PADDING.bottom - 4, last.y));
-        ctx.fillText(label, Math.min(last.x + 6, chartW - PADDING.right - 90), labelY);
-    }
+    // End dot + label at the projected endpoint
+    const last = points[points.length - 1];
+    ctx.fillStyle = projColor;
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 3, 0, 2 * Math.PI);
+    ctx.fill();
+    const branch = (proj.meta && proj.meta.kind) ? proj.meta.kind : '—';
+    const endPrice = proj.path[proj.path.length - 1].price;
+    const trig = proj.trigger ? (' · ' + proj.trigger) : '';
+    ctx.fillStyle = projColor;
+    ctx.font = 'bold 9px "Courier New", monospace';
+    ctx.textAlign = 'left';
+    const label = `${branch}${trig} → ${endPrice}`;
+    const labelY = Math.max(PADDING.top + 8, Math.min(chartH - PADDING.bottom - 4, last.y));
+    ctx.fillText(label, Math.min(last.x + 6, chartW - PADDING.right - 120), labelY);
 }
 
 /* ============================================================
@@ -2903,19 +2953,28 @@ function drawGrid() {
         ctx.lineTo(chartW - PADDING.right, y);
         ctx.stroke();
     }
+    // Vertical grid at every ~5 visible bars, spanning the extended range
+    const { totalBars, rightEdge, leftEdge, step } = getVisibleRange();
+    const realRight = Math.min(rightEdge, totalBars);
+    const realLeft = Math.max(0, leftEdge);
+    const every = Math.max(1, Math.floor((realRight - realLeft) / 6));
+    ctx.strokeStyle = 'rgba(50, 100, 150, 0.08)';
+    for (let i = realLeft; i < realRight; i += every) {
+        const x = PADDING.left + (i - leftEdge) * step + step / 2;
+        ctx.beginPath();
+        ctx.moveTo(x, PADDING.top);
+        ctx.lineTo(x, chartH - PADDING.bottom);
+        ctx.stroke();
+    }
 }
 
 function drawTopologicalAnchors() {
     const ctx = chartCtx;
     const prem = state.premium_series || [];
     const disc = state.discount_series || [];
-    const plotW = chartW - PADDING.left - PADDING.right;
-    const totalBars = state.bars.length;
-    const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
-    const rightEdge = totalBars - viewport.offsetBars;
-    const leftEdge = rightEdge - visibleCount;
-    const step = plotW / visibleCount;
-    const baseX = PADDING.left + step / 2;
+    const { totalBars, rightEdge, leftEdge, step, baseX } = getVisibleRange();
+    const realRight = Math.min(rightEdge, totalBars);
+    const realLeft = Math.max(0, leftEdge);
     const yFromArr = (arr, i) => {
         if (!arr || i < 0 || i >= arr.length) return null;
         const v = parseFloat(arr[i]);
@@ -2927,7 +2986,7 @@ function drawTopologicalAnchors() {
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
     let started = false;
-    for (let i = leftEdge; i < rightEdge; i++) {
+    for (let i = realLeft; i < realRight; i++) {
         const y = yFromArr(prem, i);
         if (y === null) { started = false; continue; }
         const x = baseX + (i - leftEdge) * step;
@@ -2940,7 +2999,7 @@ function drawTopologicalAnchors() {
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
     started = false;
-    for (let i = leftEdge; i < rightEdge; i++) {
+    for (let i = realLeft; i < realRight; i++) {
         const y = yFromArr(disc, i);
         if (y === null) { started = false; continue; }
         const x = baseX + (i - leftEdge) * step;
@@ -2953,12 +3012,9 @@ function drawTopologicalAnchors() {
 
 function drawCandles() {
     const ctx = chartCtx;
-    const plotW = chartW - PADDING.left - PADDING.right;
-    const totalBars = state.bars.length;
-    const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
-    const rightEdge = totalBars - viewport.offsetBars;
-    const leftEdge = rightEdge - visibleCount;
-    const step = plotW / visibleCount;
+    const { totalBars, rightEdge, leftEdge, step } = getVisibleRange();
+    const realRight = Math.min(rightEdge, totalBars);
+    const realLeft = Math.max(0, leftEdge);
     const bw = Math.max(CANDLE_MIN_WIDTH, Math.min(CANDLE_MAX_WIDTH, viewport.barWidth));
     const type = state.chartType;
     const BULL = getCssVar('--candle-bull', '#0000ff');
@@ -2966,8 +3022,7 @@ function drawCandles() {
     if (type === 'LINE' || type === 'AREA') {
         ctx.beginPath();
         let firstY = null;
-        for (let i = leftEdge; i < rightEdge; i++) {
-            if (i < 0 || i >= totalBars) continue;
+        for (let i = realLeft; i < realRight; i++) {
             const bar = state.bars[i];
             const x = PADDING.left + (i - leftEdge) * step + step / 2;
             const y = priceToY(bar.close);
@@ -2978,8 +3033,8 @@ function drawCandles() {
         ctx.lineWidth = 1.6;
         ctx.stroke();
         if (type === 'AREA' && firstY !== null) {
-            const lastX = PADDING.left + (Math.min(rightEdge, totalBars) - leftEdge) * step + step / 2;
-            const firstX = PADDING.left + (Math.max(0, leftEdge) - leftEdge) * step + step / 2;
+            const lastX = PADDING.left + (realRight - leftEdge) * step + step / 2;
+            const firstX = PADDING.left + (realLeft - leftEdge) * step + step / 2;
             ctx.lineTo(lastX, chartH - PADDING.bottom);
             ctx.lineTo(firstX, chartH - PADDING.bottom);
             ctx.closePath();
@@ -2991,8 +3046,7 @@ function drawCandles() {
         }
         return;
     }
-    for (let i = leftEdge; i < rightEdge; i++) {
-        if (i < 0 || i >= totalBars) continue;
+    for (let i = realLeft; i < realRight; i++) {
         const bar = state.bars[i];
         const x = PADDING.left + (i - leftEdge) * step + step / 2;
         const yOpen = priceToY(bar.open);
@@ -3076,12 +3130,9 @@ function drawTrailingStopLine() {
 function drawSignalMarkers() {
     if (!state.signals || state.signals.length === 0) return;
     const ctx = chartCtx;
-    const plotW = chartW - PADDING.left - PADDING.right;
-    const totalBars = state.bars.length;
-    const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
-    const rightEdge = totalBars - viewport.offsetBars;
-    const leftEdge = rightEdge - visibleCount;
-    const step = plotW / visibleCount;
+    const { totalBars, rightEdge, leftEdge, step } = getVisibleRange();
+    const realRight = Math.min(rightEdge, totalBars);
+    const realLeft = Math.max(0, leftEdge);
     const tsToIdx = new Map();
     for (let i = 0; i < state.bars.length; i++) {
         tsToIdx.set(state.bars[i].timestamp, i);
@@ -3131,20 +3182,38 @@ function drawAxes() {
     }
     ctx.textAlign = 'center';
     ctx.fillStyle = '#6688aa';
-    const totalBars = state.bars.length;
-    const plotW = chartW - PADDING.left - PADDING.right;
-    const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
-    const rightEdge = totalBars - viewport.offsetBars;
-    const leftEdge = rightEdge - visibleCount;
-    const step = plotW / visibleCount;
-    const tickEvery = Math.max(1, Math.floor(visibleCount / 5));
-    for (let i = leftEdge; i < rightEdge; i += tickEvery) {
-        if (i < 0 || i >= totalBars) continue;
+    const { totalBars, rightEdge, leftEdge, step } = getVisibleRange();
+    const realRight = Math.min(rightEdge, totalBars);
+    const realLeft = Math.max(0, leftEdge);
+    const visible = Math.max(1, realRight - realLeft);
+    const tickEvery = Math.max(1, Math.floor(visible / 5));
+    for (let i = realLeft; i < realRight; i += tickEvery) {
         const bar = state.bars[i];
+        if (!bar) continue;
         const x = PADDING.left + (i - leftEdge) * step + step / 2;
         const ts = bar.timestamp;
         const label = (typeof ts === 'string') ? ts.substring(11, 16) : '';
         ctx.fillText(label, x, chartH - 6);
+    }
+    // Forward-region marker: when scrolled past the last bar, label the
+    // boundary between real bars and projected bars.
+    if (rightEdge > totalBars) {
+        const boundaryX = PADDING.left + (totalBars - leftEdge) * step + step / 2;
+        if (boundaryX > PADDING.left && boundaryX < chartW - PADDING.right) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(170,102,255,0.6)';
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(boundaryX, PADDING.top);
+            ctx.lineTo(boundaryX, chartH - PADDING.bottom);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = 'rgba(170,102,255,0.85)';
+            ctx.font = 'bold 9px "Courier New", monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText('→ forward', boundaryX + 3, PADDING.top + 10);
+            ctx.restore();
+        }
     }
 }
 
@@ -3201,7 +3270,8 @@ function updateChartHeader() {
             const end = state.projection.path && state.projection.path.length > 0
                 ? state.projection.path[state.projection.path.length - 1].price
                 : '—';
-            projEl.textContent = `Projection: ${kind} → ${end}`;
+            const trig = state.projection.trigger ? (' · ' + state.projection.trigger) : '';
+            projEl.textContent = `Projection: ${kind}${trig} → ${end}`;
         } else {
             projEl.textContent = 'Projection: —';
         }
@@ -3225,13 +3295,28 @@ function updateProjectionLegend() {
     if (horizonEl) horizonEl.textContent = meta.horizon ?? '—';
     const providerEl = document.getElementById('arc-provider');
     if (providerEl) providerEl.textContent = meta.provider || state.provider || '—';
+    const trigEl = document.getElementById('arc-trigger');
+    if (trigEl) trigEl.textContent = state.projection.trigger || '—';
 }
 
 /* ============================================================
    CHART INTERACTIONS — POINTER EVENTS
+   ============================================================
+   E-5: offsetBars is allowed to go negative down to
+   -projection.path.length. This lets the user drag past the last
+   real bar into the forward projected region and reach the
+   projected endpoint directly on the chart.
    ============================================================ */
 let longPressTimer = null;
 let longPressFired = false;
+
+function clampOffsetBars(next) {
+    const minOffset = -((state.projection.enabled && state.projection.path) ? state.projection.path.length : 0);
+    const maxOffset = Math.max(0, state.bars.length - 1);
+    if (next < minOffset) return minOffset;
+    if (next > maxOffset) return maxOffset;
+    return next;
+}
 
 chartCanvas.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'touch' && e.isPrimary === false) return;
@@ -3276,7 +3361,11 @@ chartCanvas.addEventListener('pointermove', (e) => {
             const plotW = chartW - PADDING.left - PADDING.right;
             const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
             const barsPerPx = visibleCount / plotW;
-            viewport.offsetBars = Math.max(0, Math.min(state.bars.length - 1, Math.round(viewport.dragStartOffset + dx * barsPerPx)));
+            // Dragging left (dx < 0) increases offsetBars → scroll back in time.
+            // Dragging right (dx > 0) decreases offsetBars → scroll forward, including
+            // into the projected region down to -projection.path.length (E-5).
+            const rawNext = viewport.dragStartOffset + dx * barsPerPx;
+            viewport.offsetBars = clampOffsetBars(Math.round(rawNext));
         }
         if (Math.abs(dy) > 1) {
             const plotH = chartH - PADDING.top - PADDING.bottom;
@@ -3519,19 +3608,49 @@ function absorbMiniAppState(ma) {
 
     if (ma.provider !== undefined) state.provider = ma.provider || '';
     if (ma.last_volume !== undefined) state.last_volume = parseFloat(ma.last_volume) || 0;
+    if (ma.last_inbound_message_id !== undefined) state.last_inbound_message_id = ma.last_inbound_message_id;
 
-    if (ma.fvg_anchors) {
-        state.fvgs = ma.fvg_anchors.map(a => ({
-            idx: a.idx,
-            type: a.type,
-            price: String(a.price),
-        }));
+    // E-8: merge server FVG anchors by idx instead of replacing the client
+    // list wholesale. A user-committed FVG whose commit hasn't yet propagated
+    // to the server's response would otherwise flicker out and back on each
+    // 2 s poll. We treat the server as authoritative for idxs it reports and
+    // retain any client-only idxs that the server has not yet seen.
+    if (Array.isArray(ma.fvg_anchors)) {
+        const serverByIdx = new Map();
+        for (const a of ma.fvg_anchors) {
+            if (a && a.idx !== undefined) {
+                serverByIdx.set(a.idx, {
+                    idx: a.idx,
+                    type: a.type,
+                    price: String(a.price),
+                });
+            }
+        }
+        const merged = [];
+        const seen = new Set();
+        for (const existing of state.fvgs) {
+            if (serverByIdx.has(existing.idx)) {
+                merged.push(serverByIdx.get(existing.idx));
+                seen.add(existing.idx);
+            } else {
+                // Retain client-only FVG. It will be reconciled on the next
+                // poll once the server response catches up, or dropped by the
+                // engine's _maintain_fvg_lines() and then dropped here.
+                merged.push(existing);
+                seen.add(existing.idx);
+            }
+        }
+        for (const [idx, rec] of serverByIdx.entries()) {
+            if (!seen.has(idx)) merged.push(rec);
+        }
+        state.fvgs = merged;
     }
     if (ma.premium_series) state.premium_series = ma.premium_series;
     if (ma.discount_series) state.discount_series = ma.discount_series;
 
     if (ma.projection_meta) state.projection.meta = ma.projection_meta;
     if (ma.projection_computed_at) state.projection.computed_at = ma.projection_computed_at;
+    if (ma.projection_trigger !== undefined) state.projection.trigger = ma.projection_trigger;
 
     state._lastMiniAppTick = state.tick;
 }
@@ -3540,7 +3659,20 @@ async function fetchProjection() {
     if (!HAS_BACKEND) return;
     const r = await apiJson('/projection');
     if (!r || r.__error) return;
+    // D-41: short-circuit when the projection has not been recomputed since
+    // the last poll. computed_at is the backend's authoritative marker for
+    // "a new projection was produced" (E-4: on execution, on init, on symbol
+    // change, on explicit refresh). This avoids redrawing the chart for an
+    // unchanged projection every 5 s while still picking up execution-gated
+    // recomputation promptly.
+    const newComputedAt = r.computed_at || '';
+    if (newComputedAt === state._lastProjectionComputedAt && state.projection.path && state.projection.path.length > 0) {
+        // Still update lightweight fields in case trigger/labels changed.
+        if (r.trigger !== undefined) state.projection.trigger = r.trigger;
+        return;
+    }
     absorbProjection(r);
+    state._lastProjectionComputedAt = newComputedAt;
 }
 
 function absorbProjection(p) {
@@ -3551,6 +3683,7 @@ function absorbProjection(p) {
     if (p.current_price !== undefined) state.projection.current_price = parseFloat(p.current_price) || 0;
     if (p.signal_level !== undefined) state.projection.signal_level = parseFloat(p.signal_level) || 0;
     if (p.regime) state.projection.regime = p.regime;
+    if (p.trigger !== undefined) state.projection.trigger = p.trigger;
     updateProjectionPanel();
     if (currentView === 'chart') renderChart();
 }
@@ -3690,6 +3823,7 @@ function absorbDiagnostics(d) {
 
     if (d.provider !== undefined) state.provider = d.provider || '';
     if (d.projection_meta) state.projection.meta = d.projection_meta;
+    if (d.projection_trigger !== undefined) state.projection.trigger = d.projection_trigger;
 }
 
 async function fetchOrders() {
@@ -3816,6 +3950,9 @@ function updateEnginePanel() {
     setText('eng-orders', orders.length ? orders.join(', ') : 'none');
     setText('eng-provider', state.provider || '—');
     setText('eng-volume', (state.last_volume || 0).toLocaleString());
+    setText('eng-lastmsg', state.last_inbound_message_id !== null && state.last_inbound_message_id !== undefined
+        ? String(state.last_inbound_message_id)
+        : '—');
 }
 
 function updateKroneckerPanel() {
@@ -3868,6 +4005,7 @@ function updateProjectionPanel() {
     setText('proj-center', meta.center || '—');
     setText('proj-damping', meta.damping || '—');
     setText('proj-provider', meta.provider || state.provider || '—');
+    setText('proj-trigger', state.projection.trigger || '—');
     if (path.length > 0) {
         setText('proj-next', path[0].price);
         setText('proj-end', path[path.length - 1].price);
@@ -3972,7 +4110,7 @@ async function boot() {
     }
     startPolling();
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.3.0 booted');
+    pushLog('info', 'ÆEA TWA v4.4.0 booted');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -3985,18 +4123,25 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
    INITIAL LOG
    ============================================================ */
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.3.0');
+console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.0');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('v4.3.0 enhancements:');
-console.log('  ✓ E-1: Telegram push on every signal, execution, FVG, close');
-console.log('  ✓ E-2: Multi-provider relay (Binance → CoinGecko → Yahoo) with real volume');
-console.log('  ✓ E-3: Arc-length projection drawn ahead of the current bar');
-console.log('  ✓ New /projection endpoint + ARC toggle + projection panel');
-console.log('  ✓ A()/B()/Top()/Bott() now emit execution/fvg toasts');
-console.log('  ✓ Volume + provider surfaced in Engine Panel and Projection Panel');
-console.log('  ✓ Toast styling extended for fvg-top / fvg-bott');
+console.log('v4.4.0 (Scroll-Ahead Edition):');
+console.log('  ✓ E-4: Execution-gated projection (recomputed on Bull/Bear/Hawk/Dove/');
+console.log('         Whisky/Wine/Watter/Blood/Diamond/Ruby, on init, on symbol change,');
+console.log('         and on explicit POST /projection/refresh — NOT on bar close)');
+console.log('  ✓ E-5: Scroll-ahead viewport (drag past the last bar to the projected TP)');
+console.log('  ✓ E-6: Bot replies threaded to the user\'s most recent command');
+console.log('  ✓ E-7: Bounded push dispatch (single queue.Queue(maxsize=512))');
+console.log('  ✓ E-8: FVG anchors merged by idx (no 2s poll flicker)');
+console.log('  ✓ E-9: #arcLegend stacked below #bbLegend');
+console.log('  ✓ D-41: /projection poll short-circuits when computed_at is unchanged');
+console.log('  ✓ D-38: drawArcProjection uses explicit isFinite for the anchor price');
+console.log('  ✓ D-33: half-period kept as Fraction until the cosine call site');
+console.log('  ✓ D-34: projection path no longer places step=1 one bar too far right');
+console.log('  ✓ Projection Panel + ARC legend display the trigger field');
+console.log('  ✓ Engine Panel displays the last inbound message id');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

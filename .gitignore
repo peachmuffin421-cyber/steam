@@ -1,15 +1,62 @@
 # ============================================================================
-# ÆEA MINI APP — FRONTEND .gitignore
-# Version: 4.3.0 (Enhancement Edition)
-# Repo: aei-miniapp (GitHub Pages)
+# ÆEA RELAY — .gitignore
+# Version: 4.4.0 (Scroll-Ahead Edition)
+# Repo: aei-relay (Cloudflare Workers)
 # ============================================================================
 #
-# The frontend is a static single-file app (index.html). There is no build
-# step, no node_modules, no bundler. This .gitignore therefore focuses on
-# editor/OS cruft and any local-only artifacts a developer might create
-# while iterating on index.html.
+# The relay repo contains worker.js plus three config files:
+#   worker.js       (the Worker source)
+#   wrangler.toml   (deployment manifest)
+#   package.json    (Node manifest for wrangler)
+#   README.md       (relay-scoped)
+#
+# Nothing builds. Nothing bundles. The only secret is RELAY_KEY, which is
+# managed by `wrangler secret put` and never written to disk in the repo.
+#
+# The relay is the sole home of the Cloudflare Worker. Do not add a copy of
+# this source to any other repo — that would create a deploy-order race on
+# the Cloudflare Worker named 'aei-relay'.
 #
 # ============================================================================
+
+# ----------------------------------------------------------------------------
+# CLOUDFLARE WRANGLER
+# ----------------------------------------------------------------------------
+.wrangler/
+dist/
+worker/
+wrangler.toml.local
+.dev.vars
+
+# ----------------------------------------------------------------------------
+# NODE
+# ----------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm
+.yarn-integrity
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# ----------------------------------------------------------------------------
+# SECRETS (DEFENSIVE — WRANGLER STORES THESE REMOTELY, NOT ON DISK)
+# ----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets.json
+credentials.json
 
 # ----------------------------------------------------------------------------
 # EDITOR / IDE CRUFT
@@ -24,6 +71,7 @@
 .project
 .classpath
 .settings/
+*.code-workspace
 
 # ----------------------------------------------------------------------------
 # OS METADATA
@@ -38,41 +86,16 @@ Thumbs.db
 desktop.ini
 
 # ----------------------------------------------------------------------------
-# LOCAL DEVELOPMENT OVERRIDES
-# ----------------------------------------------------------------------------
-index.local.html
-*.local.html
-*.local.js
-*.local.css
-
-# ----------------------------------------------------------------------------
-# SECRETS (DEFENSIVE — STATIC FRONTEND SHOULD HAVE NONE)
-# ----------------------------------------------------------------------------
-.env
-.env.local
-.env.*.local
-secrets.json
-credentials.json
-
-# ----------------------------------------------------------------------------
-# GITHUB PAGES ARTIFACTS
-# ----------------------------------------------------------------------------
-_site/
-.jekyll-cache/
-.jekyll-metadata
-Gemfile.lock
-
-# ----------------------------------------------------------------------------
 # LOGS / TEMP
 # ----------------------------------------------------------------------------
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 *.tmp
 *.temp
 tmp/
 temp/
+*.pid
+*.seed
+*.pid.lock
 
 # ----------------------------------------------------------------------------
 # ARCHIVES
@@ -83,11 +106,3 @@ temp/
 *.tgz
 *.rar
 *.7z
-
-# ----------------------------------------------------------------------------
-# OPTIONAL LOCAL SERVER TOOLING
-# ----------------------------------------------------------------------------
-dist/
-build/
-.cache/
-.parcel-cache/
