@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ÆEA Engine · MQL4-Parity Port · TWA v4.2.0</title>
+<title>ÆEA Engine · MQL4-Parity Port · TWA v4.3.0</title>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -45,6 +45,8 @@ html, body {
     --signal-buy:  #00ff88;
     --signal-sell: #ff4466;
     --signal-neutral: #ffaa44;
+    --projection-color: #aa66ff;
+    --projection-glow: rgba(170,102,255,0.5);
     --dock-h: 240px;
     --logbar-h: 26px;
     --toast-w: 260px;
@@ -169,6 +171,7 @@ html, body {
 .tb-btn.primary { border-color: var(--green); color: var(--green); }
 .tb-btn.danger { border-color: var(--red); color: var(--red); }
 .tb-btn.bb-on { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.08); }
+.tb-btn.arc-on { border-color: var(--purple); color: var(--purple); background: rgba(170,102,255,0.08); }
 .tb-symbol {
     font-size: 0.72rem;
     font-weight: bold;
@@ -218,6 +221,7 @@ html, body {
 #chartHeader .regime { color: var(--gold); font-size: 0.55rem; margin-top: 1px; }
 #chartHeader .imbalance { color: var(--purple); font-size: 0.5rem; margin-top: 1px; }
 #chartHeader .last-update { color: var(--text-dim); font-size: 0.45rem; margin-top: 1px; }
+#chartHeader .projection { color: var(--projection-color); font-size: 0.45rem; margin-top: 1px; }
 
 /* ============================================================
    BOLLINGER FAMILY LEGEND
@@ -266,6 +270,57 @@ html, body {
 #bbLegend .bb-swatch.lower { background: rgba(255,255,255,0.75); }
 
 /* ============================================================
+   ARC PROJECTION LEGEND
+   ============================================================ */
+#arcLegend {
+    position: absolute;
+    top: calc(var(--toolbar-h) + 6px);
+    left: 8px;
+    z-index: 12;
+    background: rgba(5,5,16,0.92);
+    border: 1px solid var(--projection-color);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.5rem;
+    pointer-events: auto;
+    display: none;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+#arcLegend.open { display: block; }
+#arcLegend .arc-title {
+    color: var(--projection-color);
+    font-weight: bold;
+    letter-spacing: 1px;
+    font-size: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+#arcLegend .arc-body { margin-top: 4px; }
+#arcLegend .arc-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1px 0;
+    color: var(--text-dim);
+}
+#arcLegend .arc-swatch {
+    display: inline-block;
+    width: 18px;
+    height: 3px;
+    border-radius: 1px;
+    background: var(--projection-color);
+    box-shadow: 0 0 4px var(--projection-glow);
+}
+#arcLegend .arc-swatch.dashed {
+    background: none;
+    border-top: 2px dashed var(--projection-color);
+    height: 0;
+}
+
+/* ============================================================
    TOAST STACK
    ============================================================ */
 #toastStack {
@@ -304,6 +359,8 @@ html, body {
 .toast.exec-buy    { border-left-color: var(--signal-buy); }
 .toast.exec-sell   { border-left-color: var(--signal-sell); }
 .toast.exec-close  { border-left-color: var(--purple); }
+.toast.fvg-top     { border-left-color: var(--blue); }
+.toast.fvg-bott    { border-left-color: var(--pink); }
 .toast.dismissing  { transform: translateX(110%); opacity: 0; }
 .toast .toast-title {
     font-weight: bold;
@@ -318,6 +375,8 @@ html, body {
 .toast.exec-buy  .toast-title { color: var(--signal-buy); }
 .toast.exec-sell .toast-title { color: var(--signal-sell); }
 .toast.exec-close .toast-title { color: var(--purple); }
+.toast.fvg-top   .toast-title { color: var(--blue); }
+.toast.fvg-bott  .toast-title { color: var(--pink); }
 .toast .toast-line { color: var(--text-dim); }
 .toast .toast-line .v { color: var(--text-bright); font-weight: bold; }
 @keyframes toast-in {
@@ -392,6 +451,7 @@ html, body {
 .dockPanel .val-warn { color: var(--gold); font-weight: bold; }
 .dockPanel .val-pink { color: var(--pink); font-weight: bold; }
 .dockPanel .val-purple { color: var(--purple); font-weight: bold; }
+.dockPanel .val-proj { color: var(--projection-color); font-weight: bold; }
 .dockPanel .row { display: flex; gap: 6px; align-items: baseline; }
 .dockPanel .row + .row { margin-top: 2px; }
 
@@ -888,6 +948,7 @@ html, body {
         <button class="tb-btn" id="tb-add-indicator">+ IND</button>
         <button class="tb-btn" id="tb-fvg-list">FVG</button>
         <button class="tb-btn" id="tb-bb-toggle">BB×58</button>
+        <button class="tb-btn arc-on" id="tb-arc-toggle">ARC</button>
     </div>
     <span class="tb-sep"></span>
     <div class="tb-group">
@@ -909,11 +970,22 @@ html, body {
     </div>
 </div>
 
+<div id="arcLegend">
+    <div class="arc-title" id="arcLegendTitle">ARC PROJECTION <span id="arcLegendToggle">[+]</span></div>
+    <div class="arc-body hidden" id="arcLegendBody">
+        <div class="arc-row"><span class="arc-swatch dashed"></span> Projected path (dashed, ahead of last bar)</div>
+        <div class="arc-row" style="margin-top:3px;">Branch: <span id="arc-branch" style="color:var(--projection-color);">—</span></div>
+        <div class="arc-row">Horizon: <span id="arc-horizon" style="color:var(--projection-color);">—</span> bars</div>
+        <div class="arc-row">Provider: <span id="arc-provider" style="color:var(--projection-color);">—</span></div>
+    </div>
+</div>
+
 <div id="chartHeader">
     <div class="symbol" id="chart-symbol">—</div>
     <div class="regime" id="chart-regime">Regime: —</div>
     <div class="imbalance" id="chart-imbalance">m=0 · n=0 · δ=-2</div>
     <div class="last-update" id="chart-lastupdate">Updated: —</div>
+    <div class="projection" id="chart-projection">Projection: —</div>
 </div>
 
 <div id="toastStack"></div>
@@ -941,6 +1013,8 @@ html, body {
         <div class="row"><span class="lbl">OnTrack</span><span class="val" id="eng-ontrack">0</span><span class="lbl">OnStand</span><span class="val" id="eng-onstand">0</span></div>
         <div class="row"><span class="lbl">Orders</span><span class="val" id="eng-orders">none</span></div>
         <div class="row"><span class="lbl">safety</span><span class="val" id="eng-safety">false</span></div>
+        <div class="row"><span class="lbl">Provider</span><span class="val-proj" id="eng-provider">—</span></div>
+        <div class="row"><span class="lbl">Volume</span><span class="val" id="eng-volume">0</span></div>
     </div>
 
     <div class="dockPanel" id="kroneckerPanel">
@@ -962,6 +1036,19 @@ html, body {
         <div class="row"><span class="lbl">S</span><span class="val" id="der-S">62</span><span class="lbl">T</span><span class="val" id="der-T">62</span><span class="lbl">r</span><span class="val" id="der-r">0</span><span class="lbl">ir</span><span class="val" id="der-ir">0</span></div>
         <div class="row"><span class="lbl">iATR</span><span class="val" id="der-atr">50</span><span class="lbl">iStdDev</span><span class="val" id="der-std">50</span></div>
         <div class="row"><span class="lbl">iIHKk</span><span class="val" id="der-ihkk">50</span><span class="lbl">iIHKt</span><span class="val" id="der-ihkt">50</span></div>
+    </div>
+
+    <div class="dockPanel" id="projectionPanel">
+        <div class="dock-title">Arc-Length Projection</div>
+        <div class="row"><span class="lbl">Branch</span><span class="val-proj" id="proj-kind">—</span></div>
+        <div class="row"><span class="lbl">Horizon</span><span class="val" id="proj-horizon">—</span><span class="lbl">bars</span></div>
+        <div class="row"><span class="lbl">Slope</span><span class="val" id="proj-slope">—</span></div>
+        <div class="row"><span class="lbl">Amplitude</span><span class="val" id="proj-amplitude">—</span></div>
+        <div class="row"><span class="lbl">Center</span><span class="val" id="proj-center">—</span></div>
+        <div class="row"><span class="lbl">Damping</span><span class="val" id="proj-damping">—</span></div>
+        <div class="row"><span class="lbl">Provider</span><span class="val-proj" id="proj-provider">—</span></div>
+        <div class="row"><span class="lbl">Next</span><span class="val" id="proj-next">—</span><span class="lbl">End</span><span class="val" id="proj-end">—</span></div>
+        <div class="row"><span class="lbl">Updated</span><span class="val" id="proj-updated">—</span></div>
     </div>
 
     <div id="orderTicket">
@@ -997,22 +1084,25 @@ html, body {
 <div id="errorDisplay"></div>
 
 <div id="explainPanel">
-    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.2.0</h3>
-    <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, FVG list, <b>BB×58</b> toggle, refresh, settings, help.</span></div>
+    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.3.0</h3>
+    <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, FVG list, <b>BB×58</b> toggle, <b>ARC</b> projection toggle, refresh, settings, help.</span></div>
     <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span> (MQL4 <code>clrBlue</code>/<code>clrRed</code> parity).</span></div>
-    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.2.0 computes σ via BigInt-backed exact arithmetic.</span></div>
-    <div class="item"><b>TOASTS</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch (Diamond, Ruby, Hawk, Dove, Bull, Bear, Whisky, Wine, Watter, Blood, A, B). Tap to dismiss.</span></div>
-    <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Premium/Discount), FVG lines, signal markers, trailing-stop line.</span></div>
+    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.3.0 computes σ via BigInt-backed exact arithmetic.</span></div>
+    <div class="item"><b>ARC PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Premium/Discount band). Drawn dashed ahead of the last bar. All arithmetic is Decimal-exact on the backend.</span></div>
+    <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; FVG toasts fire on every anchor commit/remove. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat — the bot responds to the user, causing a native push notification.</span></div>
+    <div class="item"><b>PROVIDER</b> <span>— The relay dispatches crypto symbols to Binance klines (real volume) with CoinGecko fallback and Yahoo tertiary. Equities/futures use Yahoo only. The current provider is shown in the Engine Panel and the Projection Panel.</span></div>
+    <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Premium/Discount), FVG lines, signal markers, trailing-stop line, arc projection.</span></div>
     <div class="item"><b>SUB-PANELS</b> <span>— MT4-style indicator sub-windows. Add via <b>+ IND</b>.</span></div>
     <div class="item"><b>13D GRID</b> <span>— The 13 classical indicators projected onto H₁₃, normalized to [0, 100].</span></div>
     <div class="item"><b>REGIME MAP</b> <span>— Per-bar regime classification: sRange / sVolatile / sTrend / Stable, with time-extension variants.</span></div>
     <div class="item"><b>KRONECKER δ</b> <span>— δ(m−n−2). m = overbought count, n = oversold count. H() fires when m ≥ 12, L() fires when n ≥ 12.</span></div>
-    <div class="item"><b>ENGINE PANEL</b> <span>— KC / prime / dime / mem / tag / invert / A / B / C / c / tick_tock / signature / trailing / OnTrack / OnStand / orders / safety.</span></div>
+    <div class="item"><b>ENGINE PANEL</b> <span>— KC / prime / dime / mem / tag / invert / A / B / C / c / tick_tock / signature / trailing / OnTrack / OnStand / orders / safety / provider / volume.</span></div>
     <div class="item"><b>DERIVATIVE PANEL</b> <span>— Z / z / O / o / W / w / I / iI / J / iJ / X_scan / Y_scan / S / T / r / ir / iATR / iStdDev / iIHKk / iIHKt.</span></div>
+    <div class="item"><b>PROJECTION PANEL</b> <span>— Branch / horizon / slope / amplitude / center / damping / provider / next / end / updated.</span></div>
     <div class="item"><b>ORDER TICKET</b> <span>— Place simulated orders with lot/SL/TP. Numeric fields accept exact decimal strings.</span></div>
     <div class="item"><b>FVG</b> <span>— Long-press on chart to draw a Top/Bott FVG. Tap an FVG line to delete.</span></div>
     <div class="item"><b>LOG BAR</b> <span>— Last engine events. Tap to expand to the full log.</span></div>
-    <div style="margin-top:8px; opacity:0.6;">Keyboard: C=chart | G=grid | R=regime | H=help | F5=refresh | Esc=close modal.</div>
+    <div style="margin-top:8px; opacity:0.6;">Keyboard: C=chart | G=grid | R=regime | A=arc toggle | H=help | F5=refresh | Esc=close modal.</div>
 </div>
 
 <div id="contextMenu">
@@ -1034,7 +1124,7 @@ html, body {
 'use strict';
 
 /* ============================================================
-   F-11: CSS VARIABLE CACHE (read once; no per-frame getComputedStyle)
+   CSS VARIABLE CACHE
    ============================================================ */
 const _cssVars = {
     _cache: {},
@@ -1235,7 +1325,7 @@ function setConnBadge(state, text) {
 }
 
 /* ============================================================
-   F-13: ERROR DISPLAY (LATCHED)
+   ERROR DISPLAY
    ============================================================ */
 const errorDisplay = document.getElementById('errorDisplay');
 let errorHideHandle = null;
@@ -1291,12 +1381,21 @@ function pushToast(toast) {
             '<div class="toast-line">Price <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
             '<div class="toast-line">m <span class="v">' + escapeHtml(String(toast.m ?? '—')) + '</span> · n <span class="v">' + escapeHtml(String(toast.n ?? '—')) + '</span> · h <span class="v">' + escapeHtml(String(toast.h ?? '—')) + '</span></div>' +
             '<div class="toast-line">' + escapeHtml(toast.regime || '') + ' · tick ' + escapeHtml(String(toast.tick ?? '—')) + '</div>';
+    } else if (toast.kind === 'fvg') {
+        const isTop = (toast.type === 'top');
+        el.classList.add(isTop ? 'fvg-top' : 'fvg-bott');
+        const action = toast.action || 'commit';
+        const arrow = isTop ? '▲' : '▼';
+        el.innerHTML =
+            '<div class="toast-title">📐 FVG ' + escapeHtml(action.toUpperCase()) + ' · ' + arrow + ' ' + escapeHtml(toast.type || '?') + '</div>' +
+            '<div class="toast-line">Price <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
+            '<div class="toast-line">idx <span class="v">' + escapeHtml(String(toast.idx ?? '—')) + '</span> · tick ' + escapeHtml(String(toast.tick ?? '—')) + '</div>';
     } else {
         const execMap = {
             'Bull': '🐂', 'Bear': '🐻', 'Whisky': '🥃', 'Wine': '🍷',
             'Watter': '💧', 'Blood': '🩸', 'Hawk': '🦅', 'Dove': '🕊️',
             'Diamond': '🔷', 'Ruby': '🔻', 'Top': '▲', 'Bott': '▼',
-            'A': '🅰️', 'B': '🅱️',
+            'A': '🅰️', 'B': '🅱️', 'ManualOrder': '📝', 'ManualClose': '✂️',
         };
         const emoji = execMap[toast.event] || '⚡';
         if (toast.side === 'BUY') el.classList.add('exec-buy');
@@ -1352,14 +1451,13 @@ async function fetchToasts() {
 }
 
 /* ============================================================
-   F-10: SINGLE SOURCE OF TRUTH FOR INDICATOR NAMES
+   SINGLE SOURCE OF TRUTH FOR INDICATOR NAMES
    ============================================================ */
 const INDICATOR_NAMES = [
     'ADX', 'Stochastic', 'RVI', 'AC', 'Force', 'OBV', 'AD',
     'MFI', 'Momentum', 'DeMarker', 'WPR', 'CCI', 'RSI'
 ];
 
-/* F-6: INDICATOR_RANGES no longer carries the dead 'BB' entry */
 const INDICATOR_RANGES = {
     'ADX':        { min: 0,   max: 100,  levels: [33.3, 66.6] },
     'Stochastic': { min: 0,   max: 100,  levels: [20, 80] },
@@ -1445,6 +1543,21 @@ const state = {
     premium_series: [],
     discount_series: [],
 
+    provider: '',
+    last_volume: 0,
+
+    projection: {
+        path: [],
+        meta: {},
+        computed_at: null,
+        current_price: 0,
+        signal_level: 0,
+        regime: 'Unknown',
+        enabled: true,
+    },
+    _projectionBarsRef: null,
+    _projectionComputedAt: '',
+
     settings: {
         max: 60, min: 3, Cc: true, cC: true, Memory: -1,
         safetyOffSwitch: false, StopLoss: "0", TakeProfit: "0",
@@ -1464,7 +1577,7 @@ const state = {
 };
 
 /* ============================================================
-   F-3: MODAL INFRASTRUCTURE (with onClose hook for view sync)
+   MODAL INFRASTRUCTURE
    ============================================================ */
 const modalBackdrop = document.getElementById('modalBackdrop');
 const modalContent = document.getElementById('modalContent');
@@ -1532,7 +1645,7 @@ document.addEventListener('click', (e) => {
 });
 
 /* ============================================================
-   F-9: LOG RING BUFFER (single source of truth for timestamps)
+   LOG RING BUFFER
    ============================================================ */
 const MAX_CLIENT_LOGS = 200;
 const MAX_SERVER_LOGS = 200;
@@ -1554,7 +1667,6 @@ function mergeLogs() {
     const merged = [];
     const seen = new Set();
     const all = state.logs_local.concat(state.logs_server);
-    /* F-9: every entry has a Date `ts`, so the instanceof guard is unnecessary */
     all.sort((a, b) => a.ts.getTime() - b.ts.getTime());
     for (const e of all) {
         const h = entryHash(e);
@@ -1581,7 +1693,7 @@ function renderLogBar() {
 }
 
 /* ============================================================
-   F-3: VIEW MANAGEMENT (with grid-modal onClose sync)
+   VIEW MANAGEMENT
    ============================================================ */
 let currentView = 'chart';
 
@@ -1622,6 +1734,7 @@ document.getElementById('tb-charttype').addEventListener('click', () => { haptic
 document.getElementById('tb-add-indicator').addEventListener('click', () => { haptic('light'); openIndicatorPicker(); });
 document.getElementById('tb-fvg-list').addEventListener('click', () => { haptic('light'); toggleFvgList(); });
 
+/* BB toggle */
 const bbToggleBtn = document.getElementById('tb-bb-toggle');
 const bbLegend = document.getElementById('bbLegend');
 const bbLegendBody = document.getElementById('bbLegendBody');
@@ -1652,6 +1765,37 @@ document.getElementById('bbLegendTitle').addEventListener('click', (e) => {
     bbLegendToggle.textContent = bbLegendBody.classList.contains('hidden') ? '[+]' : '[−]';
 });
 syncBbToggleUi();
+
+/* ARC toggle */
+const arcToggleBtn = document.getElementById('tb-arc-toggle');
+const arcLegend = document.getElementById('arcLegend');
+const arcLegendBody = document.getElementById('arcLegendBody');
+const arcLegendToggle = document.getElementById('arcLegendToggle');
+
+function syncArcToggleUi() {
+    if (state.projection.enabled) {
+        arcToggleBtn.classList.add('arc-on');
+        arcToggleBtn.classList.remove('active');
+        arcLegend.classList.add('open');
+    } else {
+        arcToggleBtn.classList.remove('arc-on');
+        arcLegend.classList.remove('open');
+    }
+}
+arcToggleBtn.addEventListener('click', () => {
+    haptic('light');
+    state.projection.enabled = !state.projection.enabled;
+    syncArcToggleUi();
+    pushLog('info', 'Arc projection ' + (state.projection.enabled ? 'ON' : 'OFF'));
+    if (currentView === 'chart') renderChart();
+});
+document.getElementById('arcLegendTitle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    haptic('light');
+    arcLegendBody.classList.toggle('hidden');
+    arcLegendToggle.textContent = arcLegendBody.classList.contains('hidden') ? '[+]' : '[−]';
+});
+syncArcToggleUi();
 
 /* ============================================================
    SYMBOL PICKER
@@ -1689,7 +1833,7 @@ function openSymbolPicker() {
                     if (r && r.ok) {
                         state.symbol = sym;
                         document.getElementById('tb-symbol').textContent = sym;
-                        pushLog('info', `Symbol changed to ${sym}`);
+                        pushLog('info', `Symbol changed to ${sym} (provider=${r.provider || '—'})`);
                         fetchAll();
                     } else {
                         const detail = r && (r.error || r.detail || (r.__body && r.__body.error)) || 'unknown';
@@ -1996,7 +2140,7 @@ function openIndicatorPicker() {
 }
 
 /* ============================================================
-   F-3: 13D GRID MODAL (onClose restores chart view)
+   13D GRID MODAL
    ============================================================ */
 function openGridModal() {
     const html = `
@@ -2013,7 +2157,6 @@ function openGridModal() {
             root.querySelector('#grid-close').addEventListener('click', closeModal);
         },
         onClose: () => {
-            /* F-3: whatever closes this modal — button, backdrop, Esc — view syncs back to chart */
             currentView = 'chart';
             document.getElementById('tb-view-chart').classList.add('active');
             document.getElementById('tb-view-grid').classList.remove('active');
@@ -2053,7 +2196,8 @@ function renderGridBody(container) {
             <b>Thresholds:</b> Overbought = f + gf = 200/3 + 40/15 ≈ <span style="color:#ffaa44;">66.6</span> · Oversold = g − gf = 100/3 − 40/15 ≈ <span style="color:#4488ff;">33.3</span><br>
             <b>M() count:</b> number of indicators > 66.6 (with HH/LL boundary conditions) · <b>N() count:</b> number of indicators &lt; 33.3<br>
             <b>H() fires when m ≥ 12 · L() fires when n ≥ 12 → Kronecker δ(m−n−2) = 1</b><br>
-            <b>Live:</b> m = <span style="color:#00ff88;">${state.market_m}</span> · n = <span style="color:#ff4466;">${state.market_n}</span> · δ = <span style="color:#ffaa44;">${state.market_imbalance}</span> · regime = ${state.regime}
+            <b>Live:</b> m = <span style="color:#00ff88;">${state.market_m}</span> · n = <span style="color:#ff4466;">${state.market_n}</span> · δ = <span style="color:#ffaa44;">${state.market_imbalance}</span> · regime = ${state.regime}<br>
+            <b>Provider:</b> <span style="color:#aa66ff;">${state.provider || '—'}</span> · <b>Volume:</b> ${state.last_volume}
         </div>
     `;
     container.innerHTML = html;
@@ -2257,7 +2401,6 @@ document.getElementById('ot-submit').addEventListener('click', async () => {
     const tp = document.getElementById('ot-tp').value.trim();
     const r = await apiPost('/order', { side, lot, sl, tp });
     if (r && r.ok) {
-        /* F-4: unified to 'info' — renderLogBar classifies only error/warn/info */
         pushLog('info', `${side} order placed @ ${r.entry || state.price}`);
         await fetchOrders();
     } else {
@@ -2312,6 +2455,11 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'c' || e.key === 'C') switchView('chart');
     if (e.key === 'g' || e.key === 'G') switchView('grid');
     if (e.key === 'r' || e.key === 'R') switchView('regime');
+    if (e.key === 'a' || e.key === 'A') {
+        state.projection.enabled = !state.projection.enabled;
+        syncArcToggleUi();
+        if (currentView === 'chart') renderChart();
+    }
     if (e.key === 'h' || e.key === 'H') {
         const p = document.getElementById('explainPanel');
         p.style.display = p.style.display === 'block' ? 'none' : 'block';
@@ -2320,7 +2468,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ============================================================
-   F-1/F-7: CHART CANVAS SETUP — RESIZE NO LONGER DOUBLE-SUBTRACTS TOOLBAR
+   CHART CANVAS SETUP
    ============================================================ */
 const chartCanvas = document.getElementById('chartCanvas');
 const chartCtx = chartCanvas.getContext('2d');
@@ -2350,11 +2498,7 @@ const viewport = {
 };
 
 function resizeChart() {
-    /* F-1: the canvas is positioned absolutely, so its rect already excludes
-       the toolbar and log bar. We read the canvas's own rect, not its parent's. */
     const rect = chartCanvas.getBoundingClientRect();
-    /* Fallback: derive from viewport height if the canvas is hidden (display:none)
-       or if rect measurements are zero during initial paint. */
     const toolbarH = parseInt(getCssVar('--toolbar-h', '44'), 10) || 44;
     const logbarH = parseInt(getCssVar('--logbar-h', '26'), 10) || 26;
     const fallbackW = window.innerWidth;
@@ -2368,7 +2512,6 @@ function resizeChart() {
     chartCanvas.style.width = chartW + 'px';
     chartCanvas.style.height = chartH + 'px';
     chartCtx.setTransform(chartDpr, 0, 0, chartDpr, 0, 0);
-    /* F-7: only commit the shadow dimensions once they are positive */
     chartCanvas._width = chartW;
     chartCanvas._height = chartH;
 }
@@ -2414,7 +2557,7 @@ function xToBarIndex(x) {
 }
 
 /* ============================================================
-   PRICE RANGE AUTO-SCALING
+   PRICE RANGE AUTO-SCALING (includes projection)
    ============================================================ */
 function computePriceRange() {
     if (!state.bars || state.bars.length === 0) return;
@@ -2457,6 +2600,12 @@ function computePriceRange() {
         const v = parseFloat(p);
         if (!isNaN(v) && v > 0) { if (v < lo) lo = v; if (v > hi) hi = v; }
     }
+    if (state.projection.enabled && state.projection.path && state.projection.path.length > 0) {
+        for (const step of state.projection.path) {
+            const v = parseFloat(step.price);
+            if (!isNaN(v) && v > 0) { if (v < lo) lo = v; if (v > hi) hi = v; }
+        }
+    }
     if (!isFinite(lo) || !isFinite(hi)) {
         lo = state.price * 0.99;
         hi = state.price * 1.01;
@@ -2492,8 +2641,6 @@ function bbToBigFixed(x) {
     }
     return neg ? -bi : bi;
 }
-/* F-14: the ONLY float64 boundary in this pipeline. BigInt → float64 loses
-   low-order digits beyond 2^53. Documented; not silently relied upon. */
 function bbFromBigFixed(bi) {
     return Number(bi) / 1e12;
 }
@@ -2604,6 +2751,94 @@ function drawBollingerFamily() {
 }
 
 /* ============================================================
+   ARC PROJECTION RENDERER
+   ============================================================ */
+function drawArcProjection() {
+    if (!state.projection.enabled) return;
+    const proj = state.projection;
+    if (!proj || !proj.path || proj.path.length === 0) return;
+    const ctx = chartCtx;
+    const plotW = chartW - PADDING.left - PADDING.right;
+    const totalBars = state.bars.length;
+    if (totalBars === 0) return;
+    const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
+    const rightEdge = totalBars - viewport.offsetBars;
+    const leftEdge = rightEdge - visibleCount;
+    const step = plotW / visibleCount;
+    const baseX = PADDING.left + step / 2;
+    const anchorX = baseX + (totalBars - 1 - leftEdge) * step;
+    const anchorY = priceToY(parseFloat(proj.current_price) || state.price);
+    const projColor = getCssVar('--projection-color', '#aa66ff');
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(anchorX, anchorY);
+    const points = [{ x: anchorX, y: anchorY }];
+    for (let i = 0; i < proj.path.length; i++) {
+        const step_k = proj.path[i];
+        const v = parseFloat(step_k.price);
+        if (!isFinite(v)) continue;
+        const x = baseX + (totalBars - 1 + step_k.step - leftEdge) * step;
+        const y = priceToY(v);
+        points.push({ x, y });
+        ctx.lineTo(x, y);
+    }
+    ctx.lineTo(points[points.length - 1].x, chartH - PADDING.bottom);
+    ctx.lineTo(anchorX, chartH - PADDING.bottom);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, PADDING.top, 0, chartH - PADDING.bottom);
+    grad.addColorStop(0, 'rgba(170,102,255,0.18)');
+    grad.addColorStop(1, 'rgba(170,102,255,0.01)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = projColor;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(anchorX, anchorY);
+    for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = projColor;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(anchorX, anchorY);
+    for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+    ctx.restore();
+
+    ctx.fillStyle = projColor;
+    ctx.beginPath();
+    ctx.arc(anchorX, anchorY, 3.5, 0, 2 * Math.PI);
+    ctx.fill();
+
+    if (points.length > 1) {
+        const last = points[points.length - 1];
+        ctx.fillStyle = projColor;
+        ctx.beginPath();
+        ctx.arc(last.x, last.y, 3, 0, 2 * Math.PI);
+        ctx.fill();
+        const branch = (proj.meta && proj.meta.kind) ? proj.meta.kind : '—';
+        const endPrice = proj.path[proj.path.length - 1].price;
+        ctx.fillStyle = projColor;
+        ctx.font = 'bold 9px "Courier New", monospace';
+        ctx.textAlign = 'left';
+        const label = `${branch} → ${endPrice}`;
+        const labelY = Math.max(PADDING.top + 8, Math.min(chartH - PADDING.bottom - 4, last.y));
+        ctx.fillText(label, Math.min(last.x + 6, chartW - PADDING.right - 90), labelY);
+    }
+}
+
+/* ============================================================
    CHART RENDERER — MASTER
    ============================================================ */
 function renderChart() {
@@ -2625,6 +2860,7 @@ function renderChart() {
     drawGrid();
     drawBollingerFamily();
     drawTopologicalAnchors();
+    drawArcProjection();
     drawCandles();
     drawFVGOverlays();
     drawTrailingStopLine();
@@ -2633,6 +2869,7 @@ function renderChart() {
     drawCrosshair();
     updateChartHeader();
     updateToolbarPrice();
+    updateProjectionLegend();
 }
 
 /* ============================================================
@@ -2654,7 +2891,6 @@ function drawRegimeBackground() {
     chartCtx.fillRect(PADDING.left, PADDING.top, chartW - PADDING.left - PADDING.right, chartH - PADDING.top - PADDING.bottom);
 }
 
-/* F-8: AXIS_STEPS is the single source of truth for grid + axis tick counts */
 function drawGrid() {
     const ctx = chartCtx;
     ctx.strokeStyle = 'rgba(50, 100, 150, 0.15)';
@@ -2937,7 +3173,7 @@ function drawCrosshair() {
 }
 
 /* ============================================================
-   CHART HEADER / TOOLBAR UPDATES
+   CHART HEADER / TOOLBAR / LEGEND UPDATES
    ============================================================ */
 function updateChartHeader() {
     const symEl = document.getElementById('chart-symbol');
@@ -2958,6 +3194,18 @@ function updateChartHeader() {
             luEl.textContent = 'Updated: —';
         }
     }
+    const projEl = document.getElementById('chart-projection');
+    if (projEl) {
+        if (state.projection.enabled && state.projection.meta && state.projection.meta.kind) {
+            const kind = state.projection.meta.kind;
+            const end = state.projection.path && state.projection.path.length > 0
+                ? state.projection.path[state.projection.path.length - 1].price
+                : '—';
+            projEl.textContent = `Projection: ${kind} → ${end}`;
+        } else {
+            projEl.textContent = 'Projection: —';
+        }
+    }
 }
 function updateToolbarPrice() {
     const el = document.getElementById('tb-price');
@@ -2968,6 +3216,15 @@ function updateToolbarPrice() {
         el.classList.toggle('up', p > state.prevPrice);
         el.classList.toggle('down', p < state.prevPrice);
     }
+}
+function updateProjectionLegend() {
+    const meta = state.projection.meta || {};
+    const branchEl = document.getElementById('arc-branch');
+    if (branchEl) branchEl.textContent = meta.kind || '—';
+    const horizonEl = document.getElementById('arc-horizon');
+    if (horizonEl) horizonEl.textContent = meta.horizon ?? '—';
+    const providerEl = document.getElementById('arc-provider');
+    if (providerEl) providerEl.textContent = meta.provider || state.provider || '—';
 }
 
 /* ============================================================
@@ -3114,7 +3371,10 @@ function updateCrosshairReadout(x, y) {
 /* ============================================================
    DATA FETCHING
    ============================================================ */
-let pollHandles = { miniapp: null, ohlcv: null, signals: null, diag: null, orders: null, regime: null, log: null, toasts: null };
+let pollHandles = {
+    miniapp: null, ohlcv: null, signals: null, diag: null,
+    orders: null, regime: null, log: null, toasts: null, projection: null,
+};
 let consecutiveFailures = 0;
 const MAX_FAILURES = 3;
 let backoffUntil = 0;
@@ -3138,7 +3398,6 @@ function noteSuccess() {
     setConnBadge('ok', 'connected');
 }
 
-/* F-5: dead `_lastOhlcvTick` assignments removed */
 async function fetchOhlcv() {
     if (!HAS_BACKEND) { noteFailure(); return; }
     const tf = (TIMEFRAMES.find(t => t.id === state.timeframe) || { interval: '1m' }).interval;
@@ -3148,6 +3407,7 @@ async function fetchOhlcv() {
     state.bars = r.bars || [];
     state.ohlcv_count = r.count || state.bars.length;
     if (r.symbol) state.symbol = r.symbol;
+    if (r.provider) state.provider = r.provider;
     if (_bbCacheBarsRef !== state.bars) invalidateBbCache();
 }
 
@@ -3257,6 +3517,9 @@ function absorbMiniAppState(ma) {
     if (ma.kPass !== undefined) state.kPass = parseFloat(ma.kPass) || 0;
     if (ma.ikPass !== undefined) state.ikPass = parseFloat(ma.ikPass) || 0;
 
+    if (ma.provider !== undefined) state.provider = ma.provider || '';
+    if (ma.last_volume !== undefined) state.last_volume = parseFloat(ma.last_volume) || 0;
+
     if (ma.fvg_anchors) {
         state.fvgs = ma.fvg_anchors.map(a => ({
             idx: a.idx,
@@ -3267,7 +3530,29 @@ function absorbMiniAppState(ma) {
     if (ma.premium_series) state.premium_series = ma.premium_series;
     if (ma.discount_series) state.discount_series = ma.discount_series;
 
+    if (ma.projection_meta) state.projection.meta = ma.projection_meta;
+    if (ma.projection_computed_at) state.projection.computed_at = ma.projection_computed_at;
+
     state._lastMiniAppTick = state.tick;
+}
+
+async function fetchProjection() {
+    if (!HAS_BACKEND) return;
+    const r = await apiJson('/projection');
+    if (!r || r.__error) return;
+    absorbProjection(r);
+}
+
+function absorbProjection(p) {
+    if (!p) return;
+    if (Array.isArray(p.path)) state.projection.path = p.path;
+    if (p.meta) state.projection.meta = p.meta;
+    if (p.computed_at) state.projection.computed_at = p.computed_at;
+    if (p.current_price !== undefined) state.projection.current_price = parseFloat(p.current_price) || 0;
+    if (p.signal_level !== undefined) state.projection.signal_level = parseFloat(p.signal_level) || 0;
+    if (p.regime) state.projection.regime = p.regime;
+    updateProjectionPanel();
+    if (currentView === 'chart') renderChart();
 }
 
 async function fetchSignals() {
@@ -3286,7 +3571,6 @@ async function fetchDiagnostics() {
     absorbDiagnostics(r);
 }
 
-/* F-15: positive-guard freshness gate — matches server-side semantics verbatim */
 function absorbDiagnostics(d) {
     const diagTick = (d.tick !== undefined) ? d.tick : -1;
     const lastAbsorbed = state._lastDiagnosticsAbsorbedTick;
@@ -3403,6 +3687,9 @@ function absorbDiagnostics(d) {
     if (d.signal_count !== undefined) state.signal_count = d.signal_count;
     if (d.last_signal_at) state.last_signal_at = d.last_signal_at;
     if (d.bar_close_count !== undefined) state.bar_close_count = d.bar_close_count;
+
+    if (d.provider !== undefined) state.provider = d.provider || '';
+    if (d.projection_meta) state.projection.meta = d.projection_meta;
 }
 
 async function fetchOrders() {
@@ -3481,11 +3768,13 @@ async function fetchAll() {
         fetchRegimeMap(),
         fetchLogs(),
         fetchToasts(),
+        fetchProjection(),
     ]);
     state.connected = true;
     updateEnginePanel();
     updateKroneckerPanel();
     updateDerivativePanel();
+    updateProjectionPanel();
     if (currentView === 'chart') renderChart();
     else if (currentView === 'regime') renderRegimeMap();
 }
@@ -3525,6 +3814,8 @@ function updateEnginePanel() {
     if (state.has_open_long) orders.push(`LONG(${state.lOrder_id})`);
     if (state.has_open_short) orders.push(`SHORT(${state.kOrder_id})`);
     setText('eng-orders', orders.length ? orders.join(', ') : 'none');
+    setText('eng-provider', state.provider || '—');
+    setText('eng-volume', (state.last_volume || 0).toLocaleString());
 }
 
 function updateKroneckerPanel() {
@@ -3565,6 +3856,36 @@ function updateDerivativePanel() {
     setText('der-std', state.iStdDev.toFixed(1));
     setText('der-ihkk', state.iIHKk.toFixed(1));
     setText('der-ihkt', state.iIHKt.toFixed(1));
+}
+
+function updateProjectionPanel() {
+    const meta = state.projection.meta || {};
+    const path = state.projection.path || [];
+    setText('proj-kind', meta.kind || '—');
+    setText('proj-horizon', meta.horizon ?? '—');
+    setText('proj-slope', meta.slope || '—');
+    setText('proj-amplitude', meta.amplitude || '—');
+    setText('proj-center', meta.center || '—');
+    setText('proj-damping', meta.damping || '—');
+    setText('proj-provider', meta.provider || state.provider || '—');
+    if (path.length > 0) {
+        setText('proj-next', path[0].price);
+        setText('proj-end', path[path.length - 1].price);
+    } else {
+        setText('proj-next', '—');
+        setText('proj-end', '—');
+    }
+    const upd = state.projection.computed_at;
+    if (upd) {
+        try {
+            const d = new Date(upd);
+            setText('proj-updated', d.toLocaleTimeString());
+        } catch (e) {
+            setText('proj-updated', upd);
+        }
+    } else {
+        setText('proj-updated', '—');
+    }
 }
 
 /* ============================================================
@@ -3615,6 +3936,10 @@ function startPolling() {
         if (isBackedOff()) return;
         if (currentView === 'regime') fetchRegimeMap();
     }, 15000);
+    pollHandles.projection = setInterval(() => {
+        if (isBackedOff()) return;
+        fetchProjection();
+    }, 5000);
 }
 
 function stopPolling() {
@@ -3624,12 +3949,11 @@ function stopPolling() {
 }
 
 /* ============================================================
-   F-2: BOOT — DEAD RETRY BRANCH REMOVED
+   BOOT
    ============================================================ */
 async function boot() {
     resizeChart();
     if (chartCanvas._width <= 0 || chartCanvas._height <= 0) {
-        /* resizeChart will re-run on the next resize event; nothing more to do here */
         showError('Chart canvas has zero dimensions — awaiting layout', 5000);
     }
     switchView('chart');
@@ -3648,7 +3972,7 @@ async function boot() {
     }
     startPolling();
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.2.0 booted');
+    pushLog('info', 'ÆEA TWA v4.3.0 booted');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -3661,24 +3985,18 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
    INITIAL LOG
    ============================================================ */
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.2.0');
+console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.3.0');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('v4.2.0 changes:');
-console.log('  ✓ D-17: _M()/_N() 5-case chain restored verbatim');
-console.log('  ✓ D-18: _execute_kronecker_block() prior HH/LL read');
-console.log('  ✓ D-19: _G() fired from _on_goe/_on_toe boundary block');
-console.log('  ✓ D-20: _compute_adx() cADX from separate ADX_temp series');
-console.log('  ✓ D-21: _compute_rvi() MQL4 4-bar filter + SMA');
-console.log('  ✓ D-22: _compute_ac() default AC window (5, 34)');
-console.log('  ✓ D-23: _compute_obv()/_compute_ad() full-array cumulative');
-console.log('  ✓ D-24: _compute_ichimoku() 5-line range');
-console.log('  ✓ D-25: _normalize() ADX block adx_main_list[1] for cADX');
-console.log('  ✓ D-26: _on_track()/_on_stand() aliased st.S second loop');
-console.log('  ✓ D-27: _S() bSL/bTP ask, sSL/sTP bid, com = COMMISSION * Point');
-console.log('  ✓ D-28: _execute_trailing_stop() regime read by bar index');
-console.log('  ✓ D-29: _get_next_topological_target() exclusive bound');
+console.log('v4.3.0 enhancements:');
+console.log('  ✓ E-1: Telegram push on every signal, execution, FVG, close');
+console.log('  ✓ E-2: Multi-provider relay (Binance → CoinGecko → Yahoo) with real volume');
+console.log('  ✓ E-3: Arc-length projection drawn ahead of the current bar');
+console.log('  ✓ New /projection endpoint + ARC toggle + projection panel');
+console.log('  ✓ A()/B()/Top()/Bott() now emit execution/fvg toasts');
+console.log('  ✓ Volume + provider surfaced in Engine Panel and Projection Panel');
+console.log('  ✓ Toast styling extended for fvg-top / fvg-bott');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
