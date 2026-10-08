@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ÆEA Engine · MQL4-Parity Port · TWA v4.1.2</title>
+<title>ÆEA Engine · MQL4-Parity Port · TWA v4.2.0</title>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -40,10 +40,8 @@ html, body {
     --pink: #ff66aa;
     --white: #ffffff;
     --toolbar-h: 44px;
-    /* v4.1.2 (C-3.11 / M-14): candle variables are consumed by
-       drawCandles() via getCssVar() — no longer dead. */
-    --candle-bull: #4488ff;
-    --candle-bear: #ff4466;
+    --candle-bull: #0000ff;
+    --candle-bear: #ff0000;
     --signal-buy:  #00ff88;
     --signal-sell: #ff4466;
     --signal-neutral: #ffaa44;
@@ -999,11 +997,11 @@ html, body {
 <div id="errorDisplay"></div>
 
 <div id="explainPanel">
-    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.1.2</h3>
+    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.2.0</h3>
     <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, FVG list, <b>BB×58</b> toggle, refresh, settings, help.</span></div>
-    <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#4488ff;">blue</span>, bearish = <span style="color:#ff4466;">red</span>.</span></div>
-    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.1.2 computes σ via BigInt-backed exact arithmetic.</span></div>
-    <div class="item"><b>TOASTS</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch (Diamond, Ruby, Hawk, Dove, Bull, Bear, Whisky, Wine, Watter, Blood, A, B, Top, Bott). Tap to dismiss.</span></div>
+    <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span> (MQL4 <code>clrBlue</code>/<code>clrRed</code> parity).</span></div>
+    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.2.0 computes σ via BigInt-backed exact arithmetic.</span></div>
+    <div class="item"><b>TOASTS</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch (Diamond, Ruby, Hawk, Dove, Bull, Bear, Whisky, Wine, Watter, Blood, A, B). Tap to dismiss.</span></div>
     <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Premium/Discount), FVG lines, signal markers, trailing-stop line.</span></div>
     <div class="item"><b>SUB-PANELS</b> <span>— MT4-style indicator sub-windows. Add via <b>+ IND</b>.</span></div>
     <div class="item"><b>13D GRID</b> <span>— The 13 classical indicators projected onto H₁₃, normalized to [0, 100].</span></div>
@@ -1036,20 +1034,31 @@ html, body {
 'use strict';
 
 /* ============================================================
-   BACKEND CONFIGURATION
-   ------------------------------------------------------------
-   v4.1.2 (C-3.1): DEFAULT_BACKENDS fallback array. A fork author
-   edits DEFAULT_BACKENDS[0] to their Heroku origin, so that even
-   if Telegram's WebView strips the ?backend= query string and
-   localStorage is empty on first visit, the TWA knows where the
-   backend lives.
+   F-11: CSS VARIABLE CACHE (read once; no per-frame getComputedStyle)
+   ============================================================ */
+const _cssVars = {
+    _cache: {},
+    get(name, fallback) {
+        if (Object.prototype.hasOwnProperty.call(this._cache, name)) {
+            return this._cache[name];
+        }
+        let v = fallback;
+        try {
+            const got = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+            if (got) v = got;
+        } catch (e) { /* silent */ }
+        this._cache[name] = v;
+        return v;
+    },
+    invalidate() { this._cache = {}; },
+};
 
-   Resolution order (first match wins):
-     1. window.__AEEA_BACKEND_URL__  (host-page override)
-     2. ?backend=https://...          (persisted to localStorage)
-     3. localStorage['aeea_backend_url']
-     4. DEFAULT_BACKENDS[i] for each i
-     5. same-origin (relative paths)
+function getCssVar(name, fallback) {
+    return _cssVars.get(name, fallback);
+}
+
+/* ============================================================
+   BACKEND CONFIGURATION
    ============================================================ */
 const DEFAULT_BACKENDS = [
     // ▸ FORK AUTHOR: replace with your Heroku origin, e.g.
@@ -1226,21 +1235,17 @@ function setConnBadge(state, text) {
 }
 
 /* ============================================================
-   ERROR DISPLAY
-   ------------------------------------------------------------
-   v4.1.2 (C-3.2): backendErrorLatched ensures the "no backend"
-   banner fires exactly once and is not re-shown by the 5-minute
-   fetchAll() interval.
+   F-13: ERROR DISPLAY (LATCHED)
    ============================================================ */
 const errorDisplay = document.getElementById('errorDisplay');
 let errorHideHandle = null;
-let backendErrorLatched = false;
+const latchedErrors = new Set();
 
 function showError(msg, autoHideMs) {
-    if (msg && msg.indexOf('Backend URL not configured') !== -1) {
-        if (backendErrorLatched) return;
-        backendErrorLatched = true;
-    }
+    if (!msg) return;
+    const key = String(msg);
+    if (latchedErrors.has(key)) return;
+    latchedErrors.add(key);
     errorDisplay.textContent = '⚠️ ' + msg;
     errorDisplay.style.display = 'block';
     console.error(msg);
@@ -1256,14 +1261,6 @@ function hideError() {
 
 /* ============================================================
    TOAST STACK
-   ------------------------------------------------------------
-   v4.1.2 (C-3.5): fetchToasts() inspects first_available_seq
-   returned by /toasts. If the client's cursor has fallen behind
-   the server's eviction point, we surface a warning to the log
-   bar so the loss is observable, then advance the cursor to the
-   server's latest_seq. Toasts that are actually returned are
-   pushed via pushToast(); the cursor only advances past toasts
-   the client received or acknowledged as evicted.
    ============================================================ */
 const toastStack = document.getElementById('toastStack');
 let toastSeqCursor = 0;
@@ -1334,12 +1331,12 @@ async function fetchToasts() {
     if (!HAS_BACKEND) return;
     const r = await apiJson('/toasts?since=' + toastSeqCursor);
     if (!r || r.__error) return;
-    // C-3.5: detect eviction. If the server's first_available_seq is
-    // beyond our cursor+1, we lost toasts; surface it and advance.
-    if (typeof r.first_available_seq === 'number' && toastSeqCursor > 0 && toastSeqCursor < r.first_available_seq - 1) {
-        const lost = r.first_available_seq - toastSeqCursor - 1;
-        pushLog('warn', `Toast buffer evicted ${lost} entries (cursor ${toastSeqCursor} → ${r.first_available_seq - 1})`);
-        toastSeqCursor = r.first_available_seq - 1;
+    if (typeof r.first_available_seq === 'number' && r.first_available_seq > 0) {
+        if (toastSeqCursor < r.first_available_seq - 1) {
+            const lost = (r.first_available_seq - 1) - toastSeqCursor;
+            pushLog('warn', `Toast buffer evicted ${lost} entries (cursor ${toastSeqCursor} → ${r.first_available_seq - 1})`);
+            toastSeqCursor = r.first_available_seq - 1;
+        }
     }
     if (Array.isArray(r.toasts)) {
         for (const t of r.toasts) {
@@ -1355,16 +1352,14 @@ async function fetchToasts() {
 }
 
 /* ============================================================
-   SHARED STATE
-   ------------------------------------------------------------
-   v4.1.2 (C-3.4 / M-15): engine_initialized is absorbed from
-   /miniapp-state so the client knows when the backend has
-   crossed the first-tick threshold.
+   F-10: SINGLE SOURCE OF TRUTH FOR INDICATOR NAMES
    ============================================================ */
 const INDICATOR_NAMES = [
     'ADX', 'Stochastic', 'RVI', 'AC', 'Force', 'OBV', 'AD',
     'MFI', 'Momentum', 'DeMarker', 'WPR', 'CCI', 'RSI'
 ];
+
+/* F-6: INDICATOR_RANGES no longer carries the dead 'BB' entry */
 const INDICATOR_RANGES = {
     'ADX':        { min: 0,   max: 100,  levels: [33.3, 66.6] },
     'Stochastic': { min: 0,   max: 100,  levels: [20, 80] },
@@ -1381,7 +1376,6 @@ const INDICATOR_RANGES = {
     'RSI':        { min: 0,   max: 100,  levels: [30, 70] },
     'IchimokuK':  { min: 0,   max: 100,  levels: [] },
     'IchimokuT':  { min: 0,   max: 100,  levels: [] },
-    'BB':         { min: null, max: null, levels: [] },
     'ATR':        { min: 0,   max: 100,  levels: [] },
     'StdDev':     { min: 0,   max: 100,  levels: [] },
 };
@@ -1463,33 +1457,39 @@ const state = {
     logs_server: [],
 
     _lastMiniAppTick: -1,
-    _lastDiagnosticsTick: -1,
-    _lastOhlcvTick: -1,
+    _lastDiagnosticsAbsorbedTick: -1,
     _lastSignalsTick: -1,
     _lastRegimeTick: -1,
     _lastOrdersTick: -1,
 };
 
 /* ============================================================
-   MODAL INFRASTRUCTURE
+   F-3: MODAL INFRASTRUCTURE (with onClose hook for view sync)
    ============================================================ */
 const modalBackdrop = document.getElementById('modalBackdrop');
 const modalContent = document.getElementById('modalContent');
 let modalOpen = false;
+let _modalOnClose = null;
 
 function openModal(html, opts) {
     opts = opts || {};
     modalContent.innerHTML = html;
     modalBackdrop.classList.add('open');
     modalOpen = true;
+    _modalOnClose = (typeof opts.onClose === 'function') ? opts.onClose : null;
     if (opts.onMount) {
         try { opts.onMount(modalContent); } catch (e) { console.warn('onMount failed:', e); }
     }
 }
 function closeModal() {
+    const cb = _modalOnClose;
+    _modalOnClose = null;
     modalBackdrop.classList.remove('open');
     modalOpen = false;
     modalContent.innerHTML = '';
+    if (cb) {
+        try { cb(); } catch (e) { console.warn('onClose failed:', e); }
+    }
 }
 modalBackdrop.addEventListener('click', (e) => {
     if (e.target === modalBackdrop) closeModal();
@@ -1532,11 +1532,7 @@ document.addEventListener('click', (e) => {
 });
 
 /* ============================================================
-   LOG RING BUFFER (merge client + server)
-   ------------------------------------------------------------
-   v4.1.2 (C-3.13): dedup by full entry hash (ts + level + msg +
-   source), not by (ts, msg). Two identical-timestamp entries
-   with different levels or sources both survive.
+   F-9: LOG RING BUFFER (single source of truth for timestamps)
    ============================================================ */
 const MAX_CLIENT_LOGS = 200;
 const MAX_SERVER_LOGS = 200;
@@ -1558,13 +1554,13 @@ function mergeLogs() {
     const merged = [];
     const seen = new Set();
     const all = state.logs_local.concat(state.logs_server);
-    all.sort((a, b) => (a.ts instanceof Date ? a.ts : new Date(a.ts)).getTime() - (b.ts instanceof Date ? b.ts : new Date(b.ts)).getTime());
+    /* F-9: every entry has a Date `ts`, so the instanceof guard is unnecessary */
+    all.sort((a, b) => a.ts.getTime() - b.ts.getTime());
     for (const e of all) {
         const h = entryHash(e);
         if (seen.has(h)) continue;
         seen.add(h);
-        const ts = e.ts instanceof Date ? e.ts : new Date(e.ts);
-        merged.push({ ts, level: e.level || 'info', msg: e.msg || '' });
+        merged.push({ ts: e.ts, level: e.level || 'info', msg: e.msg || '' });
     }
     if (merged.length > MAX_MERGED_LOGS) return merged.slice(-MAX_MERGED_LOGS);
     return merged;
@@ -1585,7 +1581,7 @@ function renderLogBar() {
 }
 
 /* ============================================================
-   VIEW MANAGEMENT
+   F-3: VIEW MANAGEMENT (with grid-modal onClose sync)
    ============================================================ */
 let currentView = 'chart';
 
@@ -1644,6 +1640,7 @@ function syncBbToggleUi() {
 bbToggleBtn.addEventListener('click', () => {
     haptic('light');
     state.bbFamilyEnabled = !state.bbFamilyEnabled;
+    invalidateBbCache();
     syncBbToggleUi();
     pushLog('info', 'Bollinger family ' + (state.bbFamilyEnabled ? 'ON' : 'OFF') + ' (periods 3..60)');
     if (currentView === 'chart') renderChart();
@@ -1999,7 +1996,7 @@ function openIndicatorPicker() {
 }
 
 /* ============================================================
-   13D GRID MODAL
+   F-3: 13D GRID MODAL (onClose restores chart view)
    ============================================================ */
 function openGridModal() {
     const html = `
@@ -2013,11 +2010,20 @@ function openGridModal() {
     openModal(html, {
         onMount: (root) => {
             renderGridBody(root.querySelector('#gridBody'));
-            root.querySelector('#grid-close').addEventListener('click', () => {
-                closeModal();
-                switchView('chart');
-            });
-        }
+            root.querySelector('#grid-close').addEventListener('click', closeModal);
+        },
+        onClose: () => {
+            /* F-3: whatever closes this modal — button, backdrop, Esc — view syncs back to chart */
+            currentView = 'chart';
+            document.getElementById('tb-view-chart').classList.add('active');
+            document.getElementById('tb-view-grid').classList.remove('active');
+            document.getElementById('tb-view-regime').classList.remove('active');
+            document.getElementById('chartCanvas').classList.remove('hidden');
+            document.getElementById('subPanelStack').classList.remove('hidden');
+            document.getElementById('regimeMapPanel').classList.remove('open');
+            resizeChart();
+            renderChart();
+        },
     });
 }
 
@@ -2157,10 +2163,6 @@ function deleteNearestFvg(price) {
 
 /* ============================================================
    SETTINGS MODAL
-   ------------------------------------------------------------
-   v4.1.2 (C-3.8): Memory field validated. Empty value sends -1
-   rather than NaN.
-   v4.1.2 (C-3.9): max >= min + 2 validated client-side.
    ============================================================ */
 async function openSettingsModal() {
     let liveSettings = null;
@@ -2228,7 +2230,10 @@ async function openSettingsModal() {
                 }
                 const r = await apiPost('/settings', next);
                 if (r && r.ok) {
-                    state.settings = Object.assign({}, state.settings, next);
+                    const fresh = await apiJson('/settings');
+                    if (fresh && !fresh.__error) {
+                        state.settings = Object.assign({}, state.settings, fresh);
+                    }
                     pushLog('info', 'Settings saved');
                 } else {
                     const detail = r && (r.error || r.detail || (r.__body && r.__body.error)) || 'unknown';
@@ -2252,7 +2257,8 @@ document.getElementById('ot-submit').addEventListener('click', async () => {
     const tp = document.getElementById('ot-tp').value.trim();
     const r = await apiPost('/order', { side, lot, sl, tp });
     if (r && r.ok) {
-        pushLog('success', `${side} order placed @ ${r.entry || state.price}`);
+        /* F-4: unified to 'info' — renderLogBar classifies only error/warn/info */
+        pushLog('info', `${side} order placed @ ${r.entry || state.price}`);
         await fetchOrders();
     } else {
         const detail = r && (r.error || r.detail || (r.__body && r.__body.error)) || 'unknown';
@@ -2314,7 +2320,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ============================================================
-   CHART CANVAS SETUP
+   F-1/F-7: CHART CANVAS SETUP — RESIZE NO LONGER DOUBLE-SUBTRACTS TOOLBAR
    ============================================================ */
 const chartCanvas = document.getElementById('chartCanvas');
 const chartCtx = chartCanvas.getContext('2d');
@@ -2325,6 +2331,7 @@ const CANDLE_BASE_WIDTH = 6;
 const CANDLE_MIN_WIDTH = 1.5;
 const CANDLE_MAX_WIDTH = 24;
 const CANDLE_SPACING_RATIO = 0.3;
+const AXIS_STEPS = 6;
 
 const viewport = {
     barWidth: CANDLE_BASE_WIDTH,
@@ -2343,19 +2350,27 @@ const viewport = {
 };
 
 function resizeChart() {
-    const rect = chartCanvas.parentElement.getBoundingClientRect();
+    /* F-1: the canvas is positioned absolutely, so its rect already excludes
+       the toolbar and log bar. We read the canvas's own rect, not its parent's. */
+    const rect = chartCanvas.getBoundingClientRect();
+    /* Fallback: derive from viewport height if the canvas is hidden (display:none)
+       or if rect measurements are zero during initial paint. */
+    const toolbarH = parseInt(getCssVar('--toolbar-h', '44'), 10) || 44;
+    const logbarH = parseInt(getCssVar('--logbar-h', '26'), 10) || 26;
+    const fallbackW = window.innerWidth;
+    const fallbackH = (window.innerHeight || window.document.documentElement.clientHeight) - toolbarH - logbarH;
+    chartW = rect.width > 0 ? rect.width : fallbackW;
+    chartH = rect.height > 0 ? rect.height : fallbackH;
+    if (chartW <= 0 || chartH <= 0) return;
     chartDpr = window.devicePixelRatio || 1;
-    chartW = rect.width;
-    chartH = rect.height - parseInt(getComputedStyle(document.documentElement).getPropertyValue('--toolbar-h'), 10);
-    if (chartH <= 0) chartH = window.innerHeight - 44 - 26;
     chartCanvas.width = chartW * chartDpr;
     chartCanvas.height = chartH * chartDpr;
     chartCanvas.style.width = chartW + 'px';
     chartCanvas.style.height = chartH + 'px';
     chartCtx.setTransform(chartDpr, 0, 0, chartDpr, 0, 0);
+    /* F-7: only commit the shadow dimensions once they are positive */
     chartCanvas._width = chartW;
     chartCanvas._height = chartH;
-    return true;
 }
 
 window.addEventListener('resize', () => {
@@ -2453,14 +2468,6 @@ function computePriceRange() {
 
 /* ============================================================
    BOLLINGER FAMILY — periods 3..60
-   ------------------------------------------------------------
-   v4.1.2 (C-3.10a): The SMA and variance accumulators run in
-   BigInt at a fixed 1e12 scale. The only float64 step is the
-   final Math.sqrt, which is irrational and cannot be represented
-   exactly in ECMAScript.
-   v4.1.2 (C-3.10b): The cache key is (bars array identity,
-   last bar timestamp, last bar close). External `_bbCacheKey`
-   invalidation is no longer needed.
    ============================================================ */
 const BB_MIN_PERIOD = 3;
 const BB_MAX_PERIOD = 60;
@@ -2471,10 +2478,31 @@ let _bbCacheLastTs = '';
 let _bbCacheLastClose = NaN;
 
 function bbToBigFixed(x) {
-    return BigInt(Math.round(x * 1e12));
+    if (!isFinite(x)) return 0n;
+    const s = Number(x).toFixed(12);
+    const neg = s.startsWith('-');
+    const sAbs = neg ? s.slice(1) : s;
+    const parts = sAbs.split('.');
+    const intPart = parts[0] || '0';
+    const fracPart = (parts[1] || '').padEnd(12, '0').slice(0, 12);
+    const combined = intPart + fracPart;
+    let bi = 0n;
+    for (let i = 0; i < combined.length; i++) {
+        bi = bi * 10n + BigInt(combined.charCodeAt(i) - 48);
+    }
+    return neg ? -bi : bi;
 }
+/* F-14: the ONLY float64 boundary in this pipeline. BigInt → float64 loses
+   low-order digits beyond 2^53. Documented; not silently relied upon. */
 function bbFromBigFixed(bi) {
     return Number(bi) / 1e12;
+}
+
+function invalidateBbCache() {
+    _bbCache = null;
+    _bbCacheBarsRef = null;
+    _bbCacheLastTs = '';
+    _bbCacheLastClose = NaN;
 }
 
 function computeBollingerFamily() {
@@ -2626,14 +2654,14 @@ function drawRegimeBackground() {
     chartCtx.fillRect(PADDING.left, PADDING.top, chartW - PADDING.left - PADDING.right, chartH - PADDING.top - PADDING.bottom);
 }
 
+/* F-8: AXIS_STEPS is the single source of truth for grid + axis tick counts */
 function drawGrid() {
     const ctx = chartCtx;
     ctx.strokeStyle = 'rgba(50, 100, 150, 0.15)';
     ctx.lineWidth = 0.5;
     const plotH = chartH - PADDING.top - PADDING.bottom;
-    const steps = 6;
-    for (let i = 0; i <= steps; i++) {
-        const y = PADDING.top + (plotH / steps) * i;
+    for (let i = 0; i <= AXIS_STEPS; i++) {
+        const y = PADDING.top + (plotH / AXIS_STEPS) * i;
         ctx.beginPath();
         ctx.moveTo(PADDING.left, y);
         ctx.lineTo(chartW - PADDING.right, y);
@@ -2687,21 +2715,6 @@ function drawTopologicalAnchors() {
     ctx.setLineDash([]);
 }
 
-/* ============================================================
-   drawCandles — v4.1.2 (C-3.11 / M-14): colors are read from
-   the CSS custom properties --candle-bull / --candle-bear, so
-   the declared variables are no longer dead. Fallback constants
-   preserve the FF-parity palette if the CSS fails to load.
-   ============================================================ */
-function getCssVar(name, fallback) {
-    try {
-        const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-        return v || fallback;
-    } catch (e) {
-        return fallback;
-    }
-}
-
 function drawCandles() {
     const ctx = chartCtx;
     const plotW = chartW - PADDING.left - PADDING.right;
@@ -2712,8 +2725,8 @@ function drawCandles() {
     const step = plotW / visibleCount;
     const bw = Math.max(CANDLE_MIN_WIDTH, Math.min(CANDLE_MAX_WIDTH, viewport.barWidth));
     const type = state.chartType;
-    const BULL = getCssVar('--candle-bull', '#4488ff');
-    const BEAR = getCssVar('--candle-bear', '#ff4466');
+    const BULL = getCssVar('--candle-bull', '#0000ff');
+    const BEAR = getCssVar('--candle-bear', '#ff0000');
     if (type === 'LINE' || type === 'AREA') {
         ctx.beginPath();
         let firstY = null;
@@ -2874,11 +2887,10 @@ function drawAxes() {
     ctx.fillStyle = '#aaccff';
     ctx.font = '10px "Courier New", monospace';
     ctx.textAlign = 'right';
-    const steps = 6;
     const plotH = chartH - PADDING.top - PADDING.bottom;
-    for (let i = 0; i <= steps; i++) {
-        const price = viewport.priceMin + (viewport.priceMax - viewport.priceMin) * (i / steps);
-        const y = PADDING.top + plotH * (1 - i / steps);
+    for (let i = 0; i <= AXIS_STEPS; i++) {
+        const price = viewport.priceMin + (viewport.priceMax - viewport.priceMin) * (i / AXIS_STEPS);
+        const y = PADDING.top + plotH * (1 - i / AXIS_STEPS);
         ctx.fillText(price.toFixed(4), chartW - 6, y + 3);
     }
     ctx.textAlign = 'center';
@@ -3126,6 +3138,7 @@ function noteSuccess() {
     setConnBadge('ok', 'connected');
 }
 
+/* F-5: dead `_lastOhlcvTick` assignments removed */
 async function fetchOhlcv() {
     if (!HAS_BACKEND) { noteFailure(); return; }
     const tf = (TIMEFRAMES.find(t => t.id === state.timeframe) || { interval: '1m' }).interval;
@@ -3135,9 +3148,7 @@ async function fetchOhlcv() {
     state.bars = r.bars || [];
     state.ohlcv_count = r.count || state.bars.length;
     if (r.symbol) state.symbol = r.symbol;
-    state._lastOhlcvTick = state.tick;
-    // C-3.10b: do NOT invalidate the BB cache here. computeBollingerFamily()
-    // detects array-identity changes itself.
+    if (_bbCacheBarsRef !== state.bars) invalidateBbCache();
 }
 
 async function fetchMiniAppState() {
@@ -3158,7 +3169,6 @@ function absorbMiniAppState(ma) {
     if (ma.tick !== undefined) state.tick = ma.tick;
     if (ma.last_price_update) state.lastUpdate = ma.last_price_update;
     if (ma.relay_healthy !== undefined) state.relay_healthy = ma.relay_healthy;
-    // C-3.4 / M-15: absorb engine_initialized.
     if (ma.engine_initialized !== undefined) state.engine_initialized = ma.engine_initialized;
 
     if (ma.bar_close_count !== undefined) state.bar_close_count = ma.bar_close_count;
@@ -3276,44 +3286,38 @@ async function fetchDiagnostics() {
     absorbDiagnostics(r);
 }
 
+/* F-15: positive-guard freshness gate — matches server-side semantics verbatim */
 function absorbDiagnostics(d) {
     const diagTick = (d.tick !== undefined) ? d.tick : -1;
-    const miniTick = state._lastMiniAppTick;
-    const engineFieldsFresh = diagTick > miniTick;
+    const lastAbsorbed = state._lastDiagnosticsAbsorbedTick;
+    const engineFieldsFresh = diagTick > lastAbsorbed;
 
-    // C-3.3: indicator-matrix absorption is now gated by the same
-    // freshness check as engine-state absorption. A stale /diagnostics
-    // response cannot overwrite the indicator series with older data.
-    if (engineFieldsFresh) {
-        const col0 = (d.indicator_col_index && d.indicator_col_index[0] !== undefined)
-            ? d.indicator_col_index[0] : 0;
-        const col1 = (d.indicator_col_index && d.indicator_col_index[1] !== undefined)
-            ? d.indicator_col_index[1] : 1;
-        if (d.indicator_sample_col0 && d.indicator_sample_col0.length === 13) {
-            for (let i = 0; i < 13; i++) {
-                const name = INDICATOR_NAMES[i];
-                if (!state.indicator_series[name]) state.indicator_series[name] = [];
-                state.indicator_series[name][col0] = parseFloat(d.indicator_sample_col0[i]);
-                if (!state.indicator_col_index[name]) state.indicator_col_index[name] = [];
-                state.indicator_col_index[name][col0] = col0;
-            }
-        }
-        if (d.indicator_sample_col1 && d.indicator_sample_col1.length === 13) {
-            for (let i = 0; i < 13; i++) {
-                const name = INDICATOR_NAMES[i];
-                if (!state.indicator_series[name]) state.indicator_series[name] = [];
-                state.indicator_series[name][col1] = parseFloat(d.indicator_sample_col1[i]);
-                if (!state.indicator_col_index[name]) state.indicator_col_index[name] = [];
-                state.indicator_col_index[name][col1] = col1;
-            }
-        }
-        if (d.recent_signals) state.signals = d.recent_signals;
-    }
+    if (!engineFieldsFresh) return;
 
-    if (!engineFieldsFresh) {
-        state._lastDiagnosticsTick = diagTick;
-        return;
+    const col0 = (d.indicator_col_index && d.indicator_col_index[0] !== undefined)
+        ? d.indicator_col_index[0] : 0;
+    const col1 = (d.indicator_col_index && d.indicator_col_index[1] !== undefined)
+        ? d.indicator_col_index[1] : 1;
+    if (d.indicator_sample_col0 && d.indicator_sample_col0.length === 13) {
+        for (let i = 0; i < 13; i++) {
+            const name = INDICATOR_NAMES[i];
+            if (!state.indicator_series[name]) state.indicator_series[name] = [];
+            state.indicator_series[name][col0] = parseFloat(d.indicator_sample_col0[i]);
+            if (!state.indicator_col_index[name]) state.indicator_col_index[name] = [];
+            state.indicator_col_index[name][col0] = col0;
+        }
     }
+    if (d.indicator_sample_col1 && d.indicator_sample_col1.length === 13) {
+        for (let i = 0; i < 13; i++) {
+            const name = INDICATOR_NAMES[i];
+            if (!state.indicator_series[name]) state.indicator_series[name] = [];
+            state.indicator_series[name][col1] = parseFloat(d.indicator_sample_col1[i]);
+            if (!state.indicator_col_index[name]) state.indicator_col_index[name] = [];
+            state.indicator_col_index[name][col1] = col1;
+        }
+    }
+    if (d.recent_signals) state.signals = d.recent_signals;
+    state._lastDiagnosticsAbsorbedTick = diagTick;
 
     if (d.KC !== undefined) state.KC = d.KC;
     if (d.invert !== undefined) state.invert = d.invert;
@@ -3399,8 +3403,6 @@ function absorbDiagnostics(d) {
     if (d.signal_count !== undefined) state.signal_count = d.signal_count;
     if (d.last_signal_at) state.last_signal_at = d.last_signal_at;
     if (d.bar_close_count !== undefined) state.bar_close_count = d.bar_close_count;
-
-    state._lastDiagnosticsTick = diagTick;
 }
 
 async function fetchOrders() {
@@ -3567,16 +3569,6 @@ function updateDerivativePanel() {
 
 /* ============================================================
    POLLING MODEL
-   ------------------------------------------------------------
-   2s  /miniapp-state  — authoritative live state
-   2s  /toasts         — signal + execution notifications
-   3s  /log            — dedicated server-log poll
-   30s /ohlcv          — historical bars
-   10s /signals        — recent signal history
-   5s  /diagnostics    — full engine snapshot (freshness-gated)
-   5s  /orders         — open order list
-   15s /regime-map     — per-bar classification (only when active)
-   300s fetchAll()     — full refresh safety net
    ============================================================ */
 function startPolling() {
     stopPolling();
@@ -3632,12 +3624,13 @@ function stopPolling() {
 }
 
 /* ============================================================
-   BOOT
+   F-2: BOOT — DEAD RETRY BRANCH REMOVED
    ============================================================ */
 async function boot() {
-    if (!resizeChart()) {
-        setTimeout(boot, 200);
-        return;
+    resizeChart();
+    if (chartCanvas._width <= 0 || chartCanvas._height <= 0) {
+        /* resizeChart will re-run on the next resize event; nothing more to do here */
+        showError('Chart canvas has zero dimensions — awaiting layout', 5000);
     }
     switchView('chart');
     if (!HAS_BACKEND) {
@@ -3655,7 +3648,7 @@ async function boot() {
     }
     startPolling();
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.1.2 booted');
+    pushLog('info', 'ÆEA TWA v4.2.0 booted');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -3668,22 +3661,24 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
    INITIAL LOG
    ============================================================ */
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.1.2');
+console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.2.0');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('v4.1.2 changes:');
-console.log('  ✓ C-3.1: DEFAULT_BACKENDS fallback array');
-console.log('  ✓ C-3.2: Error banner fires once (latched)');
-console.log('  ✓ C-3.3: Indicator matrix gated by freshness');
-console.log('  ✓ C-3.4 / M-15: engine_initialized absorbed');
-console.log('  ✓ C-3.5: Toast cursor detects eviction via first_available_seq');
-console.log('  ✓ C-3.8: Memory field validated — empty sends -1');
-console.log('  ✓ C-3.9: max >= min + 2 validated');
-console.log('  ✓ C-3.10a: BigInt-backed BB fraction');
-console.log('  ✓ C-3.10b: Bars-identity cache key');
-console.log('  ✓ C-3.11 / M-14: CSS candle variables wired');
-console.log('  ✓ C-3.13: Dedup by full entry hash');
+console.log('v4.2.0 changes:');
+console.log('  ✓ D-17: _M()/_N() 5-case chain restored verbatim');
+console.log('  ✓ D-18: _execute_kronecker_block() prior HH/LL read');
+console.log('  ✓ D-19: _G() fired from _on_goe/_on_toe boundary block');
+console.log('  ✓ D-20: _compute_adx() cADX from separate ADX_temp series');
+console.log('  ✓ D-21: _compute_rvi() MQL4 4-bar filter + SMA');
+console.log('  ✓ D-22: _compute_ac() default AC window (5, 34)');
+console.log('  ✓ D-23: _compute_obv()/_compute_ad() full-array cumulative');
+console.log('  ✓ D-24: _compute_ichimoku() 5-line range');
+console.log('  ✓ D-25: _normalize() ADX block adx_main_list[1] for cADX');
+console.log('  ✓ D-26: _on_track()/_on_stand() aliased st.S second loop');
+console.log('  ✓ D-27: _S() bSL/bTP ask, sSL/sTP bid, com = COMMISSION * Point');
+console.log('  ✓ D-28: _execute_trailing_stop() regime read by bar index');
+console.log('  ✓ D-29: _get_next_topological_target() exclusive bound');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
