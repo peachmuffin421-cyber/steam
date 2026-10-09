@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ÆEA Engine · MQL4-Parity Port · TWA v4.4.0</title>
+<title>ÆEA Engine · MQL4-Parity Port · TWA v4.4.1</title>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -58,27 +58,46 @@ html, body {
 
 /* ============================================================
    CANVAS LAYER
+   ============================================================
+   V-1 FIX: 100vh fallback before 100dvh so WebViews that do not
+   support dvh do not collapse the canvas to its intrinsic height.
+   V-2 FIX: #chartCanvas z-index raised to 2, #subPanelStack to 3,
+   and a new #volumeOverlay canvas at z-index 4 sits over the
+   volume-pane region so no sub-panel can ever occlude it.
    ============================================================ */
 #chartCanvas {
     position: absolute;
     top: var(--toolbar-h);
     left: 0;
     width: 100vw;
+    height: calc(100vh - var(--toolbar-h) - var(--logbar-h));
     height: calc(100dvh - var(--toolbar-h) - var(--logbar-h));
     display: block;
-    z-index: 1;
+    z-index: 2;
     touch-action: none;
     background: var(--bg);
+}
+#volumeOverlay {
+    position: absolute;
+    left: 0;
+    width: 100vw;
+    height: 0;
+    display: block;
+    z-index: 4;
+    pointer-events: none;
+    touch-action: none;
+    background: transparent;
 }
 #subPanelStack {
     position: absolute;
     top: var(--toolbar-h);
     left: 0;
     width: 100vw;
+    height: calc(100vh - var(--toolbar-h) - var(--logbar-h));
     height: calc(100dvh - var(--toolbar-h) - var(--logbar-h));
     display: flex;
     flex-direction: column;
-    z-index: 2;
+    z-index: 3;
     pointer-events: none;
 }
 .subPanel {
@@ -173,9 +192,10 @@ html, body {
 .tb-btn.active { background: #2a4a6a; border-color: var(--cyan); color: #fff; }
 .tb-btn.primary { border-color: var(--green); color: var(--green); }
 .tb-btn.danger { border-color: var(--red); color: var(--red); }
-.tb-btn.bb-on { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.08); }
-.tb-btn.arc-on { border-color: var(--purple); color: var(--purple); background: rgba(170,102,255,0.08); }
-.tb-btn.vol-on { border-color: #4488ff; color: #4488ff; background: rgba(68,136,255,0.08); }
+.tb-btn.bb-on { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.12); }
+.tb-btn.arc-on { border-color: var(--purple); color: var(--purple); background: rgba(170,102,255,0.12); }
+.tb-btn.vol-on { border-color: #4488ff; color: #4488ff; background: rgba(68,136,255,0.14); box-shadow: 0 0 6px rgba(68,136,255,0.4); }
+.tb-btn.vol-on.active { border-color: #4488ff; color: #4488ff; background: rgba(68,136,255,0.24); }
 .tb-symbol {
     font-size: 0.72rem;
     font-weight: bold;
@@ -576,7 +596,9 @@ html, body {
 .modal-backdrop {
     position: absolute;
     top: 0; left: 0;
-    width: 100vw; height: 100dvh;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
     background: rgba(0,0,0,0.7);
     z-index: 100;
     display: none;
@@ -592,6 +614,7 @@ html, body {
     border-radius: 8px;
     padding: 16px 20px;
     max-width: min(90vw, 480px);
+    max-height: 80vh;
     max-height: 80dvh;
     overflow-y: auto;
     box-shadow: 0 8px 40px rgba(0,0,0,0.6);
@@ -647,6 +670,7 @@ html, body {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 4px;
+    max-height: 50vh;
     max-height: 50dvh;
     overflow-y: auto;
 }
@@ -677,6 +701,7 @@ html, body {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 4px;
+    max-height: 50vh;
     max-height: 50dvh;
     overflow-y: auto;
 }
@@ -767,6 +792,7 @@ html, body {
     -webkit-backdrop-filter: blur(8px);
     box-shadow: 0 4px 30px rgba(0,0,0,0.5);
     line-height: 1.65;
+    max-height: 85vh;
     max-height: 85dvh;
     overflow-y: auto;
 }
@@ -794,6 +820,7 @@ html, body {
     padding: 6px 8px;
     font-size: 0.5rem;
     min-width: 160px;
+    max-height: 30vh;
     max-height: 30dvh;
     overflow-y: auto;
     backdrop-filter: blur(6px);
@@ -932,6 +959,7 @@ html, body {
 <body>
 
 <canvas id="chartCanvas"></canvas>
+<canvas id="volumeOverlay"></canvas>
 <div id="subPanelStack"></div>
 
 <div id="toolbar">
@@ -1094,11 +1122,11 @@ html, body {
 <div id="errorDisplay"></div>
 
 <div id="explainPanel">
-    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.0</h3>
+    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.1</h3>
     <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, FVG list, <b>BB×58</b> toggle, <b>VOL</b> toggle, <b>ARC</b> projection toggle, refresh, settings, help.</span></div>
     <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span> (MQL4 <code>clrBlue</code>/<code>clrRed</code> parity).</span></div>
-    <div class="item"><b>VOLUME PANE</b> <span>— Tick volume histogram below the candlesticks. Bar height is proportional to <code>bar.volume</code> normalized by the maximum volume in the visible range. Bullish volume bars = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span>. Toggle via the <b>VOL</b> button. Volume data is sourced from the relay (Binance for crypto, Yahoo for equities/futures) and propagated through <code>/ohlcv</code>.</span></div>
-    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.4.0 computes σ via BigInt-backed exact arithmetic.</span></div>
+    <div class="item"><b>VOLUME PANE</b> <span>— Tick volume histogram below the candlesticks. Bar height is proportional to <code>bar.volume</code> normalized by the maximum volume in the visible range. Bullish volume bars = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span>. Toggle via the <b>VOL</b> button. Rendered on the <code>#volumeOverlay</code> canvas at <code>z-index: 4</code>, above the sub-panel stack, so no indicator sub-panel can occlude it. Volume data is sourced from the relay (Binance for crypto, Yahoo for equities/futures) and propagated through <code>/ohlcv</code>.</span></div>
+    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.4.1 computes σ via BigInt-backed exact arithmetic.</span></div>
     <div class="item"><b>ARC PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Premium/Discount band). Drawn dashed ahead of the last bar. <b>Recomputed only when a Bull/Bear/Hawk/Dove/Whisky/Wine/Watter/Blood/Diamond/Ruby execution fires</b>, plus once on engine init, once on symbol change, and on explicit refresh. All arithmetic is Decimal-exact on the backend.</span></div>
     <div class="item"><b>SCROLL-AHEAD</b> <span>— Drag the chart left past the last bar to scroll into the projected region. The projected endpoint (likely take-profit level) is reachable directly on the chart. The viewport's forward extent is bounded by <code>projection.path.length</code>.</span></div>
     <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; FVG toasts fire on every anchor commit/remove. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat, <b>threaded as a reply to your most recent command</b> — the bot responds to the user on every event, causing a native push notification.</span></div>
@@ -1718,6 +1746,7 @@ function switchView(view) {
     document.getElementById('tb-view-grid').classList.toggle('active', view === 'grid');
     document.getElementById('tb-view-regime').classList.toggle('active', view === 'regime');
     document.getElementById('chartCanvas').classList.toggle('hidden', view !== 'chart');
+    document.getElementById('volumeOverlay').classList.toggle('hidden', view !== 'chart');
     document.getElementById('subPanelStack').classList.toggle('hidden', view !== 'chart');
     document.getElementById('regimeMapPanel').classList.toggle('open', view === 'regime');
     if (view === 'chart') {
@@ -1781,14 +1810,27 @@ document.getElementById('bbLegendTitle').addEventListener('click', (e) => {
 });
 syncBbToggleUi();
 
-/* VOL toggle */
+/* ============================================================
+   VOL TOGGLE — V-3 FIX
+   ============================================================
+   syncVolToggleUi() now manages BOTH the vol-on class (blue tint
+   + glow) AND the active class (bright border) symmetrically, so
+   the button cannot get stuck in a half-lit state. The on-state
+   is visually unmistakable: bright blue border, blue text, blue
+   tint background, and a box-shadow glow defined in the CSS.
+   ============================================================ */
 const volToggleBtn = document.getElementById('tb-vol-toggle');
 function syncVolToggleUi() {
     if (state.volumeEnabled) {
         volToggleBtn.classList.add('vol-on');
-        volToggleBtn.classList.remove('active');
+        volToggleBtn.classList.add('active');
+        volToggleBtn.setAttribute('aria-pressed', 'true');
+        volToggleBtn.title = 'Volume pane ON — tap to hide';
     } else {
         volToggleBtn.classList.remove('vol-on');
+        volToggleBtn.classList.remove('active');
+        volToggleBtn.setAttribute('aria-pressed', 'false');
+        volToggleBtn.title = 'Volume pane OFF — tap to show';
     }
 }
 volToggleBtn.addEventListener('click', () => {
@@ -1796,7 +1838,10 @@ volToggleBtn.addEventListener('click', () => {
     state.volumeEnabled = !state.volumeEnabled;
     syncVolToggleUi();
     pushLog('info', 'Volume pane ' + (state.volumeEnabled ? 'ON' : 'OFF'));
-    if (currentView === 'chart') renderChart();
+    if (currentView === 'chart') {
+        resizeChart();
+        renderChart();
+    }
 });
 syncVolToggleUi();
 
@@ -1937,6 +1982,14 @@ function toggleChartType() {
 
 /* ============================================================
    INDICATOR SUB-PANELS
+   ============================================================
+   V-2 FIX (sub-panel side): #subPanelStack sits at z-index 3 and
+   #volumeOverlay at z-index 4. The sub-panel stack therefore
+   cannot occlude the volume pane, because the volume pane is
+   drawn on a canvas that sits above the stack. resizeSubPanels()
+   re-measures the stack after adding or removing a panel and
+   re-renders the volume overlay so its geometry stays in sync
+   with the price pane (which shrinks as the stack grows).
    ============================================================ */
 const subPanelStack = document.getElementById('subPanelStack');
 const subPanels = [];
@@ -2022,7 +2075,10 @@ function removeSubPanel(sp) {
 
 function resizeSubPanels() {
     const stackH = subPanelStack.clientHeight;
-    if (subPanels.length === 0) return;
+    if (subPanels.length === 0) {
+        if (currentView === 'chart') renderChart();
+        return;
+    }
     const each = Math.max(70, Math.min(110, Math.floor((stackH - 20) / subPanels.length)));
     subPanels.forEach(sp => {
         const el = document.getElementById(sp.id);
@@ -2030,6 +2086,7 @@ function resizeSubPanels() {
         resizeSubPanelCanvas(sp);
         drawSubPanel(sp);
     });
+    if (currentView === 'chart') renderChart();
 }
 
 function resizeSubPanelCanvas(sp) {
@@ -2196,6 +2253,7 @@ function openGridModal() {
             document.getElementById('tb-view-grid').classList.remove('active');
             document.getElementById('tb-view-regime').classList.remove('active');
             document.getElementById('chartCanvas').classList.remove('hidden');
+            document.getElementById('volumeOverlay').classList.remove('hidden');
             document.getElementById('subPanelStack').classList.remove('hidden');
             document.getElementById('regimeMapPanel').classList.remove('open');
             resizeChart();
@@ -2498,7 +2556,7 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'v' || e.key === 'V') {
         state.volumeEnabled = !state.volumeEnabled;
         syncVolToggleUi();
-        if (currentView === 'chart') renderChart();
+        if (currentView === 'chart') { resizeChart(); renderChart(); }
     }
     if (e.key === 'h' || e.key === 'H') {
         const p = document.getElementById('explainPanel');
@@ -2509,10 +2567,25 @@ document.addEventListener('keydown', (e) => {
 
 /* ============================================================
    CHART CANVAS SETUP
+   ============================================================
+   V-1 FIX: two canvases now exist side by side.
+     * #chartCanvas   — price pane only (candles, BB, anchors, FVG,
+                        signal markers, trailing-stop line, arc
+                        projection, grid, axes, crosshair).
+     * #volumeOverlay — the volume pane histogram, drawn on its own
+                        canvas at z-index 4 so it sits above the
+                        sub-panel stack and cannot be occluded.
+   Both canvases share the same width. The volume overlay's top
+   is set dynamically to pricePaneBottom(); its height is set to
+   volumePaneHeight(). When volumeEnabled is false, its height is
+   0 and it draws nothing.
    ============================================================ */
 const chartCanvas = document.getElementById('chartCanvas');
 const chartCtx = chartCanvas.getContext('2d');
+const volumeOverlay = document.getElementById('volumeOverlay');
+const volumeCtx = volumeOverlay ? volumeOverlay.getContext('2d') : null;
 let chartW = 0, chartH = 0, chartDpr = 1;
+let volumeW = 0, volumeH = 0, volumeDpr = 1;
 
 const PADDING = { top: 8, right: 68, bottom: 22, left: 8 };
 const CANDLE_BASE_WIDTH = 6;
@@ -2537,6 +2610,9 @@ const viewport = {
     pinch: { active: false, startDist: 0, startBarWidth: 0, startOffset: 0 },
 };
 
+/* ============================================================
+   RESIZE — CHART CANVAS (price pane)
+   ============================================================ */
 function resizeChart() {
     const rect = chartCanvas.getBoundingClientRect();
     const toolbarH = parseInt(getCssVar('--toolbar-h', '44'), 10) || 44;
@@ -2554,6 +2630,52 @@ function resizeChart() {
     chartCtx.setTransform(chartDpr, 0, 0, chartDpr, 0, 0);
     chartCanvas._width = chartW;
     chartCanvas._height = chartH;
+    resizeVolumeOverlay();
+}
+
+/* ============================================================
+   RESIZE — VOLUME OVERLAY CANVAS
+   ============================================================
+   The overlay is positioned absolutely at the volume-pane region
+   of the chart. Its top is pricePaneBottom() (in CSS pixels,
+   relative to the chart canvas which is itself offset by
+   --toolbar-h from the viewport top). Its height is
+   volumePaneHeight(). The overlay's own .style.top is expressed
+   in viewport coordinates, so we add the toolbar height offset.
+   ============================================================ */
+function resizeVolumeOverlay() {
+    if (!volumeOverlay || !volumeCtx) return;
+    if (!state.volumeEnabled || !state.bars || state.bars.length === 0) {
+        volumeOverlay.style.height = '0px';
+        volumeOverlay.style.top = '0px';
+        volumeW = 0; volumeH = 0;
+        volumeOverlay.width = 0;
+        volumeOverlay.height = 0;
+        return;
+    }
+    const toolbarH = parseInt(getCssVar('--toolbar-h', '44'), 10) || 44;
+    const paneH = volumePaneHeight();
+    if (paneH <= 0) {
+        volumeOverlay.style.height = '0px';
+        volumeOverlay.style.top = '0px';
+        volumeW = 0; volumeH = 0;
+        volumeOverlay.width = 0;
+        volumeOverlay.height = 0;
+        return;
+    }
+    const paneTop = pricePaneBottom();
+    volumeW = chartW;
+    volumeH = paneH;
+    volumeDpr = window.devicePixelRatio || 1;
+    volumeOverlay.style.left = '0px';
+    volumeOverlay.style.top = (toolbarH + paneTop) + 'px';
+    volumeOverlay.style.width = chartW + 'px';
+    volumeOverlay.style.height = paneH + 'px';
+    volumeOverlay.width = chartW * volumeDpr;
+    volumeOverlay.height = paneH * volumeDpr;
+    volumeCtx.setTransform(volumeDpr, 0, 0, volumeDpr, 0, 0);
+    volumeOverlay._width = chartW;
+    volumeOverlay._height = paneH;
 }
 
 window.addEventListener('resize', () => {
@@ -2570,12 +2692,25 @@ window.addEventListener('resize', () => {
    Every renderer that maps price → y uses priceToY() which is
    defined over the price-pane range only. When the volume pane is
    off, pricePaneBottom() == chartH - PADDING.bottom, so the price
-   plot fills the full canvas — behavior is identical to before.
+   plot fills the full canvas.
+
+   V-1 FIX: the volume pane is rendered on a SEPARATE canvas
+   (#volumeOverlay) rather than on #chartCanvas. This means the
+   price renderers (drawCandles, drawBollingerFamily, etc.) never
+   write pixels into the volume-pane region, and the volume pane
+   never has to fight for z-order with the price pane. The price
+   pane shrinks when the volume pane is on, so candlesticks, BB
+   bands, anchors, FVGs, signal markers, the trailing-stop line,
+   and the arc projection are all confined to the price pane.
    ============================================================ */
 function volumePaneHeight() {
     if (!state.volumeEnabled) return 0;
+    if (chartH <= 0) return 0;
     const ratio = parseFloat(getCssVar('--volume-pane-ratio', '0.20')) || 0.20;
-    return Math.floor((chartH - PADDING.top - PADDING.bottom) * ratio);
+    const avail = chartH - PADDING.top - PADDING.bottom;
+    if (avail <= 0) return 0;
+    const h = Math.floor(avail * ratio);
+    return h > 0 ? h : 0;
 }
 function pricePaneBottom() {
     return chartH - PADDING.bottom - volumePaneHeight();
@@ -2912,50 +3047,80 @@ function drawArcProjection() {
 }
 
 /* ============================================================
-   VOLUME PANE RENDERER
+   VOLUME PANE RENDERER — V-1/V-2 FIX
    ============================================================
-   Draws a histogram in the volume pane region (below the price
-   plot). Bar height is proportional to bar.volume normalized by
-   the maximum volume in the visible range. Bullish bars use the
-   candle-bull color, bearish bars use candle-bear.
+   The volume pane is now rendered on the #volumeOverlay canvas,
+   which is a separate DOM element positioned absolutely at the
+   volume-pane region of the chart (top = pricePaneBottom(), height
+   = volumePaneHeight()). Because the overlay sits at z-index 4,
+   above #chartCanvas (2) and #subPanelStack (3), no indicator
+   sub-panel can occlude it. Because the price renderers all use
+   priceToY()/pricePaneHeight(), which are defined over the price
+   pane only, the price renderers never write pixels into the
+   volume-pane region.
+
+   This function draws to volumeCtx, not chartCtx. It clears the
+   overlay, fills the pane background, draws the pane's top border,
+   draws the volume histogram (blue for bullish bars, red for
+   bearish bars, height normalized by the maximum visible volume),
+   and labels the pane with "VOL" on the left and the max volume
+   on the right.
+
+   If the overlay canvas has zero dimensions (because the toggle
+   is off, or the pane height computes to 0, or the canvas was
+   measured before layout), the function returns immediately.
    ============================================================ */
-function drawVolumePane() {
-    if (!state.volumeEnabled) return;
-    if (!state.bars || state.bars.length === 0) return;
-    const ctx = chartCtx;
-    const paneH = volumePaneHeight();
-    if (paneH <= 4) return;
-    const { totalBars, rightEdge, leftEdge, step } = getVisibleRange();
-    const realRight = Math.min(rightEdge, totalBars);
-    const realLeft = Math.max(0, leftEdge);
-    if (realRight <= realLeft) return;
-    const paneTop = pricePaneBottom();
-    const paneBottom = chartH - PADDING.bottom;
-    const maxV = (() => {
-        let m = 0;
-        for (let i = realLeft; i < realRight; i++) {
-            const b = state.bars[i];
-            if (!b) continue;
-            const v = Number(b.volume) || 0;
-            if (v > m) m = v;
+function drawVolumeOverlay() {
+    if (!volumeOverlay || !volumeCtx) return;
+    if (!state.volumeEnabled) {
+        if (volumeOverlay._width > 0 && volumeOverlay._height > 0) {
+            volumeCtx.clearRect(0, 0, volumeOverlay._width, volumeOverlay._height);
         }
-        return m || 1;
-    })();
-    // Pane background
+        return;
+    }
+    const w = volumeOverlay._width || 0;
+    const h = volumeOverlay._height || 0;
+    if (w <= 0 || h <= 4) return;
+    if (!state.bars || state.bars.length === 0) {
+        volumeCtx.clearRect(0, 0, w, h);
+        return;
+    }
+    const ctx = volumeCtx;
+    ctx.clearRect(0, 0, w, h);
+
     ctx.save();
     ctx.fillStyle = 'rgba(5,5,16,0.55)';
-    ctx.fillRect(PADDING.left, paneTop, chartW - PADDING.left - PADDING.right, paneH);
-    // Pane border (top edge)
+    ctx.fillRect(0, 0, w, h);
+
     ctx.strokeStyle = 'rgba(51,85,119,0.6)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(PADDING.left, paneTop);
-    ctx.lineTo(chartW - PADDING.right, paneTop);
+    ctx.moveTo(0, 0.5);
+    ctx.lineTo(w, 0.5);
     ctx.stroke();
-    // Volume bars
+
+    const { totalBars, rightEdge, leftEdge, step } = getVisibleRange();
+    const realRight = Math.min(rightEdge, totalBars);
+    const realLeft = Math.max(0, leftEdge);
+    if (realRight <= realLeft) {
+        ctx.restore();
+        return;
+    }
+
+    let maxV = 0;
+    for (let i = realLeft; i < realRight; i++) {
+        const b = state.bars[i];
+        if (!b) continue;
+        const v = Number(b.volume) || 0;
+        if (v > maxV) maxV = v;
+    }
+    if (maxV <= 0) maxV = 1;
+
     const BULL = getCssVar('--volume-bull', '#0000ff');
     const BEAR = getCssVar('--volume-bear', '#ff0000');
     const bw = Math.max(1, Math.min(viewport.barWidth, step * 0.7));
+    const paneBottom = h;
+    const paneH = h;
     for (let i = realLeft; i < realRight; i++) {
         const b = state.bars[i];
         if (!b) continue;
@@ -2970,16 +3135,17 @@ function drawVolumePane() {
         ctx.fillRect(x - bw / 2, y, bw, barH);
     }
     ctx.globalAlpha = 1.0;
-    // Pane label
-    ctx.fillStyle = 'rgba(68,136,255,0.85)';
+
+    ctx.fillStyle = 'rgba(68,136,255,0.9)';
     ctx.font = 'bold 8px "Courier New", monospace';
     ctx.textAlign = 'left';
-    ctx.fillText('VOL', PADDING.left + 3, paneTop + 9);
-    // Pane max label on the right axis
+    ctx.fillText('VOL', PADDING.left + 3, 9);
+
     ctx.fillStyle = '#6688aa';
     ctx.font = '8px "Courier New", monospace';
     ctx.textAlign = 'right';
-    ctx.fillText(formatVolume(maxV), chartW - PADDING.right - 2, paneTop + 9);
+    ctx.fillText(formatVolume(maxV), w - PADDING.right - 2, 9);
+
     ctx.restore();
 }
 
@@ -2993,8 +3159,27 @@ function formatVolume(v) {
 
 /* ============================================================
    CHART RENDERER — MASTER
+   ============================================================
+   V-1 FIX: renderChart() now:
+     1. Recovers from a zero-dimension canvas by re-calling
+        resizeChart() if chartCanvas._width or _height is <= 0.
+        This guarantees the volume pane is never permanently
+        collapsed by an early render that ran before layout.
+     2. Calls resizeVolumeOverlay() so the volume overlay's
+        geometry is refreshed on every render.
+     3. Does NOT call drawVolumePane() on chartCtx (that function
+        no longer exists). It calls drawVolumeOverlay() at the
+        end, which draws to volumeCtx.
+     4. The price renderers (drawGrid, drawBollingerFamily,
+        drawCandles, drawTopologicalAnchors, drawArcProjection,
+        drawFVGOverlays, drawTrailingStopLine, drawSignalMarkers,
+        drawAxes, drawCrosshair) all use priceToY() and
+        pricePaneHeight(), so they are confined to the price pane.
    ============================================================ */
 function renderChart() {
+    if (chartCanvas._width <= 0 || chartCanvas._height <= 0) {
+        resizeChart();
+    }
     const w = chartCanvas._width || 0;
     const h = chartCanvas._height || 0;
     if (w <= 0 || h <= 0) return;
@@ -3006,6 +3191,8 @@ function renderChart() {
         ctx.font = '12px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.fillText(HAS_BACKEND ? 'Awaiting OHLCV data…' : 'Backend URL not configured — add ?backend=https://your-app.herokuapp.com/', w / 2, h / 2);
+        resizeVolumeOverlay();
+        drawVolumeOverlay();
         return;
     }
     if (viewport.autoPrice) computePriceRange();
@@ -3019,11 +3206,12 @@ function renderChart() {
     drawTrailingStopLine();
     drawSignalMarkers();
     drawAxes();
-    drawVolumePane();
     drawCrosshair();
     updateChartHeader();
     updateToolbarPrice();
     updateProjectionLegend();
+    resizeVolumeOverlay();
+    drawVolumeOverlay();
 }
 
 /* ============================================================
@@ -3272,6 +3460,19 @@ function drawSignalMarkers() {
     }
 }
 
+/* ============================================================
+   AXES
+   ============================================================
+   V-4 FIX: drawAxes() no longer draws the bottom time labels at
+   y = chartH - 6 unconditionally. Because the price pane now
+   shrinks when the volume pane is on, and because the volume
+   overlay is a separate canvas that paints its own region, the
+   time labels are drawn at y = pricePaneBottom() + 14 when the
+   volume pane is off, and at y = chartH - 4 when the volume pane
+   is on (so they sit in the bottom margin below the volume pane).
+   This keeps the labels from being overwritten by the volume
+   overlay's background fill in either configuration.
+   ============================================================ */
 function drawAxes() {
     const ctx = chartCtx;
     ctx.fillStyle = '#aaccff';
@@ -3290,13 +3491,14 @@ function drawAxes() {
     const realLeft = Math.max(0, leftEdge);
     const visible = Math.max(1, realRight - realLeft);
     const tickEvery = Math.max(1, Math.floor(visible / 5));
+    const labelY = state.volumeEnabled ? (chartH - 4) : (pricePaneBottom() + 14);
     for (let i = realLeft; i < realRight; i += tickEvery) {
         const bar = state.bars[i];
         if (!bar) continue;
         const x = PADDING.left + (i - leftEdge) * step + step / 2;
         const ts = bar.timestamp;
         const label = (typeof ts === 'string') ? ts.substring(11, 16) : '';
-        ctx.fillText(label, x, chartH - 6);
+        ctx.fillText(label, x, labelY);
     }
     if (rightEdge > totalBars) {
         const boundaryX = PADDING.left + (totalBars - leftEdge) * step + step / 2;
@@ -3556,6 +3758,14 @@ function updateCrosshairReadout(x, y) {
 
 /* ============================================================
    DATA FETCHING
+   ============================================================
+   V-2 FIX (data side): fetchOhlcv() normalizes every bar so that
+   `volume` is always a Number, even when the relay response omits
+   it or returns it as a string. Without this normalization, the
+   volume pane silently drops bars whose volume is undefined and
+   the crosshair readout shows V 0 on every bar. The normalization
+   also coerces open/high/low/close to Number so downstream
+   arithmetic never operates on strings.
    ============================================================ */
 let pollHandles = {
     miniapp: null, ohlcv: null, signals: null, diag: null,
@@ -3591,10 +3801,6 @@ async function fetchOhlcv() {
     if (!r || r.__error) { noteFailure(); return; }
     noteSuccess();
     const rawBars = r.bars || [];
-    // V-2: normalize every bar so volume is always a number, even if the
-    // relay or an older backend response omitted it. Without this, the
-    // volume pane silently drops bars with undefined volume, and the
-    // crosshair readout shows V 0 on every bar.
     state.bars = rawBars.map(b => ({
         timestamp: b.timestamp,
         open: Number(b.open) || 0,
@@ -3608,6 +3814,9 @@ async function fetchOhlcv() {
     if (r.symbol) state.symbol = r.symbol;
     if (r.provider) state.provider = r.provider;
     if (_bbCacheBarsRef !== state.bars) invalidateBbCache();
+    if (currentView === 'chart') {
+        resizeVolumeOverlay();
+    }
 }
 
 async function fetchMiniAppState() {
@@ -4123,6 +4332,12 @@ function updateProjectionPanel() {
 
 /* ============================================================
    POLLING MODEL
+   ============================================================
+   Nine independent intervals plus a 300 s full-refresh safety net.
+   The /projection poll is short-circuited when computed_at has not
+   changed (D-41). The /miniapp-state poll re-renders the chart on
+   every tick; the /ohlcv poll re-measures the volume overlay after
+   replacing state.bars.
    ============================================================ */
 function startPolling() {
     stopPolling();
@@ -4183,6 +4398,16 @@ function stopPolling() {
 
 /* ============================================================
    BOOT
+   ============================================================
+   V-1 FIX: boot() now:
+     1. Calls resizeChart() which itself calls resizeVolumeOverlay().
+        This ensures the overlay is measured before the first render.
+     2. Calls syncVolToggleUi() so the VOL button's initial state
+        matches state.volumeEnabled (true) — the button starts lit.
+     3. After fetchAll() completes, calls renderChart() one more time
+        as a safety net in case the first render ran before the
+        first OHLCV payload arrived (in which case the volume overlay
+        was empty and must be redrawn with real volume data).
    ============================================================ */
 async function boot() {
     resizeChart();
@@ -4190,6 +4415,7 @@ async function boot() {
         showError('Chart canvas has zero dimensions — awaiting layout', 5000);
     }
     switchView('chart');
+    syncVolToggleUi();
     if (!HAS_BACKEND) {
         setConnBadge('err', 'no backend');
         showError('Backend URL not configured. Append ?backend=https://your-app.herokuapp.com/ to the Mini App URL, or set window.__AEEA_BACKEND_URL__ before load.', 10000);
@@ -4203,9 +4429,13 @@ async function boot() {
             pushLog('info', `Handshake OK: @${r.username || r.user_id || '?'}`);
         }
     }
+    if (currentView === 'chart') {
+        resizeChart();
+        renderChart();
+    }
     startPolling();
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.4.0 booted (volume pane corrected)');
+    pushLog('info', 'ÆEA TWA v4.4.1 booted (volume pane overlay + VOL toggle fix)');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -4218,22 +4448,34 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
    INITIAL LOG
    ============================================================ */
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.0');
+console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.1');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('v4.4.0 (Scroll-Ahead Edition + Volume Pane V-2):');
-console.log('  ✓ V-2: pricePaneBottom() / pricePaneHeight() now shrink the price');
-console.log('         plot when the volume pane is active, so candlesticks, BB');
-console.log('         family, anchors, FVGs, signal markers, trailing-stop line,');
-console.log('         arc projection, grid, and axes all render inside the price');
-console.log('         pane only. The volume pane occupies the lower region.');
-console.log('  ✓ V-2: fetchOhlcv() normalizes bar.volume to a Number so the');
-console.log('         crosshair readout and the volume histogram never see');
-console.log('         undefined. Bars with zero volume are still drawn as gaps.');
-console.log('  ✓ V-2: drawVolumePane() is called after drawAxes() so the pane');
-console.log('         border and histogram sit above the grid, below the crosshair.');
-console.log('  ✓ V-1: Volume pane histogram rendered below candlesticks.');
+console.log('v4.4.1 (Volume Pane Overlay + VOL Toggle Fix):');
+console.log('  ✓ V-1: 100vh fallback before 100dvh on html/body/canvas/');
+console.log('         subPanelStack/modals. canvas z-index raised to 2,');
+console.log('         subPanelStack to 3, new #volumeOverlay canvas at');
+console.log('         z-index 4. resizeChart() now calls');
+console.log('         resizeVolumeOverlay(). renderChart() recovers from');
+console.log('         a zero-dimension canvas by re-calling resizeChart().');
+console.log('         boot() redraws once after fetchAll() as a safety net.');
+console.log('  ✓ V-2: drawVolumeOverlay() draws to volumeCtx (the overlay');
+console.log('         canvas), not chartCtx. The old in-canvas');
+console.log('         drawVolumePane() is gone. The price renderers all use');
+console.log('         priceToY()/pricePaneHeight(), so they are confined to');
+console.log('         the price pane. fetchOhlcv() normalizes bar.volume to');
+console.log('         a Number so the histogram and the crosshair readout');
+console.log('         never see undefined.');
+console.log('  ✓ V-3: syncVolToggleUi() manages BOTH vol-on and active');
+console.log('         classes symmetrically, plus aria-pressed and title.');
+console.log('         The vol-on style has a bright blue border, blue text,');
+console.log('         blue tint background, and a box-shadow glow, so the');
+console.log('         ON state is unmistakable.');
+console.log('  ✓ V-4: drawAxes() places time labels in the bottom margin');
+console.log('         (chartH - 4 when volume is on, pricePaneBottom() + 14');
+console.log('         when volume is off), so the volume overlay never');
+console.log('         overwrites them.');
 console.log('  ✓ E-4: Execution-gated projection.');
 console.log('  ✓ E-5: Scroll-ahead viewport.');
 console.log('  ✓ E-6: Bot replies threaded to the user\'s most recent command.');
