@@ -47,6 +47,9 @@ html, body {
     --signal-neutral: #ffaa44;
     --projection-color: #aa66ff;
     --projection-glow: rgba(170,102,255,0.5);
+    --volume-bull: #0000ff;
+    --volume-bear: #ff0000;
+    --volume-pane-ratio: 0.20;
     --dock-h: 240px;
     --logbar-h: 26px;
     --toast-w: 260px;
@@ -172,6 +175,7 @@ html, body {
 .tb-btn.danger { border-color: var(--red); color: var(--red); }
 .tb-btn.bb-on { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.08); }
 .tb-btn.arc-on { border-color: var(--purple); color: var(--purple); background: rgba(170,102,255,0.08); }
+.tb-btn.vol-on { border-color: #4488ff; color: #4488ff; background: rgba(68,136,255,0.08); }
 .tb-symbol {
     font-size: 0.72rem;
     font-weight: bold;
@@ -272,7 +276,6 @@ html, body {
 /* ============================================================
    ARC PROJECTION LEGEND
    ============================================================ */
-/* E-9: stacked below the BB×58 legend when both are open. */
 #arcLegend {
     position: absolute;
     top: calc(var(--toolbar-h) + 52px);
@@ -453,6 +456,7 @@ html, body {
 .dockPanel .val-pink { color: var(--pink); font-weight: bold; }
 .dockPanel .val-purple { color: var(--purple); font-weight: bold; }
 .dockPanel .val-proj { color: var(--projection-color); font-weight: bold; }
+.dockPanel .val-vol { color: var(--blue); font-weight: bold; }
 .dockPanel .row { display: flex; gap: 6px; align-items: baseline; }
 .dockPanel .row + .row { margin-top: 2px; }
 
@@ -949,6 +953,7 @@ html, body {
         <button class="tb-btn" id="tb-add-indicator">+ IND</button>
         <button class="tb-btn" id="tb-fvg-list">FVG</button>
         <button class="tb-btn" id="tb-bb-toggle">BB×58</button>
+        <button class="tb-btn vol-on" id="tb-vol-toggle">VOL</button>
         <button class="tb-btn arc-on" id="tb-arc-toggle">ARC</button>
     </div>
     <span class="tb-sep"></span>
@@ -1017,7 +1022,7 @@ html, body {
         <div class="row"><span class="lbl">Orders</span><span class="val" id="eng-orders">none</span></div>
         <div class="row"><span class="lbl">safety</span><span class="val" id="eng-safety">false</span></div>
         <div class="row"><span class="lbl">Provider</span><span class="val-proj" id="eng-provider">—</span></div>
-        <div class="row"><span class="lbl">Volume</span><span class="val" id="eng-volume">0</span></div>
+        <div class="row"><span class="lbl">Volume</span><span class="val-vol" id="eng-volume">0</span></div>
         <div class="row"><span class="lbl">LastMsg</span><span class="val" id="eng-lastmsg">—</span></div>
     </div>
 
@@ -1090,14 +1095,15 @@ html, body {
 
 <div id="explainPanel">
     <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.0</h3>
-    <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, FVG list, <b>BB×58</b> toggle, <b>ARC</b> projection toggle, refresh, settings, help.</span></div>
+    <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, FVG list, <b>BB×58</b> toggle, <b>VOL</b> toggle, <b>ARC</b> projection toggle, refresh, settings, help.</span></div>
     <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span> (MQL4 <code>clrBlue</code>/<code>clrRed</code> parity).</span></div>
+    <div class="item"><b>VOLUME PANE</b> <span>— Tick volume histogram below the candlesticks. Bar height is proportional to <code>bar.volume</code> normalized by the maximum volume in the visible range. Bullish volume bars = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span>. Toggle via the <b>VOL</b> button. Volume data is sourced from the relay (Binance for crypto, Yahoo for equities/futures) and propagated through <code>/ohlcv</code>.</span></div>
     <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.4.0 computes σ via BigInt-backed exact arithmetic.</span></div>
     <div class="item"><b>ARC PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Premium/Discount band). Drawn dashed ahead of the last bar. <b>Recomputed only when a Bull/Bear/Hawk/Dove/Whisky/Wine/Watter/Blood/Diamond/Ruby execution fires</b>, plus once on engine init, once on symbol change, and on explicit refresh. All arithmetic is Decimal-exact on the backend.</span></div>
     <div class="item"><b>SCROLL-AHEAD</b> <span>— Drag the chart left past the last bar to scroll into the projected region. The projected endpoint (likely take-profit level) is reachable directly on the chart. The viewport's forward extent is bounded by <code>projection.path.length</code>.</span></div>
     <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; FVG toasts fire on every anchor commit/remove. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat, <b>threaded as a reply to your most recent command</b> — the bot responds to the user on every event, causing a native push notification.</span></div>
     <div class="item"><b>PROVIDER</b> <span>— The relay dispatches crypto symbols to Binance klines (real volume) with CoinGecko fallback and Yahoo tertiary. Equities/futures use Yahoo only. The current provider is shown in the Engine Panel and the Projection Panel.</span></div>
-    <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Premium/Discount), FVG lines, signal markers, trailing-stop line, arc projection.</span></div>
+    <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Premium/Discount), FVG lines, signal markers, trailing-stop line, arc projection, volume histogram.</span></div>
     <div class="item"><b>SUB-PANELS</b> <span>— MT4-style indicator sub-windows. Add via <b>+ IND</b>.</span></div>
     <div class="item"><b>13D GRID</b> <span>— The 13 classical indicators projected onto H₁₃, normalized to [0, 100].</span></div>
     <div class="item"><b>REGIME MAP</b> <span>— Per-bar regime classification: sRange / sVolatile / sTrend / Stable, with time-extension variants.</span></div>
@@ -1108,7 +1114,7 @@ html, body {
     <div class="item"><b>ORDER TICKET</b> <span>— Place simulated orders with lot/SL/TP. Numeric fields accept exact decimal strings.</span></div>
     <div class="item"><b>FVG</b> <span>— Long-press on chart to draw a Top/Bott FVG. Tap an FVG line to delete.</span></div>
     <div class="item"><b>LOG BAR</b> <span>— Last engine events. Tap to expand to the full log.</span></div>
-    <div style="margin-top:8px; opacity:0.6;">Keyboard: C=chart | G=grid | R=regime | A=arc toggle | H=help | F5=refresh | Esc=close modal.</div>
+    <div style="margin-top:8px; opacity:0.6;">Keyboard: C=chart | G=grid | R=regime | A=arc toggle | V=volume toggle | H=help | F5=refresh | Esc=close modal.</div>
 </div>
 
 <div id="contextMenu">
@@ -1573,6 +1579,7 @@ const state = {
     },
 
     bbFamilyEnabled: true,
+    volumeEnabled: true,
 
     logs_local: [],
     logs_server: [],
@@ -1773,6 +1780,25 @@ document.getElementById('bbLegendTitle').addEventListener('click', (e) => {
     bbLegendToggle.textContent = bbLegendBody.classList.contains('hidden') ? '[+]' : '[−]';
 });
 syncBbToggleUi();
+
+/* VOL toggle */
+const volToggleBtn = document.getElementById('tb-vol-toggle');
+function syncVolToggleUi() {
+    if (state.volumeEnabled) {
+        volToggleBtn.classList.add('vol-on');
+        volToggleBtn.classList.remove('active');
+    } else {
+        volToggleBtn.classList.remove('vol-on');
+    }
+}
+volToggleBtn.addEventListener('click', () => {
+    haptic('light');
+    state.volumeEnabled = !state.volumeEnabled;
+    syncVolToggleUi();
+    pushLog('info', 'Volume pane ' + (state.volumeEnabled ? 'ON' : 'OFF'));
+    if (currentView === 'chart') renderChart();
+});
+syncVolToggleUi();
 
 /* ARC toggle */
 const arcToggleBtn = document.getElementById('tb-arc-toggle');
@@ -2469,6 +2495,11 @@ document.addEventListener('keydown', (e) => {
         syncArcToggleUi();
         if (currentView === 'chart') renderChart();
     }
+    if (e.key === 'v' || e.key === 'V') {
+        state.volumeEnabled = !state.volumeEnabled;
+        syncVolToggleUi();
+        if (currentView === 'chart') renderChart();
+    }
     if (e.key === 'h' || e.key === 'H') {
         const p = document.getElementById('explainPanel');
         p.style.display = p.style.display === 'block' ? 'none' : 'block';
@@ -2547,30 +2578,30 @@ function yToPrice(y) {
 }
 
 /* ============================================================
+   VOLUME PANE RATIO
+   ============================================================ */
+function volumePaneHeight() {
+    if (!state.volumeEnabled) return 0;
+    const ratio = parseFloat(getCssVar('--volume-pane-ratio', '0.20')) || 0.20;
+    return Math.floor((chartH - PADDING.top - PADDING.bottom) * ratio);
+}
+function pricePaneBottom() {
+    return chartH - PADDING.bottom - volumePaneHeight();
+}
+
+/* ============================================================
    E-5: SCROLL-AHEAD VISIBLE-RANGE
-   ============================================================
-   The visible-range helper is centralized so every renderer that
-   needs leftEdge/rightEdge/visibleCount/step agrees on the same
-   numbers. When the projection is enabled and the user has dragged
-   the viewport into the forward region (offsetBars < 0), the right
-   edge is extended by the number of projected bars actually visible
-   so the dashed path is drawn in the correct screen positions and
-   the price axis accounts for the forward extremum.
    ============================================================ */
 function getVisibleRange() {
     const plotW = chartW - PADDING.left - PADDING.right;
     const totalBars = state.bars.length;
     const baseVisibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
     const projLen = (state.projection.enabled && state.projection.path) ? state.projection.path.length : 0;
-    // Forward extra: how far into the projected region the viewport has scrolled.
-    // offsetBars >= 0 → no forward extent (backward scroll, normal).
-    // offsetBars <  0 → forward extent = min(projLen, -offsetBars) projected bars
-    //                    sit to the right of the last real bar.
     const forwardExtra = (viewport.offsetBars < 0)
         ? Math.min(projLen, -viewport.offsetBars)
         : 0;
     const visibleCount = baseVisibleCount;
-    const rightEdge = totalBars - viewport.offsetBars; // may exceed totalBars when offsetBars < 0
+    const rightEdge = totalBars - viewport.offsetBars;
     const leftEdge = rightEdge - visibleCount;
     const step = plotW / visibleCount;
     return {
@@ -2597,7 +2628,6 @@ function computePriceRange() {
     if (!state.bars || state.bars.length === 0) return;
     const { totalBars, rightEdge, leftEdge } = getVisibleRange();
     let lo = Infinity, hi = -Infinity;
-    // Real bars in the visible range (clamped to [0, totalBars))
     const realRight = Math.min(rightEdge, totalBars);
     const realLeft = Math.max(0, leftEdge);
     for (let i = realLeft; i < realRight; i++) {
@@ -2606,7 +2636,6 @@ function computePriceRange() {
         if (b.low < lo) lo = b.low;
         if (b.high > hi) hi = b.high;
     }
-    // Projection forward bars that fall into the visible region
     if (state.projection.enabled && state.projection.path && state.projection.path.length > 0) {
         for (const step_k of state.projection.path) {
             const x = totalBars - 1 + step_k.step;
@@ -2787,14 +2816,6 @@ function drawBollingerFamily() {
 
 /* ============================================================
    E-5: ARC PROJECTION RENDERER (scroll-ahead aware)
-   ============================================================
-   The projection's first path point (step=1) sits one bar to the
-   right of the last real bar. When the viewport is at offsetBars>=0
-   and the projection extends past the visible right edge, the path
-   is clipped naturally by the canvas. When the viewport is scrolled
-   forward (offsetBars<0), the visible-range helper extends the right
-   edge so that the projected bars are drawn in their true forward
-   positions. The anchor circle is drawn at the last real bar's close.
    ============================================================ */
 function drawArcProjection() {
     if (!state.projection.enabled) return;
@@ -2804,8 +2825,6 @@ function drawArcProjection() {
     const { totalBars, leftEdge, step, baseX } = getVisibleRange();
     if (totalBars === 0) return;
 
-    // D-38: explicit isFinite check instead of || fallback so a valid
-    // string "0.0" doesn't get replaced by the live price.
     const anchorPriceParsed = parseFloat(proj.current_price);
     const anchorPrice = isFinite(anchorPriceParsed) && anchorPriceParsed > 0
         ? anchorPriceParsed
@@ -2815,9 +2834,6 @@ function drawArcProjection() {
     const anchorY = priceToY(anchorPrice);
     const projColor = getCssVar('--projection-color', '#aa66ff');
 
-    // Build the forward point list. step_k.step = 1 corresponds to the
-    // first projected bar, which sits one full bar step to the right of
-    // the last real bar (bar index totalBars in the extended indexing).
     const points = [{ x: anchorX, y: anchorY }];
     for (let i = 0; i < proj.path.length; i++) {
         const step_k = proj.path[i];
@@ -2830,22 +2846,20 @@ function drawArcProjection() {
     }
     if (points.length < 2) return;
 
-    // Soft gradient fill between the path and the price axis bottom
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
     for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
-    ctx.lineTo(points[points.length - 1].x, chartH - PADDING.bottom);
-    ctx.lineTo(points[0].x, chartH - PADDING.bottom);
+    ctx.lineTo(points[points.length - 1].x, pricePaneBottom());
+    ctx.lineTo(points[0].x, pricePaneBottom());
     ctx.closePath();
-    const grad = ctx.createLinearGradient(0, PADDING.top, 0, chartH - PADDING.bottom);
+    const grad = ctx.createLinearGradient(0, PADDING.top, 0, pricePaneBottom());
     grad.addColorStop(0, 'rgba(170,102,255,0.18)');
     grad.addColorStop(1, 'rgba(170,102,255,0.01)');
     ctx.fillStyle = grad;
     ctx.fill();
     ctx.restore();
 
-    // Dashed path with a soft outer glow
     ctx.save();
     ctx.strokeStyle = projColor;
     ctx.lineWidth = 2;
@@ -2865,13 +2879,11 @@ function drawArcProjection() {
     ctx.globalAlpha = 1.0;
     ctx.restore();
 
-    // Anchor dot at the last real bar's close
     ctx.fillStyle = projColor;
     ctx.beginPath();
     ctx.arc(anchorX, anchorY, 3.5, 0, 2 * Math.PI);
     ctx.fill();
 
-    // End dot + label at the projected endpoint
     const last = points[points.length - 1];
     ctx.fillStyle = projColor;
     ctx.beginPath();
@@ -2884,8 +2896,88 @@ function drawArcProjection() {
     ctx.font = 'bold 9px "Courier New", monospace';
     ctx.textAlign = 'left';
     const label = `${branch}${trig} → ${endPrice}`;
-    const labelY = Math.max(PADDING.top + 8, Math.min(chartH - PADDING.bottom - 4, last.y));
+    const labelY = Math.max(PADDING.top + 8, Math.min(pricePaneBottom() - 4, last.y));
     ctx.fillText(label, Math.min(last.x + 6, chartW - PADDING.right - 120), labelY);
+}
+
+/* ============================================================
+   VOLUME PANE RENDERER
+   ============================================================
+   Draws a histogram in the volume pane region (below the price
+   plot). Bar height is proportional to bar.volume normalized by
+   the maximum volume in the visible range. Bullish bars use the
+   candle-bull color, bearish bars use candle-bear.
+   ============================================================ */
+function drawVolumePane() {
+    if (!state.volumeEnabled) return;
+    if (!state.bars || state.bars.length === 0) return;
+    const ctx = chartCtx;
+    const paneH = volumePaneHeight();
+    if (paneH <= 4) return;
+    const { totalBars, rightEdge, leftEdge, step } = getVisibleRange();
+    const realRight = Math.min(rightEdge, totalBars);
+    const realLeft = Math.max(0, leftEdge);
+    if (realRight <= realLeft) return;
+    const paneTop = pricePaneBottom();
+    const paneBottom = chartH - PADDING.bottom;
+    const maxV = (() => {
+        let m = 0;
+        for (let i = realLeft; i < realRight; i++) {
+            const b = state.bars[i];
+            if (!b) continue;
+            const v = Number(b.volume) || 0;
+            if (v > m) m = v;
+        }
+        return m || 1;
+    })();
+    // Pane background
+    ctx.save();
+    ctx.fillStyle = 'rgba(5,5,16,0.55)';
+    ctx.fillRect(PADDING.left, paneTop, chartW - PADDING.left - PADDING.right, paneH);
+    // Pane border (top edge)
+    ctx.strokeStyle = 'rgba(51,85,119,0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PADDING.left, paneTop);
+    ctx.lineTo(chartW - PADDING.right, paneTop);
+    ctx.stroke();
+    // Volume bars
+    const BULL = getCssVar('--volume-bull', '#0000ff');
+    const BEAR = getCssVar('--volume-bear', '#ff0000');
+    const bw = Math.max(1, Math.min(viewport.barWidth, step * 0.7));
+    for (let i = realLeft; i < realRight; i++) {
+        const b = state.bars[i];
+        if (!b) continue;
+        const v = Number(b.volume) || 0;
+        if (v <= 0) continue;
+        const barH = Math.max(1, Math.floor((v / maxV) * (paneH - 4)));
+        const x = PADDING.left + (i - leftEdge) * step + step / 2;
+        const y = paneBottom - barH;
+        const isBull = b.close >= b.open;
+        ctx.fillStyle = isBull ? BULL : BEAR;
+        ctx.globalAlpha = 0.85;
+        ctx.fillRect(x - bw / 2, y, bw, barH);
+    }
+    ctx.globalAlpha = 1.0;
+    // Pane label
+    ctx.fillStyle = 'rgba(68,136,255,0.85)';
+    ctx.font = 'bold 8px "Courier New", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('VOL', PADDING.left + 3, paneTop + 9);
+    // Pane max label on the right axis
+    ctx.fillStyle = '#6688aa';
+    ctx.font = '8px "Courier New", monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(formatVolume(maxV), chartW - PADDING.right - 2, paneTop + 9);
+    ctx.restore();
+}
+
+function formatVolume(v) {
+    if (v >= 1e12) return (v / 1e12).toFixed(2) + 'T';
+    if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+    if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+    if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K';
+    return v.toFixed(0);
 }
 
 /* ============================================================
@@ -2916,6 +3008,7 @@ function renderChart() {
     drawTrailingStopLine();
     drawSignalMarkers();
     drawAxes();
+    drawVolumePane();
     drawCrosshair();
     updateChartHeader();
     updateToolbarPrice();
@@ -2938,14 +3031,14 @@ function drawRegimeBackground() {
     const color = regimeColors[state.regime] || 'transparent';
     if (color === 'transparent') return;
     chartCtx.fillStyle = color;
-    chartCtx.fillRect(PADDING.left, PADDING.top, chartW - PADDING.left - PADDING.right, chartH - PADDING.top - PADDING.bottom);
+    chartCtx.fillRect(PADDING.left, PADDING.top, chartW - PADDING.left - PADDING.right, pricePaneBottom() - PADDING.top);
 }
 
 function drawGrid() {
     const ctx = chartCtx;
     ctx.strokeStyle = 'rgba(50, 100, 150, 0.15)';
     ctx.lineWidth = 0.5;
-    const plotH = chartH - PADDING.top - PADDING.bottom;
+    const plotH = pricePaneBottom() - PADDING.top;
     for (let i = 0; i <= AXIS_STEPS; i++) {
         const y = PADDING.top + (plotH / AXIS_STEPS) * i;
         ctx.beginPath();
@@ -2953,7 +3046,6 @@ function drawGrid() {
         ctx.lineTo(chartW - PADDING.right, y);
         ctx.stroke();
     }
-    // Vertical grid at every ~5 visible bars, spanning the extended range
     const { totalBars, rightEdge, leftEdge, step } = getVisibleRange();
     const realRight = Math.min(rightEdge, totalBars);
     const realLeft = Math.max(0, leftEdge);
@@ -2963,7 +3055,7 @@ function drawGrid() {
         const x = PADDING.left + (i - leftEdge) * step + step / 2;
         ctx.beginPath();
         ctx.moveTo(x, PADDING.top);
-        ctx.lineTo(x, chartH - PADDING.bottom);
+        ctx.lineTo(x, pricePaneBottom());
         ctx.stroke();
     }
 }
@@ -3035,10 +3127,10 @@ function drawCandles() {
         if (type === 'AREA' && firstY !== null) {
             const lastX = PADDING.left + (realRight - leftEdge) * step + step / 2;
             const firstX = PADDING.left + (realLeft - leftEdge) * step + step / 2;
-            ctx.lineTo(lastX, chartH - PADDING.bottom);
-            ctx.lineTo(firstX, chartH - PADDING.bottom);
+            ctx.lineTo(lastX, pricePaneBottom());
+            ctx.lineTo(firstX, pricePaneBottom());
             ctx.closePath();
-            const grad = ctx.createLinearGradient(0, PADDING.top, 0, chartH - PADDING.bottom);
+            const grad = ctx.createLinearGradient(0, PADDING.top, 0, pricePaneBottom());
             grad.addColorStop(0, 'rgba(0, 255, 204, 0.25)');
             grad.addColorStop(1, 'rgba(0, 255, 204, 0.02)');
             ctx.fillStyle = grad;
@@ -3089,7 +3181,7 @@ function drawFVGOverlays() {
         const price = parseFloat(f.price);
         if (isNaN(price)) continue;
         const y = priceToY(price);
-        if (y < PADDING.top - 10 || y > chartH - PADDING.bottom + 10) continue;
+        if (y < PADDING.top - 10 || y > pricePaneBottom() + 10) continue;
         const color = f.type === 'top' ? '#4488ff' : '#ff66aa';
         ctx.strokeStyle = color;
         ctx.lineWidth = 1.5;
@@ -3111,7 +3203,7 @@ function drawTrailingStopLine() {
     const price = parseFloat(state.trailing_stop_price);
     if (isNaN(price) || price <= 0) return;
     const y = priceToY(price);
-    if (y < PADDING.top || y > chartH - PADDING.bottom) return;
+    if (y < PADDING.top || y > pricePaneBottom()) return;
     const ctx = chartCtx;
     ctx.strokeStyle = '#ffaa44';
     ctx.lineWidth = 1.5;
@@ -3148,7 +3240,7 @@ function drawSignalMarkers() {
             y = priceToY(sig.price);
         }
         if (x < PADDING.left || x > chartW - PADDING.right) continue;
-        if (y < PADDING.top || y > chartH - PADDING.bottom) continue;
+        if (y < PADDING.top || y > pricePaneBottom()) continue;
         const isBuy = sig.type === 'BUY';
         const isSell = sig.type === 'SELL';
         ctx.fillStyle = isBuy ? '#00ff88' : (isSell ? '#ff4466' : '#ffaa44');
@@ -3174,7 +3266,7 @@ function drawAxes() {
     ctx.fillStyle = '#aaccff';
     ctx.font = '10px "Courier New", monospace';
     ctx.textAlign = 'right';
-    const plotH = chartH - PADDING.top - PADDING.bottom;
+    const plotH = pricePaneBottom() - PADDING.top;
     for (let i = 0; i <= AXIS_STEPS; i++) {
         const price = viewport.priceMin + (viewport.priceMax - viewport.priceMin) * (i / AXIS_STEPS);
         const y = PADDING.top + plotH * (1 - i / AXIS_STEPS);
@@ -3195,8 +3287,6 @@ function drawAxes() {
         const label = (typeof ts === 'string') ? ts.substring(11, 16) : '';
         ctx.fillText(label, x, chartH - 6);
     }
-    // Forward-region marker: when scrolled past the last bar, label the
-    // boundary between real bars and projected bars.
     if (rightEdge > totalBars) {
         const boundaryX = PADDING.left + (totalBars - leftEdge) * step + step / 2;
         if (boundaryX > PADDING.left && boundaryX < chartW - PADDING.right) {
@@ -3205,7 +3295,7 @@ function drawAxes() {
             ctx.setLineDash([3, 3]);
             ctx.beginPath();
             ctx.moveTo(boundaryX, PADDING.top);
-            ctx.lineTo(boundaryX, chartH - PADDING.bottom);
+            ctx.lineTo(boundaryX, pricePaneBottom());
             ctx.stroke();
             ctx.setLineDash([]);
             ctx.fillStyle = 'rgba(170,102,255,0.85)';
@@ -3301,11 +3391,6 @@ function updateProjectionLegend() {
 
 /* ============================================================
    CHART INTERACTIONS — POINTER EVENTS
-   ============================================================
-   E-5: offsetBars is allowed to go negative down to
-   -projection.path.length. This lets the user drag past the last
-   real bar into the forward projected region and reach the
-   projected endpoint directly on the chart.
    ============================================================ */
 let longPressTimer = null;
 let longPressFired = false;
@@ -3361,14 +3446,11 @@ chartCanvas.addEventListener('pointermove', (e) => {
             const plotW = chartW - PADDING.left - PADDING.right;
             const visibleCount = Math.max(1, Math.floor(plotW / (viewport.barWidth * (1 + CANDLE_SPACING_RATIO))));
             const barsPerPx = visibleCount / plotW;
-            // Dragging left (dx < 0) increases offsetBars → scroll back in time.
-            // Dragging right (dx > 0) decreases offsetBars → scroll forward, including
-            // into the projected region down to -projection.path.length (E-5).
             const rawNext = viewport.dragStartOffset + dx * barsPerPx;
             viewport.offsetBars = clampOffsetBars(Math.round(rawNext));
         }
         if (Math.abs(dy) > 1) {
-            const plotH = chartH - PADDING.top - PADDING.bottom;
+            const plotH = pricePaneBottom() - PADDING.top;
             const pricePerPx = (viewport.dragStartPriceMax - viewport.dragStartPriceMin) / plotH;
             const dPrice = dy * pricePerPx;
             viewport.priceMin = viewport.dragStartPriceMin + dPrice;
@@ -3610,11 +3692,6 @@ function absorbMiniAppState(ma) {
     if (ma.last_volume !== undefined) state.last_volume = parseFloat(ma.last_volume) || 0;
     if (ma.last_inbound_message_id !== undefined) state.last_inbound_message_id = ma.last_inbound_message_id;
 
-    // E-8: merge server FVG anchors by idx instead of replacing the client
-    // list wholesale. A user-committed FVG whose commit hasn't yet propagated
-    // to the server's response would otherwise flicker out and back on each
-    // 2 s poll. We treat the server as authoritative for idxs it reports and
-    // retain any client-only idxs that the server has not yet seen.
     if (Array.isArray(ma.fvg_anchors)) {
         const serverByIdx = new Map();
         for (const a of ma.fvg_anchors) {
@@ -3633,9 +3710,6 @@ function absorbMiniAppState(ma) {
                 merged.push(serverByIdx.get(existing.idx));
                 seen.add(existing.idx);
             } else {
-                // Retain client-only FVG. It will be reconciled on the next
-                // poll once the server response catches up, or dropped by the
-                // engine's _maintain_fvg_lines() and then dropped here.
                 merged.push(existing);
                 seen.add(existing.idx);
             }
@@ -3659,15 +3733,8 @@ async function fetchProjection() {
     if (!HAS_BACKEND) return;
     const r = await apiJson('/projection');
     if (!r || r.__error) return;
-    // D-41: short-circuit when the projection has not been recomputed since
-    // the last poll. computed_at is the backend's authoritative marker for
-    // "a new projection was produced" (E-4: on execution, on init, on symbol
-    // change, on explicit refresh). This avoids redrawing the chart for an
-    // unchanged projection every 5 s while still picking up execution-gated
-    // recomputation promptly.
     const newComputedAt = r.computed_at || '';
     if (newComputedAt === state._lastProjectionComputedAt && state.projection.path && state.projection.path.length > 0) {
-        // Still update lightweight fields in case trigger/labels changed.
         if (r.trigger !== undefined) state.projection.trigger = r.trigger;
         return;
     }
@@ -3949,7 +4016,7 @@ function updateEnginePanel() {
     if (state.has_open_short) orders.push(`SHORT(${state.kOrder_id})`);
     setText('eng-orders', orders.length ? orders.join(', ') : 'none');
     setText('eng-provider', state.provider || '—');
-    setText('eng-volume', (state.last_volume || 0).toLocaleString());
+    setText('eng-volume', formatVolume(state.last_volume || 0));
     setText('eng-lastmsg', state.last_inbound_message_id !== null && state.last_inbound_message_id !== undefined
         ? String(state.last_inbound_message_id)
         : '—');
@@ -4110,7 +4177,7 @@ async function boot() {
     }
     startPolling();
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.4.0 booted');
+    pushLog('info', 'ÆEA TWA v4.4.0 booted (volume pane enabled)');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -4127,7 +4194,8 @@ console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.0');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('v4.4.0 (Scroll-Ahead Edition):');
+console.log('v4.4.0 (Scroll-Ahead Edition + Volume Pane):');
+console.log('  ✓ V-1: Volume pane rendered below candlesticks (tick volume histogram)');
 console.log('  ✓ E-4: Execution-gated projection (recomputed on Bull/Bear/Hawk/Dove/');
 console.log('         Whisky/Wine/Watter/Blood/Diamond/Ruby, on init, on symbol change,');
 console.log('         and on explicit POST /projection/refresh — NOT on bar close)');
