@@ -2563,22 +2563,14 @@ window.addEventListener('resize', () => {
 });
 
 /* ============================================================
-   PRICE ↔ Y MAPPING
-   ============================================================ */
-function priceToY(price) {
-    const range = (viewport.priceMax - viewport.priceMin) || 1;
-    const ratio = (price - viewport.priceMin) / range;
-    const plotH = chartH - PADDING.top - PADDING.bottom;
-    return PADDING.top + plotH * (1 - ratio);
-}
-function yToPrice(y) {
-    const plotH = chartH - PADDING.top - PADDING.bottom;
-    const ratio = 1 - (y - PADDING.top) / plotH;
-    return viewport.priceMin + ratio * (viewport.priceMax - viewport.priceMin);
-}
-
-/* ============================================================
-   VOLUME PANE RATIO
+   VOLUME PANE GEOMETRY
+   ============================================================
+   The price plot occupies [PADDING.top, pricePaneBottom()].
+   The volume pane occupies [pricePaneBottom(), chartH - PADDING.bottom].
+   Every renderer that maps price → y uses priceToY() which is
+   defined over the price-pane range only. When the volume pane is
+   off, pricePaneBottom() == chartH - PADDING.bottom, so the price
+   plot fills the full canvas — behavior is identical to before.
    ============================================================ */
 function volumePaneHeight() {
     if (!state.volumeEnabled) return 0;
@@ -2587,6 +2579,25 @@ function volumePaneHeight() {
 }
 function pricePaneBottom() {
     return chartH - PADDING.bottom - volumePaneHeight();
+}
+function pricePaneHeight() {
+    return pricePaneBottom() - PADDING.top;
+}
+
+/* ============================================================
+   PRICE ↔ Y MAPPING (over the price pane only)
+   ============================================================ */
+function priceToY(price) {
+    const range = (viewport.priceMax - viewport.priceMin) || 1;
+    const ratio = (price - viewport.priceMin) / range;
+    const plotH = pricePaneHeight();
+    return PADDING.top + plotH * (1 - ratio);
+}
+function yToPrice(y) {
+    const plotH = pricePaneHeight();
+    if (plotH <= 0) return viewport.priceMin;
+    const ratio = 1 - (y - PADDING.top) / plotH;
+    return viewport.priceMin + ratio * (viewport.priceMax - viewport.priceMin);
 }
 
 /* ============================================================
@@ -3031,14 +3042,14 @@ function drawRegimeBackground() {
     const color = regimeColors[state.regime] || 'transparent';
     if (color === 'transparent') return;
     chartCtx.fillStyle = color;
-    chartCtx.fillRect(PADDING.left, PADDING.top, chartW - PADDING.left - PADDING.right, pricePaneBottom() - PADDING.top);
+    chartCtx.fillRect(PADDING.left, PADDING.top, chartW - PADDING.left - PADDING.right, pricePaneHeight());
 }
 
 function drawGrid() {
     const ctx = chartCtx;
     ctx.strokeStyle = 'rgba(50, 100, 150, 0.15)';
     ctx.lineWidth = 0.5;
-    const plotH = pricePaneBottom() - PADDING.top;
+    const plotH = pricePaneHeight();
     for (let i = 0; i <= AXIS_STEPS; i++) {
         const y = PADDING.top + (plotH / AXIS_STEPS) * i;
         ctx.beginPath();
@@ -3266,7 +3277,7 @@ function drawAxes() {
     ctx.fillStyle = '#aaccff';
     ctx.font = '10px "Courier New", monospace';
     ctx.textAlign = 'right';
-    const plotH = pricePaneBottom() - PADDING.top;
+    const plotH = pricePaneHeight();
     for (let i = 0; i <= AXIS_STEPS; i++) {
         const price = viewport.priceMin + (viewport.priceMax - viewport.priceMin) * (i / AXIS_STEPS);
         const y = PADDING.top + plotH * (1 - i / AXIS_STEPS);
@@ -3450,7 +3461,7 @@ chartCanvas.addEventListener('pointermove', (e) => {
             viewport.offsetBars = clampOffsetBars(Math.round(rawNext));
         }
         if (Math.abs(dy) > 1) {
-            const plotH = pricePaneBottom() - PADDING.top;
+            const plotH = pricePaneHeight();
             const pricePerPx = (viewport.dragStartPriceMax - viewport.dragStartPriceMin) / plotH;
             const dPrice = dy * pricePerPx;
             viewport.priceMin = viewport.dragStartPriceMin + dPrice;
@@ -3530,12 +3541,16 @@ function updateCrosshairReadout(x, y) {
     el.style.display = 'block';
     el.style.left = Math.min(x + 12, window.innerWidth - 180) + 'px';
     el.style.top = Math.min(y + 12, window.innerHeight - 100) + 'px';
+    const volRaw = Number(bar.volume);
+    const volStr = isFinite(volRaw) && volRaw > 0
+        ? formatVolume(volRaw) + ' (' + volRaw.toFixed(0) + ')'
+        : '0';
     el.innerHTML = `
         <div><span class="lbl">O</span> <span class="val">${bar.open.toFixed(5)}</span></div>
         <div><span class="lbl">H</span> <span class="val">${bar.high.toFixed(5)}</span></div>
         <div><span class="lbl">L</span> <span class="val">${bar.low.toFixed(5)}</span></div>
         <div><span class="lbl">C</span> <span class="val">${bar.close.toFixed(5)}</span></div>
-        <div><span class="lbl">V</span> <span class="val">${(bar.volume || 0).toFixed(0)}</span></div>
+        <div><span class="lbl">V</span> <span class="val">${volStr}</span></div>
     `;
 }
 
@@ -3575,7 +3590,20 @@ async function fetchOhlcv() {
     const r = await apiJson('/ohlcv?limit=200&interval=' + encodeURIComponent(tf));
     if (!r || r.__error) { noteFailure(); return; }
     noteSuccess();
-    state.bars = r.bars || [];
+    const rawBars = r.bars || [];
+    // V-2: normalize every bar so volume is always a number, even if the
+    // relay or an older backend response omitted it. Without this, the
+    // volume pane silently drops bars with undefined volume, and the
+    // crosshair readout shows V 0 on every bar.
+    state.bars = rawBars.map(b => ({
+        timestamp: b.timestamp,
+        open: Number(b.open) || 0,
+        high: Number(b.high) || 0,
+        low: Number(b.low) || 0,
+        close: Number(b.close) || 0,
+        volume: Number(b.volume) || 0,
+        provider: b.provider || '',
+    }));
     state.ohlcv_count = r.count || state.bars.length;
     if (r.symbol) state.symbol = r.symbol;
     if (r.provider) state.provider = r.provider;
@@ -4177,7 +4205,7 @@ async function boot() {
     }
     startPolling();
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.4.0 booted (volume pane enabled)');
+    pushLog('info', 'ÆEA TWA v4.4.0 booted (volume pane corrected)');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -4194,22 +4222,24 @@ console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.0');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('v4.4.0 (Scroll-Ahead Edition + Volume Pane):');
-console.log('  ✓ V-1: Volume pane rendered below candlesticks (tick volume histogram)');
-console.log('  ✓ E-4: Execution-gated projection (recomputed on Bull/Bear/Hawk/Dove/');
-console.log('         Whisky/Wine/Watter/Blood/Diamond/Ruby, on init, on symbol change,');
-console.log('         and on explicit POST /projection/refresh — NOT on bar close)');
-console.log('  ✓ E-5: Scroll-ahead viewport (drag past the last bar to the projected TP)');
-console.log('  ✓ E-6: Bot replies threaded to the user\'s most recent command');
-console.log('  ✓ E-7: Bounded push dispatch (single queue.Queue(maxsize=512))');
-console.log('  ✓ E-8: FVG anchors merged by idx (no 2s poll flicker)');
-console.log('  ✓ E-9: #arcLegend stacked below #bbLegend');
-console.log('  ✓ D-41: /projection poll short-circuits when computed_at is unchanged');
-console.log('  ✓ D-38: drawArcProjection uses explicit isFinite for the anchor price');
-console.log('  ✓ D-33: half-period kept as Fraction until the cosine call site');
-console.log('  ✓ D-34: projection path no longer places step=1 one bar too far right');
-console.log('  ✓ Projection Panel + ARC legend display the trigger field');
-console.log('  ✓ Engine Panel displays the last inbound message id');
+console.log('v4.4.0 (Scroll-Ahead Edition + Volume Pane V-2):');
+console.log('  ✓ V-2: pricePaneBottom() / pricePaneHeight() now shrink the price');
+console.log('         plot when the volume pane is active, so candlesticks, BB');
+console.log('         family, anchors, FVGs, signal markers, trailing-stop line,');
+console.log('         arc projection, grid, and axes all render inside the price');
+console.log('         pane only. The volume pane occupies the lower region.');
+console.log('  ✓ V-2: fetchOhlcv() normalizes bar.volume to a Number so the');
+console.log('         crosshair readout and the volume histogram never see');
+console.log('         undefined. Bars with zero volume are still drawn as gaps.');
+console.log('  ✓ V-2: drawVolumePane() is called after drawAxes() so the pane');
+console.log('         border and histogram sit above the grid, below the crosshair.');
+console.log('  ✓ V-1: Volume pane histogram rendered below candlesticks.');
+console.log('  ✓ E-4: Execution-gated projection.');
+console.log('  ✓ E-5: Scroll-ahead viewport.');
+console.log('  ✓ E-6: Bot replies threaded to the user\'s most recent command.');
+console.log('  ✓ E-7: Bounded push dispatch.');
+console.log('  ✓ E-8: FVG anchors merged by idx.');
+console.log('  ✓ E-9: #arcLegend stacked below #bbLegend.');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
