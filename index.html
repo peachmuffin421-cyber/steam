@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ÆEA Engine · MQL4-Parity Port · TWA v4.4.3</title>
+<title>ÆEA Engine · MQL4-Parity Port · TWA v4.4.1</title>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -58,6 +58,12 @@ html, body {
 
 /* ============================================================
    CANVAS LAYER
+   ============================================================
+   V-1 FIX: 100vh fallback before 100dvh so WebViews that do not
+   support dvh do not collapse the canvas to its intrinsic height.
+   V-2 FIX: #chartCanvas z-index raised to 2, #subPanelStack to 3,
+   and a new #volumeOverlay canvas at z-index 4 sits over the
+   volume-pane region so no sub-panel can ever occlude it.
    ============================================================ */
 #chartCanvas {
     position: absolute;
@@ -973,10 +979,10 @@ html, body {
     <span class="tb-sep"></span>
     <div class="tb-group">
         <button class="tb-btn" id="tb-add-indicator">+ IND</button>
-        <button class="tb-btn" id="tb-fvg-list">FVG</button>
+        <button class="tb-btn" id="tb-fvg-list">ℱ_VG</button>
         <button class="tb-btn" id="tb-bb-toggle">BB×58</button>
-        <button class="tb-btn vol-on" id="tb-vol-toggle">VOL</button>
-        <button class="tb-btn arc-on" id="tb-arc-toggle">ARC</button>
+        <button class="tb-btn vol-on" id="tb-vol-toggle">𝒱</button>
+        <button class="tb-btn arc-on" id="tb-arc-toggle">𝒫_arc</button>
     </div>
     <span class="tb-sep"></span>
     <div class="tb-group">
@@ -999,7 +1005,7 @@ html, body {
 </div>
 
 <div id="arcLegend">
-    <div class="arc-title" id="arcLegendTitle">ARC PROJECTION <span id="arcLegendToggle">[+]</span></div>
+    <div class="arc-title" id="arcLegendTitle">𝒫_arc Projection <span id="arcLegendToggle">[+]</span></div>
     <div class="arc-body hidden" id="arcLegendBody">
         <div class="arc-row"><span class="arc-swatch dashed"></span> Projected path (dashed, ahead of last bar)</div>
         <div class="arc-row" style="margin-top:3px;">Branch: <span id="arc-branch" style="color:var(--projection-color);">—</span></div>
@@ -1012,10 +1018,10 @@ html, body {
 
 <div id="chartHeader">
     <div class="symbol" id="chart-symbol">—</div>
-    <div class="regime" id="chart-regime">Regime: —</div>
+    <div class="regime" id="chart-regime">ℛ_regime: —</div>
     <div class="imbalance" id="chart-imbalance">m=0 · n=0 · δ=-2</div>
     <div class="last-update" id="chart-lastupdate">Updated: —</div>
-    <div class="projection" id="chart-projection">Projection: —</div>
+    <div class="projection" id="chart-projection">𝒫_arc: —</div>
 </div>
 
 <div id="toastStack"></div>
@@ -1023,38 +1029,38 @@ html, body {
 <div id="crosshairReadout"></div>
 
 <div id="fvgListPanel">
-    <div style="color:var(--cyan);font-weight:bold;margin-bottom:4px;">FVG ANCHORS</div>
+    <div style="color:var(--cyan);font-weight:bold;margin-bottom:4px;">ℱ_VG ANCHORS</div>
     <div id="fvgListItems"></div>
 </div>
 
 <div id="regimeMapPanel">
-    <h3>REGIME CLASSIFICATION MAP</h3>
+    <h3>ℛ_regime CLASSIFICATION MAP</h3>
     <div id="regimeMapRows"></div>
 </div>
 
 <div id="bottomDock">
     <div class="dockPanel" id="enginePanel">
         <div class="dock-title">Engine State</div>
-        <div class="row"><span class="lbl">KC</span><span class="val" id="eng-kc">true</span><span class="lbl">invert</span><span class="val" id="eng-invert">true</span><span class="lbl">tag</span><span class="val" id="eng-tag">-1</span></div>
-        <div class="row"><span class="lbl">prime</span><span class="val" id="eng-prime">-1</span><span class="lbl">dime</span><span class="val" id="eng-dime">-1</span><span class="lbl">mem</span><span class="val" id="eng-mem">-1</span></div>
-        <div class="row"><span class="lbl">A</span><span class="val" id="eng-a">true</span><span class="lbl">B</span><span class="val" id="eng-b">true</span><span class="lbl">C</span><span class="val" id="eng-c">true</span><span class="lbl">c</span><span class="val" id="eng-cc">true</span></div>
-        <div class="row"><span class="lbl">tick_tock</span><span class="val" id="eng-ticktock">false</span><span class="lbl">signature</span><span class="val" id="eng-signature">false</span></div>
-        <div class="row"><span class="lbl">Trailing</span><span class="val-warn" id="eng-trailing">inactive</span><span class="lbl">@</span><span class="val" id="eng-trailing-price">—</span></div>
-        <div class="row"><span class="lbl">OnTrack</span><span class="val" id="eng-ontrack">0</span><span class="lbl">OnStand</span><span class="val" id="eng-onstand">0</span></div>
-        <div class="row"><span class="lbl">Orders</span><span class="val" id="eng-orders">none</span></div>
-        <div class="row"><span class="lbl">safety</span><span class="val" id="eng-safety">false</span></div>
-        <div class="row"><span class="lbl">Provider</span><span class="val-proj" id="eng-provider">—</span></div>
-        <div class="row"><span class="lbl">Volume</span><span class="val-vol" id="eng-volume">0</span></div>
-        <div class="row"><span class="lbl">LastMsg</span><span class="val" id="eng-lastmsg">—</span></div>
+        <div class="row"><span class="lbl">𝒦</span><span class="val" id="eng-kc">true</span><span class="lbl">𝒦_invert</span><span class="val" id="eng-invert">true</span><span class="lbl">τ</span><span class="val" id="eng-tag">-1</span></div>
+        <div class="row"><span class="lbl">π</span><span class="val" id="eng-prime">-1</span><span class="lbl">δ_dime</span><span class="val" id="eng-dime">-1</span><span class="lbl">μ</span><span class="val" id="eng-mem">-1</span></div>
+        <div class="row"><span class="lbl">𝒜</span><span class="val" id="eng-a">true</span><span class="lbl">ℬ</span><span class="val" id="eng-b">true</span><span class="lbl">𝒞</span><span class="val" id="eng-c">true</span><span class="lbl">𝒸</span><span class="val" id="eng-cc">true</span></div>
+        <div class="row"><span class="lbl">𝒯_tick_tock</span><span class="val" id="eng-ticktock">false</span><span class="lbl">𝒮</span><span class="val" id="eng-signature">false</span></div>
+        <div class="row"><span class="lbl">𝒯_trail</span><span class="val-warn" id="eng-trailing">inactive</span><span class="lbl">@</span><span class="val" id="eng-trailing-price">—</span></div>
+        <div class="row"><span class="lbl">𝒯_track</span><span class="val" id="eng-ontrack">0</span><span class="lbl">𝒯_stand</span><span class="val" id="eng-onstand">0</span></div>
+        <div class="row"><span class="lbl">𝒪</span><span class="val" id="eng-orders">none</span></div>
+        <div class="row"><span class="lbl">𝒮_safety</span><span class="val" id="eng-safety">false</span></div>
+        <div class="row"><span class="lbl">𝒫</span><span class="val-proj" id="eng-provider">—</span></div>
+        <div class="row"><span class="lbl">𝒱</span><span class="val-vol" id="eng-volume">0</span></div>
+        <div class="row"><span class="lbl">ℳ_last</span><span class="val" id="eng-lastmsg">—</span></div>
     </div>
 
     <div class="dockPanel" id="kroneckerPanel">
-        <div class="dock-title">Kronecker δ(m−n−2)</div>
+        <div class="dock-title">δ(m−n−2)</div>
         <div class="row"><span class="lbl">m</span><span class="val-bull" id="kron-m">0</span><span class="lbl">n</span><span class="val-bear" id="kron-n">0</span><span class="lbl">δ</span><span class="val-warn" id="kron-delta">-2</span></div>
         <div class="row"><span class="lbl">@ h</span><span class="val" id="kron-h">0</span></div>
         <div class="row"><span class="lbl">m@h</span><span class="val-bull" id="kron-mh">0</span><span class="lbl">n@h</span><span class="val-bear" id="kron-nh">0</span></div>
         <div class="row"><span class="lbl">k[h]</span><span class="val" id="kron-kh">false</span><span class="lbl">l[h]</span><span class="val" id="kron-lh">false</span></div>
-        <div class="row"><span class="lbl">Gate</span><span class="val-warn" id="kron-gate">WAITING</span></div>
+        <div class="row"><span class="lbl">Gate</span><span class="val-warn" id="kron-gate">𝒜₄</span></div>
     </div>
 
     <div class="dockPanel" id="derivativePanel">
@@ -1065,12 +1071,12 @@ html, body {
         <div class="row"><span class="lbl">I</span><span class="val" id="der-I">0</span><span class="lbl">iI</span><span class="val" id="der-iI">0</span><span class="lbl">J</span><span class="val" id="der-J">0</span><span class="lbl">iJ</span><span class="val" id="der-iJ">0</span></div>
         <div class="row"><span class="lbl">X_scan</span><span class="val" id="der-Xscan">1</span><span class="lbl">Y_scan</span><span class="val" id="der-Yscan">1</span></div>
         <div class="row"><span class="lbl">S</span><span class="val" id="der-S">62</span><span class="lbl">T</span><span class="val" id="der-T">62</span><span class="lbl">r</span><span class="val" id="der-r">0</span><span class="lbl">ir</span><span class="val" id="der-ir">0</span></div>
-        <div class="row"><span class="lbl">iATR</span><span class="val" id="der-atr">50</span><span class="lbl">iStdDev</span><span class="val" id="der-std">50</span></div>
-        <div class="row"><span class="lbl">iIHKk</span><span class="val" id="der-ihkk">50</span><span class="lbl">iIHKt</span><span class="val" id="der-ihkt">50</span></div>
+        <div class="row"><span class="lbl">𝒜_ATR</span><span class="val" id="der-atr">50</span><span class="lbl">𝒜_StdDev</span><span class="val" id="der-std">50</span></div>
+        <div class="row"><span class="lbl">𝒜_IHKk</span><span class="val" id="der-ihkk">50</span><span class="lbl">𝒜_IHKt</span><span class="val" id="der-ihkt">50</span></div>
     </div>
 
     <div class="dockPanel" id="projectionPanel">
-        <div class="dock-title">Arc-Length Projection</div>
+        <div class="dock-title">𝒫_arc Projection</div>
         <div class="row"><span class="lbl">Branch</span><span class="val-proj" id="proj-kind">—</span></div>
         <div class="row"><span class="lbl">Horizon</span><span class="val" id="proj-horizon">—</span><span class="lbl">bars</span></div>
         <div class="row"><span class="lbl">Slope</span><span class="val" id="proj-slope">—</span></div>
@@ -1116,34 +1122,34 @@ html, body {
 <div id="errorDisplay"></div>
 
 <div id="explainPanel">
-    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.3</h3>
-    <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, FVG list, <b>BB×58</b> toggle, <b>VOL</b> toggle, <b>ARC</b> projection toggle, refresh, settings, help.</span></div>
+    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.1</h3>
+    <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, ℱ_VG list, <b>BB×58</b> toggle, <b>𝒱</b> toggle, <b>𝒫_arc</b> projection toggle, refresh, settings, help.</span></div>
     <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span> (MQL4 <code>clrBlue</code>/<code>clrRed</code> parity).</span></div>
-    <div class="item"><b>VOLUME PANE</b> <span>— Tick volume histogram below the candlesticks. Bar height is proportional to <code>bar.volume</code> normalized by the maximum volume in the visible range. Bullish volume bars = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span>. Toggle via the <b>VOL</b> button. Rendered on the <code>#volumeOverlay</code> canvas at <code>z-index: 4</code>, above the sub-panel stack, so no indicator sub-panel can occlude it. Volume data is sourced from the relay (Binance for crypto, Yahoo for equities/futures) and propagated through <code>/ohlcv</code>.</span></div>
-    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.4.3 computes σ via BigInt-backed exact arithmetic.</span></div>
-    <div class="item"><b>ARC PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Premium/Discount band). Drawn dashed ahead of the last bar. <b>Recomputed only when a Bull/Bear/Hawk/Dove/Whisky/Wine/Watter/Blood/Diamond/Ruby execution fires</b>, plus once on engine init, once on symbol change, and on explicit refresh. All arithmetic is Decimal-exact on the backend.</span></div>
+    <div class="item"><b>𝒱 PANE</b> <span>— Tick volume histogram below the candlesticks. Bar height is proportional to <code>bar.volume</code> normalized by the maximum volume in the visible range. Bullish volume bars = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span>. Toggle via the <b>𝒱</b> button. Rendered on the <code>#volumeOverlay</code> canvas at <code>z-index: 4</code>, above the sub-panel stack, so no indicator sub-panel can occlude it. Volume data is sourced from the relay (Binance for crypto, Yahoo for equities/futures) and propagated through <code>/ohlcv</code>.</span></div>
+    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.4.1 computes σ via BigInt-backed exact arithmetic.</span></div>
+    <div class="item"><b>𝒫_arc PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Π^{>θ}/Π^{<θ} band). Drawn dashed ahead of the last bar. <b>Recomputed only when a 𝒟_Bull/𝒟_Bear/ℋ_Hawk/𝒟_Dove/𝒲_Whisky/𝒲_Wine/𝒲_Watter/ℬ_Blood/𝒟_Diamond/ℛ_Ruby execution fires</b>, plus once on engine init, once on symbol change, and on explicit refresh. All arithmetic is Decimal-exact on the backend.</span></div>
     <div class="item"><b>SCROLL-AHEAD</b> <span>— Drag the chart left past the last bar to scroll into the projected region. The projected endpoint (likely take-profit level) is reachable directly on the chart. The viewport's forward extent is bounded by <code>projection.path.length</code>.</span></div>
-    <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; FVG toasts fire on every anchor commit/remove. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat, <b>threaded as a reply to your most recent command</b> — the bot responds to the user on every event, causing a native push notification.</span></div>
-    <div class="item"><b>PROVIDER</b> <span>— The relay dispatches crypto symbols to Binance klines (real volume) with CoinGecko fallback and Yahoo tertiary. Equities/futures use Yahoo only. The current provider is shown in the Engine Panel and the Projection Panel.</span></div>
-    <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Premium/Discount), FVG lines, signal markers, trailing-stop line, arc projection, volume histogram.</span></div>
+    <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; ℱ_VG toasts fire on every anchor commit/remove. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat, <b>threaded as a reply to your most recent command</b> — the bot responds to the user on every event, causing a native push notification.</span></div>
+    <div class="item"><b>𝒫 (Provider)</b> <span>— The relay dispatches crypto symbols to Binance klines (real volume) with CoinGecko fallback and Yahoo tertiary. Equities/futures use Yahoo only. The current provider is shown in the Engine Panel and the 𝒫_arc Panel.</span></div>
+    <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Π^{>θ}/Π^{<θ}), ℱ_VG lines, signal markers, 𝒯_trail line, 𝒫_arc projection, 𝒱 histogram.</span></div>
     <div class="item"><b>SUB-PANELS</b> <span>— MT4-style indicator sub-windows. Add via <b>+ IND</b>.</span></div>
     <div class="item"><b>13D GRID</b> <span>— The 13 classical indicators projected onto H₁₃, normalized to [0, 100].</span></div>
-    <div class="item"><b>REGIME MAP</b> <span>— Per-bar regime classification: sRange / sVolatile / sTrend / Stable, with time-extension variants.</span></div>
-    <div class="item"><b>KRONECKER δ</b> <span>— δ(m−n−2). m = overbought count, n = oversold count. H() fires when m ≥ 12, L() fires when n ≥ 12.</span></div>
-    <div class="item"><b>ENGINE PANEL</b> <span>— KC / prime / dime / mem / tag / invert / A / B / C / c / tick_tock / signature / trailing / OnTrack / OnStand / orders / safety / provider / volume / LastMsg.</span></div>
-    <div class="item"><b>DERIVATIVE PANEL</b> <span>— Z / z / O / o / W / w / I / iI / J / iJ / X_scan / Y_scan / S / T / r / ir / iATR / iStdDev / iIHKk / iIHKt.</span></div>
-    <div class="item"><b>PROJECTION PANEL</b> <span>— Branch / horizon / slope / amplitude / center / damping / provider / trigger / next / end / updated.</span></div>
+    <div class="item"><b>ℛ_regime MAP</b> <span>— Per-bar regime classification: 𝒮_Range / 𝒮_Volatile / 𝒮_Trend / 𝒮_Stable, with time-extension variants.</span></div>
+    <div class="item"><b>δ</b> <span>— δ(m−n−2). m = overbought count, n = oversold count. H() fires when m ≥ 12, L() fires when n ≥ 12.</span></div>
+    <div class="item"><b>ENGINE PANEL</b> <span>— 𝒦 / π / δ_dime / μ / τ / 𝒦_invert / 𝒜 / ℬ / 𝒞 / 𝒸 / 𝒯_tick_tock / 𝒮 / 𝒯_trail / 𝒯_track / 𝒯_stand / 𝒪 / 𝒮_safety / 𝒫 / 𝒱 / ℳ_last.</span></div>
+    <div class="item"><b>DERIVATIVE PANEL</b> <span>— Z / z / O / o / W / w / I / iI / J / iJ / X_scan / Y_scan / S / T / r / ir / 𝒜_ATR / 𝒜_StdDev / 𝒜_IHKk / 𝒜_IHKt.</span></div>
+    <div class="item"><b>𝒫_arc PANEL</b> <span>— Branch / horizon / slope / amplitude / center / damping / provider / trigger / next / end / updated.</span></div>
     <div class="item"><b>ORDER TICKET</b> <span>— Place simulated orders with lot/SL/TP. Numeric fields accept exact decimal strings.</span></div>
-    <div class="item"><b>FVG</b> <span>— Long-press on chart to draw a Top/Bott FVG. Tap an FVG line to delete.</span></div>
+    <div class="item"><b>ℱ_VG</b> <span>— Long-press on chart to draw a 𝒯_Top/ℬ_Bott ℱ_VG. Tap an ℱ_VG line to delete.</span></div>
     <div class="item"><b>LOG BAR</b> <span>— Last engine events. Tap to expand to the full log.</span></div>
     <div style="margin-top:8px; opacity:0.6;">Keyboard: C=chart | G=grid | R=regime | A=arc toggle | V=volume toggle | H=help | F5=refresh | Esc=close modal.</div>
 </div>
 
 <div id="contextMenu">
-    <div class="ctx-item" data-action="fvg-top">Draw FVG Top here</div>
-    <div class="ctx-item" data-action="fvg-bott">Draw FVG Bott here</div>
+    <div class="ctx-item" data-action="fvg-top">Draw 𝒯_Top ℱ_VG here</div>
+    <div class="ctx-item" data-action="fvg-bott">Draw ℬ_Bott ℱ_VG here</div>
     <div class="ctx-sep"></div>
-    <div class="ctx-item" data-action="delete-fvg">Delete FVG nearest here</div>
+    <div class="ctx-item" data-action="delete-fvg">Delete ℱ_VG nearest here</div>
     <div class="ctx-sep"></div>
     <div class="ctx-item" data-action="cancel">Cancel</div>
 </div>
@@ -1226,111 +1232,6 @@ function resolveBackendUrl() {
 }
 const BACKEND_URL = resolveBackendUrl();
 const HAS_BACKEND = BACKEND_URL.length > 0;
-
-/* ============================================================
-   CODEX SYMBOLICA (CS) — SYMBOL CONSTANTS
-   ============================================================ */
-const CS_SIGNAL          = "δ(m-n-2)=1";
-const CS_EXECUTION       = "𝔼";
-const CS_BULL            = "Π^{>66.6}";
-const CS_BEAR            = "Π^{<33.3}";
-const CS_WHISKY          = "sRange ⟹ s²=r²";
-const CS_WINE            = "sVolatile ⟹ s²≠r²";
-const CS_WATTER          = "sTrend ⟹ ds/dr=1";
-const CS_BLOOD           = "Stable ⟹ dΦ/dt=0";
-const CS_HAWK            = "KC(t)=invert(t)";
-const CS_DOVE            = "F()=reset_extrema";
-const CS_DIAMOND         = "δ(m-n-2)=1";
-const CS_RUBY            = "δ(m-n-2)=1";
-const CS_TOP             = "FVG⁺";
-const CS_BOTT            = "FVG⁻";
-const CS_PROVIDER        = "Φ_provider";
-const CS_VOLUME          = "∫V d³x";
-const CS_REGIME          = "Regime(s)";
-const CS_KRONECKER       = "δ(m-n-2)";
-const CS_PROJECTION      = "Ψ(t)=Σc_k(t)|k⟩";
-const CS_ARC             = "s=∮‖dq/dt‖dt";
-const CS_IMBALANCE       = "Î=Σ(Π^{>66.6}-Π^{<33.3})";
-const CS_TRAILING        = "T()";
-const CS_ORDERS          = "𝕆";
-const CS_ENTRY           = "p_entry";
-const CS_EXIT            = "p_exit";
-const CS_STOP_LOSS       = "SL";
-const CS_TAKE_PROFIT     = "TP";
-const CS_COHERENCE       = "s=r";
-const CS_COHERENCE_SQ    = "s²=r²";
-const CS_EVOLUTION       = "s²≠r²";
-const CS_OBSERVER        = "O[Ψ]=∫ψ†Φψ d⁴q";
-const CS_FIELD           = "Φ=E+iB";
-const CS_NORM            = "‖Φ‖²";
-const CS_M               = "m";
-const CS_N               = "n";
-const CS_DELTA           = "δ";
-const CS_KC              = "KC";
-const CS_PRIME           = "prime";
-const CS_DIME            = "dime";
-const CS_MEM             = "mem";
-const CS_TAG             = "tag";
-const CS_INVERT          = "invert";
-const CS_SAFETY          = "safety";
-const CS_SIGNATURE       = "signature";
-const CS_TICK_TOCK       = "tick_tock";
-const CS_A               = "A";
-const CS_B               = "B";
-const CS_C               = "C";
-const CS_c               = "c";
-const CS_BUY             = "BUY";
-const CS_SELL            = "SELL";
-const CS_NEUTRAL         = "NEUTRAL";
-const CS_PREMIUM         = "Premium";
-const CS_DISCOUNT        = "Discount";
-const CS_HH              = "HH";
-const CS_LL              = "LL";
-const CS_FVG             = "FVG";
-const CS_SRANGE          = "sRange";
-const CS_SVOLATILE       = "sVolatile";
-const CS_STREND          = "sTrend";
-const CS_STABLE          = "Stable";
-const CS_TRANGE          = "tRange";
-const CS_TVOLATILE       = "tVolatile";
-const CS_TTREND          = "tTrend";
-const CS_UNKNOWN         = "Unknown";
-const CS_LONG            = "LONG";
-const CS_SHORT           = "SHORT";
-const CS_NONE            = "none";
-const CS_YES             = "yes";
-const CS_NO              = "no";
-const CS_ACTIVE          = "active";
-const CS_INACTIVE        = "inactive";
-const CS_UP              = "Up";
-const CS_DOWN            = "Down";
-const CS_FLYING          = "Flying";
-const CS_FALLING         = "Falling";
-const CS_WAIT_DECERN     = "Wait/Decern";
-const CS_RANGE           = "range";
-const CS_TREND           = "trend";
-const CS_VOLATILE        = "volatile";
-const CS_INDICATORS      = "Indicators";
-const CS_DIAGNOSTICS     = "Diagnostics";
-const CS_ONTrack         = "OnTrack";
-const CS_ONSTAND         = "OnStand";
-const CS_ADX             = "iA[0]";
-const CS_STOCHASTIC      = "iA[1]";
-const CS_RVI             = "iA[2]";
-const CS_AC              = "iA[3]";
-const CS_FORCE           = "iA[4]";
-const CS_OBV             = "iA[5]";
-const CS_AD              = "iA[6]";
-const CS_MFI             = "iA[7]";
-const CS_MOMENTUM        = "iA[8]";
-const CS_DEMARKER        = "iA[9]";
-const CS_WPR             = "iA[10]";
-const CS_CCI             = "iA[11]";
-const CS_RSI             = "iA[12]";
-const CS_IATR            = "iATR";
-const CS_ISTDDEV         = "iStdDev";
-const CS_IIHKK           = "iIHKk";
-const CS_IIHKT           = "iIHKt";
 
 /* ============================================================
    TELEGRAM WEB APP BOOTSTRAP
@@ -1512,39 +1413,50 @@ function pushToast(toast) {
     const el = document.createElement('div');
     el.className = 'toast';
     if (toast.kind === 'signal') {
-        if (toast.type === CS_BUY) el.classList.add('signal-buy');
-        else if (toast.type === CS_SELL) el.classList.add('signal-sell');
+        if (toast.type === 'BUY') el.classList.add('signal-buy');
+        else if (toast.type === 'SELL') el.classList.add('signal-sell');
         else el.classList.add('signal-neutral');
+        const dirCs = toast.type === 'BUY' ? '↑' : (toast.type === 'SELL' ? '↓' : '⊙');
         el.innerHTML =
-            '<div class="toast-title">🎯 ' + CS_SIGNAL + ' · ' + escapeHtml(toast.type || '?') + '</div>' +
+            '<div class="toast-title">🎯 𝒮_signal · ' + escapeHtml(dirCs) + '</div>' +
             '<div class="toast-line">Price <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
-            '<div class="toast-line">' + CS_M + ' <span class="v">' + escapeHtml(String(toast.m ?? '—')) + '</span> · ' + CS_N + ' <span class="v">' + escapeHtml(String(toast.n ?? '—')) + '</span> · h <span class="v">' + escapeHtml(String(toast.h ?? '—')) + '</span></div>' +
+            '<div class="toast-line">m <span class="v">' + escapeHtml(String(toast.m ?? '—')) + '</span> · n <span class="v">' + escapeHtml(String(toast.n ?? '—')) + '</span> · h <span class="v">' + escapeHtml(String(toast.h ?? '—')) + '</span></div>' +
             '<div class="toast-line">' + escapeHtml(toast.regime || '') + ' · tick ' + escapeHtml(String(toast.tick ?? '—')) + '</div>';
     } else if (toast.kind === 'fvg') {
-        const isTop = (toast.type === CS_TOP);
+        const isTop = (toast.type === 'top');
         el.classList.add(isTop ? 'fvg-top' : 'fvg-bott');
         const action = toast.action || 'commit';
         const arrow = isTop ? '▲' : '▼';
+        const csType = isTop ? '𝒯_Top' : 'ℬ_Bott';
         el.innerHTML =
-            '<div class="toast-title">📐 ' + CS_FVG + ' ' + escapeHtml(action.toUpperCase()) + ' · ' + arrow + ' ' + escapeHtml(toast.type || '?') + '</div>' +
+            '<div class="toast-title">📐 ℱ_VG ' + escapeHtml(action.toUpperCase()) + ' · ' + arrow + ' ' + escapeHtml(csType) + '</div>' +
             '<div class="toast-line">Price <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
             '<div class="toast-line">idx <span class="v">' + escapeHtml(String(toast.idx ?? '—')) + '</span> · tick ' + escapeHtml(String(toast.tick ?? '—')) + '</div>';
     } else {
         const execMap = {
-            [CS_BULL]: '🐂', [CS_BEAR]: '🐻', [CS_WHISKY]: '🥃', [CS_WINE]: '🍷',
-            [CS_WATTER]: '💧', [CS_BLOOD]: '🩸', [CS_HAWK]: '🦅', [CS_DOVE]: '🕊️',
-            [CS_DIAMOND]: '🔷', [CS_RUBY]: '🔻', [CS_TOP]: '▲', [CS_BOTT]: '▼',
+            'Bull': '🐂', 'Bear': '🐻', 'Whisky': '🥃', 'Wine': '🍷',
+            'Watter': '💧', 'Blood': '🩸', 'Hawk': '🦅', 'Dove': '🕊️',
+            'Diamond': '🔷', 'Ruby': '🔻', 'Top': '▲', 'Bott': '▼',
             'A': '🅰️', 'B': '🅱️', 'ManualOrder': '📝', 'ManualClose': '✂️',
         };
+        const csMap = {
+            'Bull': '𝒟_Bull', 'Bear': '𝒟_Bear', 'Whisky': '𝒲_Whisky',
+            'Wine': '𝒲_Wine', 'Watter': '𝒲_Watter', 'Blood': 'ℬ_Blood',
+            'Hawk': 'ℋ_Hawk', 'Dove': '𝒟_Dove', 'Diamond': '𝒟_Diamond',
+            'Ruby': 'ℛ_Ruby', 'Top': '𝒯_Top', 'Bott': 'ℬ_Bott',
+            'A': '𝒜', 'B': 'ℬ_Close', 'ManualOrder': 'ℳ_Order',
+            'ManualClose': 'ℳ_Close',
+        };
         const emoji = execMap[toast.event] || '⚡';
-        if (toast.side === CS_BUY) el.classList.add('exec-buy');
-        else if (toast.side === CS_SELL) el.classList.add('exec-sell');
+        const csEvent = csMap[toast.event] || toast.event;
+        if (toast.side === 'BUY') el.classList.add('exec-buy');
+        else if (toast.side === 'SELL') el.classList.add('exec-sell');
         else if (toast.side === 'CLOSE') el.classList.add('exec-close');
         else el.classList.add('execution');
         const reason = toast.reason ? (' · ' + escapeHtml(toast.reason)) : '';
         el.innerHTML =
-            '<div class="toast-title">' + emoji + ' ' + escapeHtml(toast.event || CS_EXECUTION) + '</div>' +
-            '<div class="toast-line">' + escapeHtml(toast.side || CS_NONE) + ' · <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
+            '<div class="toast-title">' + emoji + ' ' + escapeHtml(csEvent) + '</div>' +
+            '<div class="toast-line">' + escapeHtml(toast.side || 'NONE') + ' · <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
             '<div class="toast-line">ticket ' + escapeHtml(String(toast.ticket ?? '—')) + ' · tick ' + escapeHtml(String(toast.tick ?? '—')) + reason + '</div>';
     }
     el.addEventListener('click', () => dismissToast(el));
@@ -1593,28 +1505,33 @@ async function fetchToasts() {
    SINGLE SOURCE OF TRUTH FOR INDICATOR NAMES
    ============================================================ */
 const INDICATOR_NAMES = [
-    CS_ADX, CS_STOCHASTIC, CS_RVI, CS_AC, CS_FORCE, CS_OBV, CS_AD,
-    CS_MFI, CS_MOMENTUM, CS_DEMARKER, CS_WPR, CS_CCI, CS_RSI
+    'ADX', 'Stochastic', 'RVI', 'AC', 'Force', 'OBV', 'AD',
+    'MFI', 'Momentum', 'DeMarker', 'WPR', 'CCI', 'RSI'
+];
+
+const INDICATOR_NAMES_CS = [
+    '𝒜[0]', '𝒜[1]', '𝒜[2]', '𝒜[3]', '𝒜[4]', '𝒜[5]', '𝒜[6]',
+    '𝒜[7]', '𝒜[8]', '𝒜[9]', '𝒜[10]', '𝒜[11]', '𝒜[12]',
 ];
 
 const INDICATOR_RANGES = {
-    [CS_ADX]:        { min: 0,   max: 100,  levels: [33.3, 66.6] },
-    [CS_STOCHASTIC]: { min: 0,   max: 100,  levels: [20, 80] },
-    [CS_RVI]:        { min: 0,   max: 100,  levels: [20, 80] },
-    [CS_AC]:         { min: 0,   max: 100,  levels: [33.3, 66.6] },
-    [CS_FORCE]:      { min: 0,   max: 100,  levels: [33.3, 66.6] },
-    [CS_OBV]:        { min: 0,   max: 100,  levels: [33.3, 66.6] },
-    [CS_AD]:         { min: 0,   max: 100,  levels: [33.3, 66.6] },
-    [CS_MFI]:        { min: 0,   max: 100,  levels: [20, 80] },
-    [CS_MOMENTUM]:   { min: 0,   max: 100,  levels: [33.3, 66.6] },
-    [CS_DEMARKER]:   { min: 0,   max: 100,  levels: [30, 70] },
-    [CS_WPR]:        { min: 0,   max: 100,  levels: [20, 80] },
-    [CS_CCI]:        { min: 0,   max: 100,  levels: [33.3, 66.6] },
-    [CS_RSI]:        { min: 0,   max: 100,  levels: [30, 70] },
-    "IchimokuK":     { min: 0,   max: 100,  levels: [] },
-    "IchimokuT":     { min: 0,   max: 100,  levels: [] },
-    [CS_IATR]:       { min: 0,   max: 100,  levels: [] },
-    [CS_ISTDDEV]:    { min: 0,   max: 100,  levels: [] },
+    'ADX':        { min: 0,   max: 100,  levels: [33.3, 66.6] },
+    'Stochastic': { min: 0,   max: 100,  levels: [20, 80] },
+    'RVI':        { min: 0,   max: 100,  levels: [20, 80] },
+    'AC':         { min: 0,   max: 100,  levels: [33.3, 66.6] },
+    'Force':      { min: 0,   max: 100,  levels: [33.3, 66.6] },
+    'OBV':        { min: 0,   max: 100,  levels: [33.3, 66.6] },
+    'AD':         { min: 0,   max: 100,  levels: [33.3, 66.6] },
+    'MFI':        { min: 0,   max: 100,  levels: [20, 80] },
+    'Momentum':   { min: 0,   max: 100,  levels: [33.3, 66.6] },
+    'DeMarker':   { min: 0,   max: 100,  levels: [30, 70] },
+    'WPR':        { min: 0,   max: 100,  levels: [20, 80] },
+    'CCI':        { min: 0,   max: 100,  levels: [33.3, 66.6] },
+    'RSI':        { min: 0,   max: 100,  levels: [30, 70] },
+    'IchimokuK':  { min: 0,   max: 100,  levels: [] },
+    'IchimokuT':  { min: 0,   max: 100,  levels: [] },
+    'ATR':        { min: 0,   max: 100,  levels: [] },
+    'StdDev':     { min: 0,   max: 100,  levels: [] },
 };
 
 const state = {
@@ -1624,7 +1541,7 @@ const state = {
     symbol: '—',
     price: 0,
     prevPrice: 0,
-    regime: CS_UNKNOWN,
+    regime: 'Unknown',
     lastUpdate: null,
     timeframe: '1m',
     chartType: 'CANDLES',
@@ -1692,7 +1609,7 @@ const state = {
         computed_at: null,
         current_price: 0,
         signal_level: 0,
-        regime: CS_UNKNOWN,
+        regime: 'Unknown',
         trigger: '',
         enabled: true,
     },
@@ -1773,9 +1690,9 @@ contextMenu.addEventListener('click', (e) => {
     closeContextMenu();
     if (action === 'cancel') return;
     if (action === 'fvg-top') {
-        commitFvg(CS_TOP, contextMenuState.price);
+        commitFvg('top', contextMenuState.price);
     } else if (action === 'fvg-bott') {
-        commitFvg(CS_BOTT, contextMenuState.price);
+        commitFvg('bott', contextMenuState.price);
     } else if (action === 'delete-fvg') {
         deleteNearestFvg(contextMenuState.price);
     }
@@ -1909,26 +1826,34 @@ document.getElementById('bbLegendTitle').addEventListener('click', (e) => {
 });
 syncBbToggleUi();
 
-/* VOL toggle */
+/* ============================================================
+   VOL TOGGLE — V-3 FIX
+   ============================================================
+   syncVolToggleUi() now manages BOTH the vol-on class (blue tint
+   + glow) AND the active class (bright border) symmetrically, so
+   the button cannot get stuck in a half-lit state. The on-state
+   is visually unmistakable: bright blue border, blue text, blue
+   tint background, and a box-shadow glow defined in the CSS.
+   ============================================================ */
 const volToggleBtn = document.getElementById('tb-vol-toggle');
 function syncVolToggleUi() {
     if (state.volumeEnabled) {
         volToggleBtn.classList.add('vol-on');
         volToggleBtn.classList.add('active');
         volToggleBtn.setAttribute('aria-pressed', 'true');
-        volToggleBtn.title = 'Volume pane ON — tap to hide';
+        volToggleBtn.title = '𝒱 pane ON — tap to hide';
     } else {
         volToggleBtn.classList.remove('vol-on');
         volToggleBtn.classList.remove('active');
         volToggleBtn.setAttribute('aria-pressed', 'false');
-        volToggleBtn.title = 'Volume pane OFF — tap to show';
+        volToggleBtn.title = '𝒱 pane OFF — tap to show';
     }
 }
 volToggleBtn.addEventListener('click', () => {
     haptic('light');
     state.volumeEnabled = !state.volumeEnabled;
     syncVolToggleUi();
-    pushLog('info', 'Volume pane ' + (state.volumeEnabled ? 'ON' : 'OFF'));
+    pushLog('info', '𝒱 pane ' + (state.volumeEnabled ? 'ON' : 'OFF'));
     if (currentView === 'chart') {
         resizeChart();
         renderChart();
@@ -1956,7 +1881,7 @@ arcToggleBtn.addEventListener('click', () => {
     haptic('light');
     state.projection.enabled = !state.projection.enabled;
     syncArcToggleUi();
-    pushLog('info', CS_PROJECTION + ' ' + (state.projection.enabled ? 'ON' : 'OFF'));
+    pushLog('info', '𝒫_arc projection ' + (state.projection.enabled ? 'ON' : 'OFF'));
     if (currentView === 'chart') renderChart();
 });
 document.getElementById('arcLegendTitle').addEventListener('click', (e) => {
@@ -2003,7 +1928,7 @@ function openSymbolPicker() {
                     if (r && r.ok) {
                         state.symbol = sym;
                         document.getElementById('tb-symbol').textContent = sym;
-                        pushLog('info', `Symbol changed to ${sym} (${CS_PROVIDER}=${r.provider || '—'})`);
+                        pushLog('info', `Symbol changed to ${sym} (provider=${r.provider || '—'})`);
                         fetchAll();
                     } else {
                         const detail = r && (r.error || r.detail || (r.__body && r.__body.error)) || 'unknown';
@@ -2073,6 +1998,14 @@ function toggleChartType() {
 
 /* ============================================================
    INDICATOR SUB-PANELS
+   ============================================================
+   V-2 FIX (sub-panel side): #subPanelStack sits at z-index 3 and
+   #volumeOverlay at z-index 4. The sub-panel stack therefore
+   cannot occlude the volume pane, because the volume pane is
+   drawn on a canvas that sits above the stack. resizeSubPanels()
+   re-measures the stack after adding or removing a panel and
+   re-renders the volume overlay so its geometry stays in sync
+   with the price pane (which shrinks as the stack grows).
    ============================================================ */
 const subPanelStack = document.getElementById('subPanelStack');
 const subPanels = [];
@@ -2282,16 +2215,22 @@ function openSubPanelSettings(sp) {
    INDICATOR PICKER
    ============================================================ */
 const ADDABLE_INDICATORS = [
-    CS_ADX, CS_STOCHASTIC, CS_RVI, CS_AC, CS_FORCE, CS_OBV, CS_AD,
-    CS_MFI, CS_MOMENTUM, CS_DEMARKER, CS_WPR, CS_CCI, CS_RSI,
-    "IchimokuK", "IchimokuT", CS_IATR, CS_ISTDDEV,
+    'ADX', 'Stochastic', 'RVI', 'AC', 'Force', 'OBV', 'AD',
+    'MFI', 'Momentum', 'DeMarker', 'WPR', 'CCI', 'RSI',
+    'IchimokuK', 'IchimokuT', 'ATR', 'StdDev',
+];
+
+const ADDABLE_INDICATORS_CS = [
+    '𝒜[0]', '𝒜[1]', '𝒜[2]', '𝒜[3]', '𝒜[4]', '𝒜[5]', '𝒜[6]',
+    '𝒜[7]', '𝒜[8]', '𝒜[9]', '𝒜[10]', '𝒜[11]', '𝒜[12]',
+    '𝒜_IHKk', '𝒜_IHKt', '𝒜_ATR', '𝒜_StdDev',
 ];
 
 function openIndicatorPicker() {
     const html = `
         <h3>Add Indicator</h3>
         <div id="indicatorPickerList">
-            ${ADDABLE_INDICATORS.map(n => `<div class="ind-item" data-name="${n}">${n}</div>`).join('')}
+            ${ADDABLE_INDICATORS.map((n, i) => `<div class="ind-item" data-name="${n}">${ADDABLE_INDICATORS_CS[i]}</div>`).join('')}
         </div>
         <div class="modal-actions">
             <button class="tb-btn" id="ind-cancel">Cancel</button>
@@ -2350,14 +2289,15 @@ function renderGridBody(container) {
     let html = '';
     for (let i = 0; i < 13; i++) {
         const name = INDICATOR_NAMES[i];
+        const nameCS = INDICATOR_NAMES_CS[i];
         const series = state.indicator_series[name];
         const val = (series && series.length > 0) ? series[series.length - 1] : 50;
         const pct = Math.max(0, Math.min(100, val));
         const cls = val > 66.6 ? 'overbought' : (val < 33.3 ? 'oversold' : '');
-        const status = val > 66.6 ? '▲ OB' : (val < 33.3 ? '▼ OS' : '');
+        const status = val > 66.6 ? '▲ Π^{>θ}' : (val < 33.3 ? '▼ Π^{<θ}' : '');
         html += `
             <div style="display:grid;grid-template-columns:80px 50px 1fr 50px;gap:6px;align-items:center;padding:3px 0;border-bottom:1px solid rgba(51,85,119,0.2);font-size:0.55rem;">
-                <div style="color:#88aacc;">${name}</div>
+                <div style="color:#88aacc;">${nameCS}</div>
                 <div style="color:#ffaa44;font-weight:bold;text-align:right;">${val.toFixed(2)}</div>
                 <div style="background:rgba(20,30,50,0.6);border-radius:3px;height:10px;overflow:hidden;">
                     <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#4488ff,#00ffcc);"></div>
@@ -2368,12 +2308,12 @@ function renderGridBody(container) {
     }
     html += `
         <div style="margin-top:10px;padding:8px;background:rgba(20,30,50,0.6);border-left:3px solid #ffaa44;border-radius:4px;font-size:0.5rem;line-height:1.5;">
-            <b>Thresholds:</b> Overbought = f + gf = 200/3 + 40/15 ≈ <span style="color:#ffaa44;">66.6</span> · Oversold = g − gf = 100/3 − 40/15 ≈ <span style="color:#4488ff;">33.3</span><br>
+            <b>Thresholds:</b> Π^{>θ} = f + g_f = 200/3 + 40/15 ≈ <span style="color:#ffaa44;">66.6</span> · Π^{<θ} = g − g_f = 100/3 − 40/15 ≈ <span style="color:#4488ff;">33.3</span><br>
             <b>M() count:</b> number of indicators > 66.6 (with HH/LL boundary conditions) · <b>N() count:</b> number of indicators &lt; 33.3<br>
-            <b>H() fires when m ≥ 12 · L() fires when n ≥ 12 → Kronecker δ(m−n−2) = 1</b><br>
-            <b>Live:</b> ${CS_M} = <span style="color:#00ff88;">${state.market_m}</span> · ${CS_N} = <span style="color:#ff4466;">${state.market_n}</span> · ${CS_DELTA} = <span style="color:#ffaa44;">${state.market_imbalance}</span> · ${CS_REGIME} = ${state.regime}<br>
-            <b>${CS_PROVIDER}:</b> <span style="color:#aa66ff;">${state.provider || '—'}</span> · <b>${CS_VOLUME}:</b> ${state.last_volume}<br>
-            <b>${CS_PROJECTION}:</b> <span style="color:#aa66ff;">${(state.projection.meta && state.projection.meta.kind) || '—'}</span> · trigger = ${state.projection.trigger || '—'} · @ ${state.projection.computed_at || 'never'}
+            <b>H() fires when m ≥ 12 · L() fires when n ≥ 12 → δ(m−n−2) = 1</b><br>
+            <b>Live:</b> m = <span style="color:#00ff88;">${state.market_m}</span> · n = <span style="color:#ff4466;">${state.market_n}</span> · δ = <span style="color:#ffaa44;">${state.market_imbalance}</span> · ℛ_regime = ${state.regime}<br>
+            <b>Provider:</b> <span style="color:#aa66ff;">${state.provider || '—'}</span> · <b>𝒱:</b> ${state.last_volume}<br>
+            <b>𝒫_arc:</b> <span style="color:#aa66ff;">${(state.projection.meta && state.projection.meta.kind) || '—'}</span> · 𝒫_trigger = ${state.projection.trigger || '—'} · @ ${state.projection.computed_at || 'never'}
         </div>
     `;
     container.innerHTML = html;
@@ -2387,14 +2327,16 @@ function renderRegimeMap() {
     if (!container) return;
     const map = state.regime_map;
     if (!map || map.length === 0) {
-        container.innerHTML = `<div style="color:#6688aa;text-align:center;padding:20px;">Awaiting ${CS_REGIME} map data…</div>`;
+        container.innerHTML = '<div style="color:#6688aa;text-align:center;padding:20px;">Awaiting ℛ_regime map data…</div>';
         return;
     }
     const maxRows = Math.min(map.length, 120);
     let html = '';
     for (let i = 0; i < maxRows; i++) {
         const r = map[i];
-        const safeRegime = String(r.regime || CS_UNKNOWN).replace(/\s+/g, '');
+        const rawRegime = String(r.regime || 'Unknown');
+        const safeRegime = rawRegime.replace(/\s+/g, '');
+        const displayRegime = regimeToCS(rawRegime);
         const kFlag = r.k ? '🟢' : '·';
         const lFlag = r.l ? '🔴' : '·';
         const prem = (typeof r.premium === 'number') ? r.premium.toFixed(4) : r.premium;
@@ -2402,12 +2344,22 @@ function renderRegimeMap() {
         html += `
             <div class="regime-row">
                 <div class="idx">${r.index}</div>
-                <div><span class="regime-tag ${safeRegime}">${r.regime}</span></div>
-                <div class="flags">${kFlag}${lFlag} P=${prem} D=${disc}</div>
+                <div><span class="regime-tag ${safeRegime}">${displayRegime}</span></div>
+                <div class="flags">${kFlag}${lFlag} Π^{>θ}=${prem} Π^{<θ}=${disc}</div>
             </div>
         `;
     }
     container.innerHTML = html;
+}
+
+function regimeToCS(r) {
+    const map = {
+        'sRange': '𝒮_Range', 'tRange': '𝒯_Range',
+        'sVolatile': '𝒮_Volatile', 'tVolatile': '𝒯_Volatile',
+        'sTrend': '𝒮_Trend', 'tTrend': '𝒯_Trend',
+        'Stable': '𝒮_Stable', 'Unknown': '𝒰',
+    };
+    return map[r] || r;
 }
 
 /* ============================================================
@@ -2422,14 +2374,15 @@ function renderFvgList() {
     const el = document.getElementById('fvgListItems');
     if (!el) return;
     if (state.fvgs.length === 0) {
-        el.innerHTML = `<div style="color:#6688aa;">No ${CS_FVG} anchors</div>`;
+        el.innerHTML = '<div style="color:#6688aa;">No ℱ_VG anchors</div>';
         return;
     }
     el.innerHTML = state.fvgs.map(f => {
-        const cls = f.type === CS_TOP ? 'top' : 'bott';
-        const mark = f.type === CS_TOP ? '▲' : '▼';
+        const cls = f.type === 'top' ? 'top' : 'bott';
+        const mark = f.type === 'top' ? '▲' : '▼';
+        const csType = f.type === 'top' ? '𝒯' : 'ℬ';
         return `<div class="fvg-item">
-            <span class="fvg-type ${cls}">${mark}</span>
+            <span class="fvg-type ${cls}">${mark}${csType}</span>
             <span class="fvg-price">${f.price}</span>
             <button class="fvg-del" data-idx="${f.idx}">✖</button>
         </div>`;
@@ -2451,18 +2404,18 @@ async function commitFvg(type, price) {
         return;
     }
     if (!price || price <= 0) {
-        showError('Invalid ' + CS_FVG + ' price', 3000);
+        showError('Invalid ℱ_VG price', 3000);
         return;
     }
     const r = await apiPost('/fvg', { type, price: String(price) });
     if (r && r.ok) {
-        pushLog('info', `${CS_FVG} ${type} @ ${price}`);
+        pushLog('info', `ℱ_VG ${type} @ ${price}`);
         await fetchFvgs();
         renderFvgList();
         renderChart();
     } else {
         const detail = r && (r.error || r.detail || (r.__body && r.__body.error)) || 'unknown';
-        showError(CS_FVG + ' commit failed: ' + detail, 4000);
+        showError('ℱ_VG commit failed: ' + detail, 4000);
     }
 }
 
@@ -2605,10 +2558,11 @@ function renderOrders() {
         return;
     }
     el.innerHTML = state.orders.map(o => {
-        const cls = o.side === CS_BUY ? 'long' : 'short';
+        const cls = o.side === 'BUY' ? 'long' : 'short';
         const pnl = (typeof o.pnl === 'number') ? ((o.pnl >= 0 ? '+' : '') + o.pnl.toFixed(2)) : '—';
+        const dirCs = o.side === 'BUY' ? '↑' : '↓';
         return `<div class="pos-row">
-            <span class="pos-side ${cls}">${o.side}</span>
+            <span class="pos-side ${cls}">${dirCs}</span>
             <span>${o.entry}</span>
             <span>${pnl}</span>
             <button class="pos-close" data-ticket="${o.ticket}">✖</button>
@@ -2650,6 +2604,18 @@ document.addEventListener('keydown', (e) => {
 
 /* ============================================================
    CHART CANVAS SETUP
+   ============================================================
+   V-1 FIX: two canvases now exist side by side.
+     * #chartCanvas   — price pane only (candles, BB, anchors, ℱ_VG,
+                        signal markers, 𝒯_trail line, 𝒫_arc
+                        projection, grid, axes, crosshair).
+     * #volumeOverlay — the volume pane histogram, drawn on its own
+                        canvas at z-index 4 so it sits above the
+                        sub-panel stack and cannot be occluded.
+   Both canvases share the same width. The volume overlay's top
+   is set dynamically to pricePaneBottom(); its height is set to
+   volumePaneHeight(). When volumeEnabled is false, its height is
+   0 and it draws nothing.
    ============================================================ */
 const chartCanvas = document.getElementById('chartCanvas');
 const chartCtx = chartCanvas.getContext('2d');
@@ -2706,6 +2672,13 @@ function resizeChart() {
 
 /* ============================================================
    RESIZE — VOLUME OVERLAY CANVAS
+   ============================================================
+   The overlay is positioned absolutely at the volume-pane region
+   of the chart. Its top is pricePaneBottom() (in CSS pixels,
+   relative to the chart canvas which is itself offset by
+   --toolbar-h from the viewport top). Its height is
+   volumePaneHeight(). The overlay's own .style.top is expressed
+   in viewport coordinates, so we add the toolbar height offset.
    ============================================================ */
 function resizeVolumeOverlay() {
     if (!volumeOverlay || !volumeCtx) return;
@@ -2750,6 +2723,22 @@ window.addEventListener('resize', () => {
 
 /* ============================================================
    VOLUME PANE GEOMETRY
+   ============================================================
+   The price plot occupies [PADDING.top, pricePaneBottom()].
+   The volume pane occupies [pricePaneBottom(), chartH - PADDING.bottom].
+   Every renderer that maps price → y uses priceToY() which is
+   defined over the price-pane range only. When the volume pane is
+   off, pricePaneBottom() == chartH - PADDING.bottom, so the price
+   plot fills the full canvas.
+
+   V-1 FIX: the volume pane is rendered on a SEPARATE canvas
+   (#volumeOverlay) rather than on #chartCanvas. This means the
+   price renderers (drawCandles, drawBollingerFamily, etc.) never
+   write pixels into the volume-pane region, and the volume pane
+   never has to fight for z-order with the price pane. The price
+   pane shrinks when the volume pane is on, so candlesticks, BB
+   bands, anchors, ℱ_VGs, signal markers, the 𝒯_trail line,
+   and the 𝒫_arc projection are all confined to the price pane.
    ============================================================ */
 function volumePaneHeight() {
     if (!state.volumeEnabled) return 0;
@@ -3095,7 +3084,28 @@ function drawArcProjection() {
 }
 
 /* ============================================================
-   VOLUME PANE RENDERER
+   VOLUME PANE RENDERER — V-1/V-2 FIX
+   ============================================================
+   The volume pane is now rendered on the #volumeOverlay canvas,
+   which is a separate DOM element positioned absolutely at the
+   volume-pane region of the chart (top = pricePaneBottom(), height
+   = volumePaneHeight()). Because the overlay sits at z-index 4,
+   above #chartCanvas (2) and #subPanelStack (3), no indicator
+   sub-panel can occlude it. Because the price renderers all use
+   priceToY()/pricePaneHeight(), which are defined over the price
+   pane only, the price renderers never write pixels into the
+   volume-pane region.
+
+   This function draws to volumeCtx, not chartCtx. It clears the
+   overlay, fills the pane background, draws the pane's top border,
+   draws the volume histogram (blue for bullish bars, red for
+   bearish bars, height normalized by the maximum visible volume),
+   and labels the pane with "𝒱" on the left and the max volume
+   on the right.
+
+   If the overlay canvas has zero dimensions (because the toggle
+   is off, or the pane height computes to 0, or the canvas was
+   measured before layout), the function returns immediately.
    ============================================================ */
 function drawVolumeOverlay() {
     if (!volumeOverlay || !volumeCtx) return;
@@ -3166,7 +3176,7 @@ function drawVolumeOverlay() {
     ctx.fillStyle = 'rgba(68,136,255,0.9)';
     ctx.font = 'bold 8px "Courier New", monospace';
     ctx.textAlign = 'left';
-    ctx.fillText('VOL', PADDING.left + 3, 9);
+    ctx.fillText('𝒱', PADDING.left + 3, 9);
 
     ctx.fillStyle = '#6688aa';
     ctx.font = '8px "Courier New", monospace';
@@ -3186,6 +3196,22 @@ function formatVolume(v) {
 
 /* ============================================================
    CHART RENDERER — MASTER
+   ============================================================
+   V-1 FIX: renderChart() now:
+     1. Recovers from a zero-dimension canvas by re-calling
+        resizeChart() if chartCanvas._width or _height is <= 0.
+        This guarantees the volume pane is never permanently
+        collapsed by an early render that ran before layout.
+     2. Calls resizeVolumeOverlay() so the volume overlay's
+        geometry is refreshed on every render.
+     3. Does NOT call drawVolumePane() on chartCtx (that function
+        no longer exists). It calls drawVolumeOverlay() at the
+        end, which draws to volumeCtx.
+     4. The price renderers (drawGrid, drawBollingerFamily,
+        drawCandles, drawTopologicalAnchors, drawArcProjection,
+        drawFVGOverlays, drawTrailingStopLine, drawSignalMarkers,
+        drawAxes, drawCrosshair) all use priceToY() and
+        pricePaneHeight(), so they are confined to the price pane.
    ============================================================ */
 function renderChart() {
     if (chartCanvas._width <= 0 || chartCanvas._height <= 0) {
@@ -3230,13 +3256,13 @@ function renderChart() {
    ============================================================ */
 function drawRegimeBackground() {
     const regimeColors = {
-        [CS_SRANGE]:    'rgba(68, 170, 255, 0.04)',
-        [CS_TRANGE]:    'rgba(68, 170, 255, 0.04)',
-        [CS_SVOLATILE]: 'rgba(255, 170, 68, 0.04)',
-        [CS_TVOLATILE]: 'rgba(255, 170, 68, 0.04)',
-        [CS_STREND]:    'rgba(255, 68, 102, 0.04)',
-        [CS_TTREND]:    'rgba(255, 68, 102, 0.04)',
-        [CS_STABLE]:    'rgba(0, 255, 136, 0.04)',
+        'sRange':    'rgba(68, 170, 255, 0.04)',
+        'tRange':    'rgba(68, 170, 255, 0.04)',
+        'sVolatile': 'rgba(255, 170, 68, 0.04)',
+        'tVolatile': 'rgba(255, 170, 68, 0.04)',
+        'sTrend':    'rgba(255, 68, 102, 0.04)',
+        'tTrend':    'rgba(255, 68, 102, 0.04)',
+        'Stable':    'rgba(0, 255, 136, 0.04)',
     };
     const color = regimeColors[state.regime] || 'transparent';
     if (color === 'transparent') return;
@@ -3392,7 +3418,7 @@ function drawFVGOverlays() {
         if (isNaN(price)) continue;
         const y = priceToY(price);
         if (y < PADDING.top - 10 || y > pricePaneBottom() + 10) continue;
-        const color = f.type === CS_TOP ? '#4488ff' : '#ff66aa';
+        const color = f.type === 'top' ? '#4488ff' : '#ff66aa';
         ctx.strokeStyle = color;
         ctx.lineWidth = 1.5;
         ctx.setLineDash([6, 4]);
@@ -3404,7 +3430,8 @@ function drawFVGOverlays() {
         ctx.fillStyle = color;
         ctx.font = '10px "Courier New", monospace';
         ctx.textAlign = 'right';
-        ctx.fillText(`${f.type === CS_TOP ? '▲' : '▼'} ${price.toFixed(4)}`, chartW - 8, y - 4);
+        const csType = f.type === 'top' ? '𝒯' : 'ℬ';
+        ctx.fillText(`${csType} ${price.toFixed(4)}`, chartW - 8, y - 4);
     }
 }
 
@@ -3426,7 +3453,7 @@ function drawTrailingStopLine() {
     ctx.fillStyle = '#ffaa44';
     ctx.font = 'bold 10px "Courier New", monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`${CS_STOP_LOSS} ${price.toFixed(4)}`, PADDING.left + 4, y - 3);
+    ctx.fillText(`𝒯_trail ${price.toFixed(4)}`, PADDING.left + 4, y - 3);
 }
 
 function drawSignalMarkers() {
@@ -3451,8 +3478,8 @@ function drawSignalMarkers() {
         }
         if (x < PADDING.left || x > chartW - PADDING.right) continue;
         if (y < PADDING.top || y > pricePaneBottom()) continue;
-        const isBuy = sig.type === CS_BUY;
-        const isSell = sig.type === CS_SELL;
+        const isBuy = sig.type === 'BUY';
+        const isSell = sig.type === 'SELL';
         ctx.fillStyle = isBuy ? '#00ff88' : (isSell ? '#ff4466' : '#ffaa44');
         ctx.beginPath();
         if (isBuy) {
@@ -3471,6 +3498,19 @@ function drawSignalMarkers() {
     }
 }
 
+/* ============================================================
+   AXES
+   ============================================================
+   V-4 FIX: drawAxes() no longer draws the bottom time labels at
+   y = chartH - 6 unconditionally. Because the price pane now
+   shrinks when the volume pane is on, and because the volume
+   overlay is a separate canvas that paints its own region, the
+   time labels are drawn at y = pricePaneBottom() + 14 when the
+   volume pane is off, and at y = chartH - 4 when the volume pane
+   is on (so they sit in the bottom margin below the volume pane).
+   This keeps the labels from being overwritten by the volume
+   overlay's background fill in either configuration.
+   ============================================================ */
 function drawAxes() {
     const ctx = chartCtx;
     ctx.fillStyle = '#aaccff';
@@ -3549,17 +3589,17 @@ function updateChartHeader() {
     const symEl = document.getElementById('chart-symbol');
     if (symEl) symEl.textContent = state.symbol || '—';
     const regEl = document.getElementById('chart-regime');
-    if (regEl) regEl.textContent = CS_REGIME + ': ' + state.regime;
+    if (regEl) regEl.textContent = `ℛ_regime: ${regimeToCS(state.regime)}`;
     const imEl = document.getElementById('chart-imbalance');
     if (imEl) {
         const sign = state.market_imbalance >= 0 ? '+' : '';
-        imEl.textContent = CS_M + '=' + state.market_m + ' · ' + CS_N + '=' + state.market_n + ' · ' + CS_DELTA + '=' + sign + state.market_imbalance;
+        imEl.textContent = `m=${state.market_m} · n=${state.market_n} · δ=${sign}${state.market_imbalance}`;
     }
     const luEl = document.getElementById('chart-lastupdate');
     if (luEl) {
         if (state.lastUpdate) {
             const d = new Date(state.lastUpdate);
-            luEl.textContent = 'Updated: ' + d.toLocaleTimeString();
+            luEl.textContent = `Updated: ${d.toLocaleTimeString()}`;
         } else {
             luEl.textContent = 'Updated: —';
         }
@@ -3572,9 +3612,9 @@ function updateChartHeader() {
                 ? state.projection.path[state.projection.path.length - 1].price
                 : '—';
             const trig = state.projection.trigger ? (' · ' + state.projection.trigger) : '';
-            projEl.textContent = CS_PROJECTION + ': ' + kind + trig + ' → ' + end;
+            projEl.textContent = `𝒫_arc: ${kind}${trig} → ${end}`;
         } else {
-            projEl.textContent = CS_PROJECTION + ': —';
+            projEl.textContent = '𝒫_arc: —';
         }
     }
 }
@@ -3750,12 +3790,20 @@ function updateCrosshairReadout(x, y) {
         <div><span class="lbl">H</span> <span class="val">${bar.high.toFixed(5)}</span></div>
         <div><span class="lbl">L</span> <span class="val">${bar.low.toFixed(5)}</span></div>
         <div><span class="lbl">C</span> <span class="val">${bar.close.toFixed(5)}</span></div>
-        <div><span class="lbl">V</span> <span class="val">${volStr}</span></div>
+        <div><span class="lbl">𝒱</span> <span class="val">${volStr}</span></div>
     `;
 }
 
 /* ============================================================
    DATA FETCHING
+   ============================================================
+   V-2 FIX (data side): fetchOhlcv() normalizes every bar so that
+   `volume` is always a Number, even when the relay response omits
+   it or returns it as a string. Without this normalization, the
+   volume pane silently drops bars whose volume is undefined and
+   the crosshair readout shows 𝒱 0 on every bar. The normalization
+   also coerces open/high/low/close to Number so downstream
+   arithmetic never operates on strings.
    ============================================================ */
 let pollHandles = {
     miniapp: null, ohlcv: null, signals: null, diag: null,
@@ -3772,7 +3820,7 @@ function noteFailure() {
     consecutiveFailures++;
     if (consecutiveFailures >= MAX_FAILURES) {
         backoffUntil = Date.now() + 30000;
-        setConnBadge('err', CS_UNREACHABLE);
+        setConnBadge('err', 'backend unreachable');
         pushLog('warn', 'Backend unreachable; backing off 30s');
     } else {
         setConnBadge('wait', 'retrying…');
@@ -4233,15 +4281,15 @@ function updateEnginePanel() {
     setText('eng-ticktock', state.tick_tock);
     setText('eng-signature', state.signature);
     setText('eng-safety', state.safety);
-    setText('eng-trailing', state.trailing_stop_active ? CS_ACTIVE : CS_INACTIVE,
+    setText('eng-trailing', state.trailing_stop_active ? 'active' : 'inactive',
             'val-warn' + (state.trailing_stop_active ? ' val-bull' : ''));
     setText('eng-trailing-price', state.trailing_stop_active ? (state.trailing_stop_price || 0).toFixed(5) : '—');
     setText('eng-ontrack', state.on_track_runs);
     setText('eng-onstand', state.on_stand_runs);
     const orders = [];
-    if (state.has_open_long) orders.push(`${CS_LONG}(${state.lOrder_id})`);
-    if (state.has_open_short) orders.push(`${CS_SHORT}(${state.kOrder_id})`);
-    setText('eng-orders', orders.length ? orders.join(', ') : CS_NONE);
+    if (state.has_open_long) orders.push(`↑(${state.lOrder_id})`);
+    if (state.has_open_short) orders.push(`↓(${state.kOrder_id})`);
+    setText('eng-orders', orders.length ? orders.join(', ') : 'none');
     setText('eng-provider', state.provider || '—');
     setText('eng-volume', formatVolume(state.last_volume || 0));
     setText('eng-lastmsg', state.last_inbound_message_id !== null && state.last_inbound_message_id !== undefined
@@ -4263,11 +4311,11 @@ function updateKroneckerPanel() {
     setText('kron-nh', state.n_at_h);
     setText('kron-kh', state.m_at_h === 1);
     setText('kron-lh', state.n_at_h === 1);
-    const gate = (dispM >= 12 || dispN >= 12) ? '✅ MET' : CS_WAITING;
+    const gate = (dispM >= 12 || dispN >= 12) ? '✅ 𝒜₃' : '𝒜₄';
     const gateEl = document.getElementById('kron-gate');
     if (gateEl) {
         gateEl.textContent = gate;
-        gateEl.className = 'val-warn' + (gate === '✅ MET' ? ' val-bull' : '');
+        gateEl.className = 'val-warn' + (gate === '✅ 𝒜₃' ? ' val-bull' : '');
     }
 }
 
@@ -4322,6 +4370,12 @@ function updateProjectionPanel() {
 
 /* ============================================================
    POLLING MODEL
+   ============================================================
+   Nine independent intervals plus a 300 s full-refresh safety net.
+   The /projection poll is short-circuited when computed_at has not
+   changed (D-41). The /miniapp-state poll re-renders the chart on
+   every tick; the /ohlcv poll re-measures the volume overlay after
+   replacing state.bars.
    ============================================================ */
 function startPolling() {
     stopPolling();
@@ -4382,6 +4436,16 @@ function stopPolling() {
 
 /* ============================================================
    BOOT
+   ============================================================
+   V-1 FIX: boot() now:
+     1. Calls resizeChart() which itself calls resizeVolumeOverlay().
+        This ensures the overlay is measured before the first render.
+     2. Calls syncVolToggleUi() so the VOL button's initial state
+        matches state.volumeEnabled (true) — the button starts lit.
+     3. After fetchAll() completes, calls renderChart() one more time
+        as a safety net in case the first render ran before the
+        first OHLCV payload arrived (in which case the volume overlay
+        was empty and must be redrawn with real volume data).
    ============================================================ */
 async function boot() {
     resizeChart();
@@ -4409,7 +4473,7 @@ async function boot() {
     }
     startPolling();
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.4.3 booted (CODEX SYMBOLICA Edition)');
+    pushLog('info', 'ÆEA TWA v4.4.1 booted (CS-translated UI + volume pane overlay + VOL toggle fix)');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -4422,19 +4486,41 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
    INITIAL LOG
    ============================================================ */
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.3');
-console.log('   CODEX SYMBOLICA Edition');
+console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.1');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('v4.4.3 (CODEX SYMBOLICA):');
-console.log('  ✓ All user-facing natural language replaced with CS symbols:');
-console.log('    ' + CS_SIGNAL + ', ' + CS_EXECUTION + ', ' + CS_BULL + ', ' + CS_BEAR);
-console.log('    ' + CS_WHISKY + ', ' + CS_WINE + ', ' + CS_WATTER + ', ' + CS_BLOOD);
-console.log('    ' + CS_HAWK + ', ' + CS_DOVE + ', ' + CS_DIAMOND + ', ' + CS_RUBY);
-console.log('    ' + CS_TOP + ', ' + CS_BOTT + ', ' + CS_PROVIDER + ', ' + CS_VOLUME);
-console.log('    ' + CS_REGIME + ', ' + CS_KRONECKER + ', ' + CS_PROJECTION + ', ' + CS_ARC);
-console.log('  ✓ Underlying logic, state machine, and FF-invariant semantics unchanged.');
+console.log('v4.4.1 (Volume Pane Overlay + VOL Toggle Fix):');
+console.log('  ✓ V-1: 100vh fallback before 100dvh on html/body/canvas/');
+console.log('         subPanelStack/modals. canvas z-index raised to 2,');
+console.log('         subPanelStack to 3, new #volumeOverlay canvas at');
+console.log('         z-index 4. resizeChart() now calls');
+console.log('         resizeVolumeOverlay(). renderChart() recovers from');
+console.log('         a zero-dimension canvas by re-calling resizeChart().');
+console.log('         boot() redraws once after fetchAll() as a safety net.');
+console.log('  ✓ V-2: drawVolumeOverlay() draws to volumeCtx (the overlay');
+console.log('         canvas), not chartCtx. The old in-canvas');
+console.log('         drawVolumePane() is gone. The price renderers all use');
+console.log('         priceToY()/pricePaneHeight(), so they are confined to');
+console.log('         the price pane. fetchOhlcv() normalizes bar.volume to');
+console.log('         a Number so the histogram and the crosshair readout');
+console.log('         never see undefined.');
+console.log('  ✓ V-3: syncVolToggleUi() manages BOTH vol-on and active');
+console.log('         classes symmetrically, plus aria-pressed and title.');
+console.log('         The vol-on style has a bright blue border, blue text,');
+console.log('         blue tint background, and a box-shadow glow, so the');
+console.log('         ON state is unmistakable.');
+console.log('  ✓ V-4: drawAxes() places time labels in the bottom margin');
+console.log('         (chartH - 4 when volume is on, pricePaneBottom() + 14');
+console.log('         when volume is off), so the volume overlay never');
+console.log('         overwrites them.');
+console.log('  ✓ E-4: Execution-gated projection.');
+console.log('  ✓ E-5: Scroll-ahead viewport.');
+console.log('  ✓ E-6: Bot replies threaded to the user\'s most recent command.');
+console.log('  ✓ E-7: Bounded push dispatch.');
+console.log('  ✓ E-8: FVG anchors merged by idx.');
+console.log('  ✓ E-9: #arcLegend stacked below #bbLegend.');
+console.log('  ✓ CS: All user-facing pros translated to Codex Symbolica.');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
