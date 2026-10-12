@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ÆEA Engine · MQL4-Parity Port · TWA v4.4.1</title>
+<title>ÆEA Engine · MQL4-Parity Port · TWA v4.5.0</title>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -664,25 +664,52 @@ html, body {
 }
 
 /* ============================================================
-   SYMBOL PICKER
+   SYMBOL PICKER — v4.5.0 EXPANDED
+   ============================================================
+   The picker now holds ~90 crypto pairs + ~45 futures/equities,
+   grouped into three collapsible sections: Crypto (Kraken-primary),
+   Futures, and Equities/ETFs (Stooq-primary). A search box at the
+   top filters across all three sections. The active symbol is
+   highlighted. Each item shows the canonical form and, when the
+   user typed a Binance-native alias, the alias too.
    ============================================================ */
 #symbolPickerList {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 4px;
-    max-height: 50vh;
-    max-height: 50dvh;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 60vh;
+    max-height: 60dvh;
     overflow-y: auto;
 }
+#symbolPickerList .sym-section-title {
+    color: var(--cyan);
+    font-size: 0.55rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+}
+#symbolPickerList .sym-section-body {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+}
+#symbolPickerList .sym-section-body.collapsed { display: none; }
 #symbolPickerList .sym-item {
-    padding: 5px 8px;
+    padding: 4px 5px;
     background: rgba(20,30,50,0.9);
     border: 1px solid var(--border);
     border-radius: 4px;
     color: var(--text);
     cursor: pointer;
     text-align: center;
-    font-size: 0.58rem;
+    font-size: 0.52rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 #symbolPickerList .sym-item:hover {
     background: #224466;
@@ -692,6 +719,22 @@ html, body {
 #symbolPickerList .sym-item.active {
     border-color: var(--green);
     color: var(--green);
+    background: rgba(0,255,136,0.12);
+}
+#symbolPickerSearch {
+    width: 100%;
+    background: rgba(20,30,50,0.9);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.6rem;
+    margin-bottom: 8px;
+}
+#symbolPickerSearch:focus {
+    outline: none;
+    border-color: var(--cyan);
 }
 
 /* ============================================================
@@ -1122,15 +1165,16 @@ html, body {
 <div id="errorDisplay"></div>
 
 <div id="explainPanel">
-    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.1</h3>
+    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.5.0</h3>
     <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, ℱ_VG list, <b>BB×58</b> toggle, <b>𝒱</b> toggle, <b>𝒫_arc</b> projection toggle, refresh, settings, help.</span></div>
     <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span> (MQL4 <code>clrBlue</code>/<code>clrRed</code> parity).</span></div>
-    <div class="item"><b>𝒱 PANE</b> <span>— Tick volume histogram below the candlesticks. Bar height is proportional to <code>bar.volume</code> normalized by the maximum volume in the visible range. Bullish volume bars = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span>. Toggle via the <b>𝒱</b> button. Rendered on the <code>#volumeOverlay</code> canvas at <code>z-index: 4</code>, above the sub-panel stack, so no indicator sub-panel can occlude it. Volume data is sourced from the relay (Binance for crypto, Yahoo for equities/futures) and propagated through <code>/ohlcv</code>.</span></div>
-    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. v4.4.1 computes σ via BigInt-backed exact arithmetic.</span></div>
-    <div class="item"><b>𝒫_arc PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Π^{>θ}/Π^{<θ} band). Drawn dashed ahead of the last bar. <b>Recomputed only when a 𝒟_Bull/𝒟_Bear/ℋ_Hawk/𝒟_Dove/𝒲_Whisky/𝒲_Wine/𝒲_Watter/ℬ_Blood/𝒟_Diamond/ℛ_Ruby execution fires</b>, plus once on engine init, once on symbol change, and on explicit refresh. All arithmetic is Decimal-exact on the backend.</span></div>
-    <div class="item"><b>SCROLL-AHEAD</b> <span>— Drag the chart left past the last bar to scroll into the projected region. The projected endpoint (likely take-profit level) is reachable directly on the chart. The viewport's forward extent is bounded by <code>projection.path.length</code>.</span></div>
-    <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; ℱ_VG toasts fire on every anchor commit/remove. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat, <b>threaded as a reply to your most recent command</b> — the bot responds to the user on every event, causing a native push notification.</span></div>
-    <div class="item"><b>𝒫 (Provider)</b> <span>— The relay dispatches crypto symbols to Binance klines (real volume) with CoinGecko fallback and Yahoo tertiary. Equities/futures use Yahoo only. The current provider is shown in the Engine Panel and the 𝒫_arc Panel.</span></div>
+    <div class="item"><b>𝒱 PANE</b> <span>— Tick volume histogram below the candlesticks. Bar height is proportional to <code>bar.volume</code> normalized by the maximum volume in the visible range. Bullish volume bars = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span>. Toggle via the <b>𝒱</b> button. Rendered on the <code>#volumeOverlay</code> canvas at <code>z-index: 4</code>, above the sub-panel stack, so no indicator sub-panel can occlude it.</span></div>
+    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. σ is computed via BigInt-backed exact arithmetic.</span></div>
+    <div class="item"><b>𝒫_arc PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Π^{>θ}/Π^{<θ} band). Drawn dashed ahead of the last bar. <b>Recomputed only when a 𝒟_Bull/𝒟_Bear/ℋ_Hawk/𝒟_Dove/𝒲_Whisky/𝒲_Wine/𝒲_Watter/ℬ_Blood/𝒟_Diamond/ℛ_Ruby execution fires</b>, plus once on engine init, once on symbol change, and on explicit refresh.</span></div>
+    <div class="item"><b>SCROLL-AHEAD</b> <span>— Drag the chart left past the last bar to scroll into the projected region. The projected endpoint (likely take-profit level) is reachable directly on the chart.</span></div>
+    <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; ℱ_VG toasts fire on every anchor commit/remove. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat, <b>threaded as a reply to your most recent command</b>.</span></div>
+    <div class="item"><b>𝒫 (Provider)</b> <span>— <b>v4.5.0:</b> crypto symbols dispatch to <b>Kraken</b> first (free, open, no KYC, low latency), then Binance, then CoinGecko, then Yahoo. Equities/futures dispatch to <b>Stooq</b> first (free, open, no KYC, CSV, low latency), then Yahoo. The current provider is shown in the Engine Panel and the 𝒫_arc Panel.</span></div>
+    <div class="item"><b>SYMBOL UNIVERSE</b> <span>— <b>~90 crypto pairs</b> (BTC-USD through AEVO-USD) and <b>~45 futures/equities/ETFs</b> (GC=F, SI=F, CL=F, NG=F, HG=F, PL=F, PA=F, RB=F, HO=F, CC=F, KC=F, SB=F, CT=F, LH=F, LE=F, GF=F, ZO=F, ZR=F, ZL=F, ZM=F, ES=F, NQ=F, YM=F, RTY=F, AAPL, MSFT, GOOGL, AMZN, TSLA, NVDA, META, SPY, QQQ, DIA, IWM, GLD, SLV, USO, UNG, …). The picker groups them into Crypto / Futures / Equities sections and includes a search filter.</span></div>
     <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Π^{>θ}/Π^{<θ}), ℱ_VG lines, signal markers, 𝒯_trail line, 𝒫_arc projection, 𝒱 histogram.</span></div>
     <div class="item"><b>SUB-PANELS</b> <span>— MT4-style indicator sub-windows. Add via <b>+ IND</b>.</span></div>
     <div class="item"><b>13D GRID</b> <span>— The 13 classical indicators projected onto H₁₃, normalized to [0, 100].</span></div>
@@ -1496,8 +1540,19 @@ async function fetchToasts() {
             }
         }
     }
+    // Only advance the cursor past the highest seq actually rendered. If
+    // the server reports a higher latest_seq than the highest rendered
+    // toast, the gap is logged as an eviction warning rather than silently
+    // skipped.
+    if (Array.isArray(r.toasts) && r.toasts.length > 0) {
+        const maxRendered = r.toasts.reduce((m, t) => Math.max(m, t.seq || 0), 0);
+        if (maxRendered > toastSeqCursor) toastSeqCursor = maxRendered;
+    }
     if (typeof r.latest_seq === 'number' && r.latest_seq > toastSeqCursor) {
-        toastSeqCursor = r.latest_seq;
+        const gap = r.latest_seq - toastSeqCursor;
+        if (gap > 1) {
+            pushLog('warn', `Toast cursor gap of ${gap - 1} (cursor ${toastSeqCursor} → latest ${r.latest_seq})`);
+        }
     }
 }
 
@@ -1534,6 +1589,53 @@ const INDICATOR_RANGES = {
     'StdDev':     { min: 0,   max: 100,  levels: [] },
 };
 
+/* ============================================================
+   v4.5.0 SYMBOL UNIVERSE — THREE GROUPS
+   ============================================================
+   The symbol picker exposes three collapsible sections:
+     • Crypto (Kraken-primary)      — ~90 pairs
+     • Futures (Stooq-primary)      — ~29 contracts
+     • Equities/ETFs (Stooq-primary)— ~15 instruments
+   A search box at the top filters across all three. Each item
+   shows the canonical form. The active symbol is highlighted.
+   ============================================================ */
+const SYMBOLS_CRYPTO = [
+    'BTC-USD', 'ETH-USD', 'XRP-USD', 'ADA-USD', 'SOL-USD', 'DOGE-USD',
+    'LTC-USD', 'LINK-USD', 'DOT-USD', 'AVAX-USD', 'MATIC-USD', 'UNI-USD',
+    'ATOM-USD', 'NEAR-USD', 'FIL-USD', 'ETC-USD', 'ICP-USD', 'XLM-USD',
+    'HBAR-USD', 'QNT-USD', 'ARB-USD', 'OP-USD', 'SUI-USD', 'APT-USD',
+    'INJ-USD', 'TIA-USD', 'SEI-USD', 'PEPE-USD', 'SHIB-USD', 'WIF-USD',
+    'BONK-USD', 'JUP-USD', 'PYTH-USD', 'RNDR-USD', 'FET-USD', 'GRT-USD',
+    'IMX-USD', 'LDO-USD', 'CRV-USD', 'SNX-USD', 'COMP-USD', 'MKR-USD',
+    'AAVE-USD', 'SUSHI-USD', 'YFI-USD', 'BAL-USD', 'KNC-USD', 'ZRX-USD',
+    'BAT-USD', 'ENJ-USD', 'MANA-USD', 'SAND-USD', 'AXS-USD', 'GALA-USD',
+    'CHZ-USD', 'APE-USD', 'GMT-USD', 'LRC-USD', 'STORJ-USD', 'ANKR-USD',
+    'CVC-USD', 'OMG-USD', 'REN-USD', 'ZIL-USD', 'KSM-USD', 'GLMR-USD',
+    'MOVR-USD', 'ASTR-USD', 'CFX-USD', 'MASK-USD', 'DYDX-USD', 'GMX-USD',
+    'RPL-USD', 'BLUR-USD', 'ENS-USD', 'LQTY-USD', 'PENDLE-USD', 'MAGIC-USD',
+    'HIGH-USD', 'ID-USD', 'ARKM-USD', 'WLD-USD', 'EDU-USD', 'HOOK-USD',
+    'JTO-USD', 'BOME-USD', 'ETHFI-USD', 'ENA-USD', 'W-USD', 'OMNI-USD',
+    'REZ-USD', 'ZK-USD', 'STRK-USD', 'DYM-USD', 'ALT-USD', 'MANTA-USD',
+    'PIXEL-USD', 'PORTAL-USD', 'AEVO-USD',
+];
+
+const SYMBOLS_FUTURES = [
+    'GC=F', 'SI=F', 'CL=F', 'NG=F', 'ZB=F', 'ZN=F', 'ZS=F', 'ZM=F',
+    'ZW=F', 'KE=F', 'HG=F', 'PL=F', 'PA=F', 'RB=F', 'HO=F', 'CC=F',
+    'KC=F', 'SB=F', 'CT=F', 'LH=F', 'LE=F', 'GF=F', 'ZO=F', 'ZR=F',
+    'ZL=F', 'ES=F', 'NQ=F', 'YM=F', 'RTY=F',
+];
+
+const SYMBOLS_EQUITIES = [
+    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META',
+    'SPY', 'QQQ', 'DIA', 'IWM', 'GLD', 'SLV', 'USO', 'UNG',
+];
+
+const SYMBOLS = SYMBOLS_CRYPTO.concat(SYMBOLS_FUTURES).concat(SYMBOLS_EQUITIES);
+
+/* ============================================================
+   STATE
+   ============================================================ */
 const state = {
     connected: false,
     relay_healthy: true,
@@ -1893,28 +1995,86 @@ document.getElementById('arcLegendTitle').addEventListener('click', (e) => {
 syncArcToggleUi();
 
 /* ============================================================
-   SYMBOL PICKER
+   SYMBOL PICKER — v4.5.0 EXPANDED
+   ============================================================
+   Three collapsible sections: Crypto / Futures / Equities.
+   A search box at the top filters across all three. Each item
+   is a clickable button that POSTs /symbol. The active symbol
+   is highlighted. If a section has no matches under the current
+   filter, it is hidden entirely.
    ============================================================ */
-const SYMBOLS = [
-    'BTC-USD', 'ETH-USD', 'XRP-USD', 'ADA-USD', 'SOL-USD', 'DOGE-USD',
-    'LTC-USD', 'LINK-USD', 'DOT-USD', 'AVAX-USD', 'MATIC-USD', 'UNI-USD',
-    'ATOM-USD', 'NEAR-USD', 'FIL-USD', 'ETC-USD', 'ICP-USD', 'XLM-USD',
-    'HBAR-USD', 'QNT-USD', 'GC=F', 'SI=F', 'CL=F', 'NG=F', 'ZB=F',
-    'ZN=F', 'ZS=F', 'ZM=F', 'ZW=F', 'KE=F',
-];
-
 function openSymbolPicker() {
     const html = `
-        <h3>Select Symbol</h3>
+        <h3>Select Symbol (${SYMBOLS.length} total)</h3>
+        <input id="symbolPickerSearch" type="text" placeholder="Search…" autocomplete="off" spellcheck="false">
         <div id="symbolPickerList">
-            ${SYMBOLS.map(s => `<div class="sym-item ${s === state.symbol ? 'active' : ''}" data-symbol="${s}">${s}</div>`).join('')}
+            <div class="sym-section" data-section="crypto">
+                <div class="sym-section-title" data-toggle="crypto">
+                    <span>▾ CRYPTO · Kraken → Binance → CoinGecko → Yahoo (${SYMBOLS_CRYPTO.length})</span>
+                    <span>[−]</span>
+                </div>
+                <div class="sym-section-body" id="sym-body-crypto">
+                    ${SYMBOLS_CRYPTO.map(s => `<div class="sym-item ${s === state.symbol ? 'active' : ''}" data-symbol="${s}">${s}</div>`).join('')}
+                </div>
+            </div>
+            <div class="sym-section" data-section="futures">
+                <div class="sym-section-title" data-toggle="futures">
+                    <span>▾ FUTURES · Stooq → Yahoo (${SYMBOLS_FUTURES.length})</span>
+                    <span>[−]</span>
+                </div>
+                <div class="sym-section-body" id="sym-body-futures">
+                    ${SYMBOLS_FUTURES.map(s => `<div class="sym-item ${s === state.symbol ? 'active' : ''}" data-symbol="${s}">${s}</div>`).join('')}
+                </div>
+            </div>
+            <div class="sym-section" data-section="equities">
+                <div class="sym-section-title" data-toggle="equities">
+                    <span>▾ EQUITIES / ETFs · Stooq → Yahoo (${SYMBOLS_EQUITIES.length})</span>
+                    <span>[−]</span>
+                </div>
+                <div class="sym-section-body" id="sym-body-equities">
+                    ${SYMBOLS_EQUITIES.map(s => `<div class="sym-item ${s === state.symbol ? 'active' : ''}" data-symbol="${s}">${s}</div>`).join('')}
+                </div>
+            </div>
         </div>
         <div class="modal-actions">
             <button class="tb-btn" id="sym-cancel">Cancel</button>
         </div>
+        <div class="modal-note">
+            Kraken is the primary crypto provider (free, open, no KYC, low latency).
+            Stooq is the primary equities/futures provider (free, open, no KYC, CSV, low latency).
+            Binance, CoinGecko, and Yahoo are fallbacks.
+        </div>
     `;
     openModal(html, {
         onMount: (root) => {
+            const searchEl = root.querySelector('#symbolPickerSearch');
+            const sections = root.querySelectorAll('.sym-section');
+            function applyFilter() {
+                const q = (searchEl.value || '').trim().toUpperCase();
+                sections.forEach(sec => {
+                    const body = sec.querySelector('.sym-section-body');
+                    const items = sec.querySelectorAll('.sym-item');
+                    let anyVisible = false;
+                    items.forEach(it => {
+                        const sym = it.dataset.symbol.toUpperCase();
+                        const match = !q || sym.indexOf(q) !== -1;
+                        it.style.display = match ? '' : 'none';
+                        if (match) anyVisible = true;
+                    });
+                    sec.style.display = anyVisible ? '' : 'none';
+                });
+            }
+            searchEl.addEventListener('input', applyFilter);
+            root.querySelectorAll('.sym-section-title').forEach(title => {
+                title.addEventListener('click', () => {
+                    const key = title.dataset.toggle;
+                    const body = root.querySelector('#sym-body-' + key);
+                    if (!body) return;
+                    body.classList.toggle('collapsed');
+                    const marker = title.querySelector('span:last-child');
+                    if (marker) marker.textContent = body.classList.contains('collapsed') ? '[+]' : '[−]';
+                });
+            });
             root.querySelectorAll('.sym-item').forEach(el => {
                 el.addEventListener('click', async () => {
                     const sym = el.dataset.symbol;
@@ -1998,14 +2158,6 @@ function toggleChartType() {
 
 /* ============================================================
    INDICATOR SUB-PANELS
-   ============================================================
-   V-2 FIX (sub-panel side): #subPanelStack sits at z-index 3 and
-   #volumeOverlay at z-index 4. The sub-panel stack therefore
-   cannot occlude the volume pane, because the volume pane is
-   drawn on a canvas that sits above the stack. resizeSubPanels()
-   re-measures the stack after adding or removing a panel and
-   re-renders the volume overlay so its geometry stays in sync
-   with the price pane (which shrinks as the stack grows).
    ============================================================ */
 const subPanelStack = document.getElementById('subPanelStack');
 const subPanels = [];
@@ -2604,18 +2756,6 @@ document.addEventListener('keydown', (e) => {
 
 /* ============================================================
    CHART CANVAS SETUP
-   ============================================================
-   V-1 FIX: two canvases now exist side by side.
-     * #chartCanvas   — price pane only (candles, BB, anchors, ℱ_VG,
-                        signal markers, 𝒯_trail line, 𝒫_arc
-                        projection, grid, axes, crosshair).
-     * #volumeOverlay — the volume pane histogram, drawn on its own
-                        canvas at z-index 4 so it sits above the
-                        sub-panel stack and cannot be occluded.
-   Both canvases share the same width. The volume overlay's top
-   is set dynamically to pricePaneBottom(); its height is set to
-   volumePaneHeight(). When volumeEnabled is false, its height is
-   0 and it draws nothing.
    ============================================================ */
 const chartCanvas = document.getElementById('chartCanvas');
 const chartCtx = chartCanvas.getContext('2d');
@@ -2647,9 +2787,6 @@ const viewport = {
     pinch: { active: false, startDist: 0, startBarWidth: 0, startOffset: 0 },
 };
 
-/* ============================================================
-   RESIZE — CHART CANVAS (price pane)
-   ============================================================ */
 function resizeChart() {
     const rect = chartCanvas.getBoundingClientRect();
     const toolbarH = parseInt(getCssVar('--toolbar-h', '44'), 10) || 44;
@@ -2670,16 +2807,6 @@ function resizeChart() {
     resizeVolumeOverlay();
 }
 
-/* ============================================================
-   RESIZE — VOLUME OVERLAY CANVAS
-   ============================================================
-   The overlay is positioned absolutely at the volume-pane region
-   of the chart. Its top is pricePaneBottom() (in CSS pixels,
-   relative to the chart canvas which is itself offset by
-   --toolbar-h from the viewport top). Its height is
-   volumePaneHeight(). The overlay's own .style.top is expressed
-   in viewport coordinates, so we add the toolbar height offset.
-   ============================================================ */
 function resizeVolumeOverlay() {
     if (!volumeOverlay || !volumeCtx) return;
     if (!state.volumeEnabled || !state.bars || state.bars.length === 0) {
@@ -2721,25 +2848,6 @@ window.addEventListener('resize', () => {
     renderChart();
 });
 
-/* ============================================================
-   VOLUME PANE GEOMETRY
-   ============================================================
-   The price plot occupies [PADDING.top, pricePaneBottom()].
-   The volume pane occupies [pricePaneBottom(), chartH - PADDING.bottom].
-   Every renderer that maps price → y uses priceToY() which is
-   defined over the price-pane range only. When the volume pane is
-   off, pricePaneBottom() == chartH - PADDING.bottom, so the price
-   plot fills the full canvas.
-
-   V-1 FIX: the volume pane is rendered on a SEPARATE canvas
-   (#volumeOverlay) rather than on #chartCanvas. This means the
-   price renderers (drawCandles, drawBollingerFamily, etc.) never
-   write pixels into the volume-pane region, and the volume pane
-   never has to fight for z-order with the price pane. The price
-   pane shrinks when the volume pane is on, so candlesticks, BB
-   bands, anchors, ℱ_VGs, signal markers, the 𝒯_trail line,
-   and the 𝒫_arc projection are all confined to the price pane.
-   ============================================================ */
 function volumePaneHeight() {
     if (!state.volumeEnabled) return 0;
     if (chartH <= 0) return 0;
@@ -2756,9 +2864,6 @@ function pricePaneHeight() {
     return pricePaneBottom() - PADDING.top;
 }
 
-/* ============================================================
-   PRICE ↔ Y MAPPING (over the price pane only)
-   ============================================================ */
 function priceToY(price) {
     const range = (viewport.priceMax - viewport.priceMin) || 1;
     const ratio = (price - viewport.priceMin) / range;
@@ -2772,9 +2877,6 @@ function yToPrice(y) {
     return viewport.priceMin + ratio * (viewport.priceMax - viewport.priceMin);
 }
 
-/* ============================================================
-   E-5: SCROLL-AHEAD VISIBLE-RANGE
-   ============================================================ */
 function getVisibleRange() {
     const plotW = chartW - PADDING.left - PADDING.right;
     const totalBars = state.bars.length;
@@ -2804,9 +2906,6 @@ function xToBarIndex(x) {
     return Math.max(0, Math.min(totalBars - 1, idx));
 }
 
-/* ============================================================
-   PRICE RANGE AUTO-SCALING (includes projection forward region)
-   ============================================================ */
 function computePriceRange() {
     if (!state.bars || state.bars.length === 0) return;
     const { totalBars, rightEdge, leftEdge } = getVisibleRange();
@@ -2868,9 +2967,6 @@ function computePriceRange() {
     viewport.priceMax = hi + span * 0.06;
 }
 
-/* ============================================================
-   BOLLINGER FAMILY — periods 3..60
-   ============================================================ */
 const BB_MIN_PERIOD = 3;
 const BB_MAX_PERIOD = 60;
 const BB_SCALE = 1000000000000n;
@@ -2997,9 +3093,6 @@ function drawBollingerFamily() {
     }
 }
 
-/* ============================================================
-   E-5: ARC PROJECTION RENDERER (scroll-ahead aware)
-   ============================================================ */
 function drawArcProjection() {
     if (!state.projection.enabled) return;
     const proj = state.projection;
@@ -3083,30 +3176,6 @@ function drawArcProjection() {
     ctx.fillText(label, Math.min(last.x + 6, chartW - PADDING.right - 120), labelY);
 }
 
-/* ============================================================
-   VOLUME PANE RENDERER — V-1/V-2 FIX
-   ============================================================
-   The volume pane is now rendered on the #volumeOverlay canvas,
-   which is a separate DOM element positioned absolutely at the
-   volume-pane region of the chart (top = pricePaneBottom(), height
-   = volumePaneHeight()). Because the overlay sits at z-index 4,
-   above #chartCanvas (2) and #subPanelStack (3), no indicator
-   sub-panel can occlude it. Because the price renderers all use
-   priceToY()/pricePaneHeight(), which are defined over the price
-   pane only, the price renderers never write pixels into the
-   volume-pane region.
-
-   This function draws to volumeCtx, not chartCtx. It clears the
-   overlay, fills the pane background, draws the pane's top border,
-   draws the volume histogram (blue for bullish bars, red for
-   bearish bars, height normalized by the maximum visible volume),
-   and labels the pane with "𝒱" on the left and the max volume
-   on the right.
-
-   If the overlay canvas has zero dimensions (because the toggle
-   is off, or the pane height computes to 0, or the canvas was
-   measured before layout), the function returns immediately.
-   ============================================================ */
 function drawVolumeOverlay() {
     if (!volumeOverlay || !volumeCtx) return;
     if (!state.volumeEnabled) {
@@ -3194,25 +3263,6 @@ function formatVolume(v) {
     return v.toFixed(0);
 }
 
-/* ============================================================
-   CHART RENDERER — MASTER
-   ============================================================
-   V-1 FIX: renderChart() now:
-     1. Recovers from a zero-dimension canvas by re-calling
-        resizeChart() if chartCanvas._width or _height is <= 0.
-        This guarantees the volume pane is never permanently
-        collapsed by an early render that ran before layout.
-     2. Calls resizeVolumeOverlay() so the volume overlay's
-        geometry is refreshed on every render.
-     3. Does NOT call drawVolumePane() on chartCtx (that function
-        no longer exists). It calls drawVolumeOverlay() at the
-        end, which draws to volumeCtx.
-     4. The price renderers (drawGrid, drawBollingerFamily,
-        drawCandles, drawTopologicalAnchors, drawArcProjection,
-        drawFVGOverlays, drawTrailingStopLine, drawSignalMarkers,
-        drawAxes, drawCrosshair) all use priceToY() and
-        pricePaneHeight(), so they are confined to the price pane.
-   ============================================================ */
 function renderChart() {
     if (chartCanvas._width <= 0 || chartCanvas._height <= 0) {
         resizeChart();
@@ -3251,9 +3301,6 @@ function renderChart() {
     drawVolumeOverlay();
 }
 
-/* ============================================================
-   CHART RENDERER — COMPONENTS
-   ============================================================ */
 function drawRegimeBackground() {
     const regimeColors = {
         'sRange':    'rgba(68, 170, 255, 0.04)',
@@ -3498,19 +3545,6 @@ function drawSignalMarkers() {
     }
 }
 
-/* ============================================================
-   AXES
-   ============================================================
-   V-4 FIX: drawAxes() no longer draws the bottom time labels at
-   y = chartH - 6 unconditionally. Because the price pane now
-   shrinks when the volume pane is on, and because the volume
-   overlay is a separate canvas that paints its own region, the
-   time labels are drawn at y = pricePaneBottom() + 14 when the
-   volume pane is off, and at y = chartH - 4 when the volume pane
-   is on (so they sit in the bottom margin below the volume pane).
-   This keeps the labels from being overwritten by the volume
-   overlay's background fill in either configuration.
-   ============================================================ */
 function drawAxes() {
     const ctx = chartCtx;
     ctx.fillStyle = '#aaccff';
@@ -3582,9 +3616,6 @@ function drawCrosshair() {
     ctx.fillText(price.toFixed(4), chartW - PADDING.right + 4, y + 3);
 }
 
-/* ============================================================
-   CHART HEADER / TOOLBAR / LEGEND UPDATES
-   ============================================================ */
 function updateChartHeader() {
     const symEl = document.getElementById('chart-symbol');
     if (symEl) symEl.textContent = state.symbol || '—';
@@ -3640,9 +3671,6 @@ function updateProjectionLegend() {
     if (trigEl) trigEl.textContent = state.projection.trigger || '—';
 }
 
-/* ============================================================
-   CHART INTERACTIONS — POINTER EVENTS
-   ============================================================ */
 let longPressTimer = null;
 let longPressFired = false;
 
@@ -3794,17 +3822,6 @@ function updateCrosshairReadout(x, y) {
     `;
 }
 
-/* ============================================================
-   DATA FETCHING
-   ============================================================
-   V-2 FIX (data side): fetchOhlcv() normalizes every bar so that
-   `volume` is always a Number, even when the relay response omits
-   it or returns it as a string. Without this normalization, the
-   volume pane silently drops bars whose volume is undefined and
-   the crosshair readout shows 𝒱 0 on every bar. The normalization
-   also coerces open/high/low/close to Number so downstream
-   arithmetic never operates on strings.
-   ============================================================ */
 let pollHandles = {
     miniapp: null, ohlcv: null, signals: null, diag: null,
     orders: null, regime: null, log: null, toasts: null, projection: null,
@@ -4223,9 +4240,6 @@ async function fetchLogs() {
     }
 }
 
-/* ============================================================
-   MASTER FETCH
-   ============================================================ */
 async function fetchAll() {
     if (!HAS_BACKEND) {
         setConnBadge('err', 'no backend');
@@ -4255,9 +4269,6 @@ async function fetchAll() {
     else if (currentView === 'regime') renderRegimeMap();
 }
 
-/* ============================================================
-   PANEL UPDATES
-   ============================================================ */
 function setText(id, text, cls) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -4368,15 +4379,6 @@ function updateProjectionPanel() {
     }
 }
 
-/* ============================================================
-   POLLING MODEL
-   ============================================================
-   Nine independent intervals plus a 300 s full-refresh safety net.
-   The /projection poll is short-circuited when computed_at has not
-   changed (D-41). The /miniapp-state poll re-renders the chart on
-   every tick; the /ohlcv poll re-measures the volume overlay after
-   replacing state.bars.
-   ============================================================ */
 function startPolling() {
     stopPolling();
     pollHandles.miniapp = setInterval(() => {
@@ -4434,19 +4436,6 @@ function stopPolling() {
     });
 }
 
-/* ============================================================
-   BOOT
-   ============================================================
-   V-1 FIX: boot() now:
-     1. Calls resizeChart() which itself calls resizeVolumeOverlay().
-        This ensures the overlay is measured before the first render.
-     2. Calls syncVolToggleUi() so the VOL button's initial state
-        matches state.volumeEnabled (true) — the button starts lit.
-     3. After fetchAll() completes, calls renderChart() one more time
-        as a safety net in case the first render ran before the
-        first OHLCV payload arrived (in which case the volume overlay
-        was empty and must be redrawn with real volume data).
-   ============================================================ */
 async function boot() {
     resizeChart();
     if (chartCanvas._width <= 0 || chartCanvas._height <= 0) {
@@ -4473,7 +4462,7 @@ async function boot() {
     }
     startPolling();
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.4.1 booted (CS-translated UI + volume pane overlay + VOL toggle fix)');
+    pushLog('info', 'ÆEA TWA v4.5.0 booted (Kraken-primary + Stooq-primary + expanded symbol universe)');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -4482,45 +4471,31 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     document.addEventListener('DOMContentLoaded', boot);
 }
 
-/* ============================================================
-   INITIAL LOG
-   ============================================================ */
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.4.1');
+console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.5.0');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('v4.4.1 (Volume Pane Overlay + VOL Toggle Fix):');
-console.log('  ✓ V-1: 100vh fallback before 100dvh on html/body/canvas/');
-console.log('         subPanelStack/modals. canvas z-index raised to 2,');
-console.log('         subPanelStack to 3, new #volumeOverlay canvas at');
-console.log('         z-index 4. resizeChart() now calls');
-console.log('         resizeVolumeOverlay(). renderChart() recovers from');
-console.log('         a zero-dimension canvas by re-calling resizeChart().');
-console.log('         boot() redraws once after fetchAll() as a safety net.');
-console.log('  ✓ V-2: drawVolumeOverlay() draws to volumeCtx (the overlay');
-console.log('         canvas), not chartCtx. The old in-canvas');
-console.log('         drawVolumePane() is gone. The price renderers all use');
-console.log('         priceToY()/pricePaneHeight(), so they are confined to');
-console.log('         the price pane. fetchOhlcv() normalizes bar.volume to');
-console.log('         a Number so the histogram and the crosshair readout');
-console.log('         never see undefined.');
-console.log('  ✓ V-3: syncVolToggleUi() manages BOTH vol-on and active');
-console.log('         classes symmetrically, plus aria-pressed and title.');
-console.log('         The vol-on style has a bright blue border, blue text,');
-console.log('         blue tint background, and a box-shadow glow, so the');
-console.log('         ON state is unmistakable.');
-console.log('  ✓ V-4: drawAxes() places time labels in the bottom margin');
-console.log('         (chartH - 4 when volume is on, pricePaneBottom() + 14');
-console.log('         when volume is off), so the volume overlay never');
-console.log('         overwrites them.');
-console.log('  ✓ E-4: Execution-gated projection.');
-console.log('  ✓ E-5: Scroll-ahead viewport.');
-console.log('  ✓ E-6: Bot replies threaded to the user\'s most recent command.');
-console.log('  ✓ E-7: Bounded push dispatch.');
-console.log('  ✓ E-8: FVG anchors merged by idx.');
-console.log('  ✓ E-9: #arcLegend stacked below #bbLegend.');
-console.log('  ✓ CS: All user-facing pros translated to Codex Symbolica.');
+console.log('v4.5.0 (Kraken-Primary + Stooq-Primary + Expanded Universe):');
+console.log('  ✓ E-14: Kraken is now the primary crypto provider.');
+console.log('         Fallback chain: Kraken → Binance → CoinGecko → Yahoo.');
+console.log('  ✓ E-15: Stooq is now the primary equities/futures provider.');
+console.log('         Fallback chain: Stooq → Yahoo.');
+console.log('  ✓ E-16: Symbol universe expanded to ~90 crypto pairs and');
+console.log('         ~45 futures/equities/ETFs. The picker groups them into');
+console.log('         Crypto / Futures / Equities sections with a search box.');
+console.log('  ✓ D-53: SYMBOL_DIGITS now covers every new symbol with the');
+console.log('         correct digit count (2/3/4/5/6 per market).');
+console.log('  ✓ D-54: Relay error details are truncated to 200 chars and');
+console.log('         include the active symbol and kind for operator clarity.');
+console.log('  ✓ All v4.4.2 defect resolutions and enhancements preserved:');
+console.log('         E-11 reply-target hardening, E-12 Markdown escaping,');
+console.log('         E-13 plain-text fallback, E-10 cross-thread async send,');
+console.log('         E-4 execution-gated projection, E-5 scroll-ahead,');
+console.log('         E-6 threaded bot replies, E-7 bounded push dispatch,');
+console.log('         E-8 FVG merge by idx, E-9 legend stacking.');
+console.log('  ✓ CS translation layer preserved across all user-facing');
+console.log('         labels, headers, toast titles, and log lines.');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
