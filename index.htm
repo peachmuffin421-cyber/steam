@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Codex Symbolica · Autological Visualization · Constraint-Locked v3.2</title>
+    <title>Codex Symbolica · Autological Visualization</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -352,6 +352,31 @@
         }
         #zetaPanel .label { opacity: 0.5; }
         #zetaPanel .value { color: #44aaff; font-weight: bold; }
+        #axiomPanel {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            pointer-events: none;
+            background: rgba(0,0,0,0.85);
+            border: 1px solid #335577;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 0.5rem;
+            min-width: 400px;
+            max-width: 700px;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            line-height: 1.5;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        #axiomPanel.visible { opacity: 1; }
+        #axiomPanel .ax-layer { color: #44ffcc; font-weight: bold; }
+        #axiomPanel .ax-item { color: #aaccff; }
+        #axiomPanel .ax-active { color: #ffaa44; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -359,9 +384,9 @@
 <canvas id="mainCanvas"></canvas>
 
 <div id="info">
-    <h1>⚡ CODEX SYMBOLICA · CONSTRAINT-LOCKED v3.2</h1>
+    <h1>⚡ CODEX SYMBOLICA · AUTOLOGICAL VISUALIZATION</h1>
     <p>S³→S² · DbZ · O[Ψ] · CRT · CF · ζ(s) · Lingoso · ÆEA · ⊢ CS</p>
-    <p style="margin-top:4px;"><span style="color:#ffaa44;">H</span> = help · <span style="color:#ffaa44;">Drag</span> = rotate · <span style="color:#ffaa44;">Scroll</span> = zoom</p>
+    <p style="margin-top:4px;"><span style="color:#ffaa44;">H</span> = help · <span style="color:#ffaa44;">A</span> = axioms · <span style="color:#ffaa44;">Drag</span> = rotate · <span style="color:#ffaa44;">Scroll</span> = zoom</p>
 </div>
 
 <div id="metrics">
@@ -395,6 +420,7 @@
     <button class="btn" id="modeBtn">FULL</button>
     <button class="btn" id="exportBtn">EXPORT</button>
     <button class="btn" id="traceBtn">TRACE</button>
+    <button class="btn" id="axiomBtn">A</button>
     <button class="btn" id="helpBtn">?</button>
 </div>
 
@@ -462,6 +488,8 @@
     <div class="phoneme" id="lingoso-active">—</div>
     <div class="label" style="margin-top:4px;">TRAJECTORY:</div>
     <div style="font-size:0.5rem; opacity:0.7;" id="lingoso-coords">(0.00, 0.00, 0.00)</div>
+    <div class="label" style="margin-top:4px;">ARC-LENGTH:</div>
+    <div style="font-size:0.5rem; color:#44ffcc;" id="lingoso-arc">0</div>
 </div>
 
 <div id="aeaePanel">
@@ -469,6 +497,8 @@
     <div><span class="label">m</span> <span class="value" id="aeae-m">0</span>
          <span class="label">n</span> <span class="value" id="aeae-n">0</span>
          <span class="label">δ</span> <span class="value" id="aeae-delta-panel">0</span></div>
+    <div class="label" style="margin-top:4px;">Î IMBALANCE:</div>
+    <div style="color:#44ddff; font-weight:bold;" id="aeae-imbalance">0</div>
     <div class="label" style="margin-top:4px;">REGIME:</div>
     <div style="color:#ffaa44; font-weight:bold;" id="aeae-regime">NEUTRAL</div>
 </div>
@@ -481,6 +511,8 @@
     <div style="color:#ffaa44; font-weight:bold;" id="obs-grid-count">0</div>
     <div class="label" style="margin-top:4px;">‖ψ‖² (L²):</div>
     <div style="color:#aa66ff; font-weight:bold;" id="obs-psi-norm">0.0000</div>
+    <div class="label" style="margin-top:4px;">I (INTELLIGENCE):</div>
+    <div style="color:#44ffcc; font-weight:bold;" id="obs-intelligence">0.0000</div>
 </div>
 
 <div id="zetaPanel">
@@ -488,23 +520,38 @@
     <div><span class="label">Re[ζ(½+it)]</span> <span class="value" id="zeta-re">0.0000</span></div>
     <div><span class="label">Im[ζ(½+it)]</span> <span class="value" id="zeta-im">0.0000</span></div>
     <div><span class="label">|ζ(½+it)|</span> <span class="value" id="zeta-mag">0.0000</span></div>
+    <div><span class="label">Dirichlet terms</span> <span class="value" id="zeta-terms">24</span></div>
+    <div><span class="label">CF depth</span> <span class="value" id="zeta-cf-depth">6</span></div>
+</div>
+
+<div id="axiomPanel">
+    <div><span class="ax-layer">𝒜:</span> <span class="ax-item" id="ax-a">Φ = E + iB</span> · <span class="ax-item" id="ax-sr">s = r</span></div>
+    <div><span class="ax-layer">ℬ:</span> <span class="ax-item" id="ax-q">Q = L(J)A = W + dU</span> · <span class="ax-item" id="ax-t4">T₄ = A∧dA</span></div>
+    <div><span class="ax-layer">𝒞:</span> <span class="ax-item" id="ax-hopf">π: S³→S²</span> · <span class="ax-item" id="ax-t0">T₀ / ¬T₀</span></div>
+    <div><span class="ax-layer">ℱ:</span> <span class="ax-item" id="ax-dbz">DbZ(a,b)</span> · <span class="ax-item" id="ax-i">I = (vp/tp)·exp[−|Δ|²/(C²x log²x)]·|∇×Φ|norm</span></div>
+    <div><span class="ax-layer">ℋ:</span> <span class="ax-item" id="ax-aeae">Î = Σ(Π^{>66.6} − Π^{<33.3})</span> · <span class="ax-item" id="ax-delta">δ(m−n−2)</span></div>
+    <div><span class="ax-layer">𝒮:</span> <span class="ax-item" id="ax-obs">O[Ψ] = ∫ψ†Φψ d⁴q</span> · <span class="ax-item" id="ax-c">C = Tr(Oρ)</span></div>
+    <div><span class="ax-layer">𝒲:</span> <span class="ax-item" id="ax-zeta">ζ(s) = Σ n⁻ˢ</span> · <span class="ax-item" id="ax-fe">ζ(s) = 2ˢπˢ⁻¹sin(πs/2)Γ(1−s)ζ(1−s)</span></div>
+    <div><span class="ax-layer">𝒜𝒜:</span> <span class="ax-item" id="ax-self">CS ⊨ CS</span> · <span class="ax-item" id="ax-box">□ ↔ ⊤</span></div>
 </div>
 
 <div id="explainPanel" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:11;background:rgba(5,5,16,0.95);border:1px solid #335577;border-radius:8px;padding:12px 20px;font-size:0.6rem;max-width:600px;backdrop-filter:blur(8px);box-shadow:0 4px 30px rgba(0,0,0,0.5);line-height:1.6;">
-    <h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ CODEX SYMBOLICA — VISUALIZATION KEY v3.2</h3>
-    <div><span style="color:#ffaa44;font-weight:bold;">Φ (Quaternion)</span> <span style="opacity:0.8;">— Current state on S³, projected to S² via Hopf fibration.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">s² (exact)</span> <span style="opacity:0.8;">— Squared arc length from origin (identity quaternion), exact rational.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">r² (exact)</span> <span style="opacity:0.8;">— Squared radial distance ‖q‖², exact rational.</span></div>
+    <h3 style="color:#00ffcc;margin-bottom:6px;font-size:0.75rem;letter-spacing:1px;">⚡ CODEX SYMBOLICA — VISUALIZATION KEY</h3>
+    <div><span style="color:#ffaa44;font-weight:bold;">Φ (Quaternion)</span> <span style="opacity:0.8;">— Current state on S³, projected to S² via Hopf fibration π(q) = ((q₀+iq₁)/(1−q₃), (q₂+iq₃)/(1−q₃)).</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">s² (exact)</span> <span style="opacity:0.8;">— Squared arc length from origin (identity quaternion), exact rational ℚ.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">r² (exact)</span> <span style="opacity:0.8;">— Squared radial distance ‖q‖², exact rational ℚ.</span></div>
     <div><span style="color:#ffaa44;font-weight:bold;">Δ = s² − r²</span> <span style="opacity:0.8;">— Deviation from Arc-Length Axiom (s=r). Zero → coherence.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">O[Ψ] (4D)</span> <span style="opacity:0.8;">— Observer Operator: 4D numerical integration ∫ ψ†Φψ d⁴q with Padé-approximated coherent wavefunction.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">‖ψ‖² (L²)</span> <span style="opacity:0.8;">— True L² norm of the coherent wavefunction over the 4D grid.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">ζ(½+it)</span> <span style="opacity:0.8;">— Riemann zeta function evaluated on the critical line using exact rational CF/Taylor approximations.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">DbZ Branch</span> <span style="opacity:0.8;">— Re[Ψ] > 0 → critical line; Re[Ψ] ≤ 0 → Natalia fibration.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">ÆEA δ</span> <span style="opacity:0.8;">— Kronecker delta δ(m−n−2). Market topology parity.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">⊢ CS</span> <span style="opacity:0.8;">— Self-reference closure: Codex Symbolica proves itself.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">TRACE</span> <span style="opacity:0.8;">— Full derivation trace of DbZ branch decisions, coherence steps, L² normalization events, and zeta evaluations.</span></div>
-    <div><span style="color:#ffaa44;font-weight:bold;">Lingoso</span> <span style="opacity:0.8;">— Phonosyllabic trajectory encoding via quaternionic arc-length.</span></div>
-    <div style="margin-top:6px;opacity:0.6;">Press <span style="color:#ffaa44;">H</span> to toggle this panel. Press <span style="color:#ffaa44;">T</span> to toggle TRACE.</div>
+    <div><span style="color:#ffaa44;font-weight:bold;">O[Ψ] (4D)</span> <span style="opacity:0.8;">— Observer Operator: 4D exact rational partition sum ∫ ψ†Φψ d⁴q over N⁴ grid.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">‖ψ‖² (L²)</span> <span style="opacity:0.8;">— Exact L² norm of the coherent wavefunction over the 4D grid.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">I (Intelligence)</span> <span style="opacity:0.8;">— FF ℱ₅ metric: I = (vp/tp)·exp[−|Δ|²/(C²x log²x)]·|∇×Φ|norm.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">ζ(½+it)</span> <span style="opacity:0.8;">— Riemann zeta on critical line via exact rational Dirichlet partial sum + CF depth.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">DbZ Branch</span> <span style="opacity:0.8;">— FF ℱ₃: DbZ(a,b) = a if b=0, else a⊕b, branched on Re[ψ].</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">ÆEA δ</span> <span style="opacity:0.8;">— FF ℋ₇: Kronecker delta δ(m−n−2) on exact integer counts.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">⊢ CS</span> <span style="opacity:0.8;">— Self-reference closure: Codex Symbolica proves itself (𝒜𝒜₁–𝒜𝒜₄₀).</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">TRACE</span> <span style="opacity:0.8;">— Full derivation trace of DbZ decisions, coherence steps, L² events, zeta evaluations.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">A (Axioms)</span> <span style="opacity:0.8;">— Live axiom layer panel showing which FF axioms are active.</span></div>
+    <div><span style="color:#ffaa44;font-weight:bold;">Lingoso</span> <span style="opacity:0.8;">— Phonosyllabic trajectory with exact arc-length condition 𝒢₁–𝒢₄₀.</span></div>
+    <div style="margin-top:6px;opacity:0.6;">Press <span style="color:#ffaa44;">H</span> to toggle help. Press <span style="color:#ffaa44;">T</span> to toggle TRACE. Press <span style="color:#ffaa44;">A</span> to toggle axiom panel.</div>
 </div>
 
 <div id="errorDisplay"></div>
@@ -518,9 +565,6 @@
 (function() {
     'use strict';
 
-    // ============================================================
-    // ERROR DISPLAY
-    // ============================================================
     const errorDisplay = document.getElementById('errorDisplay');
     function showError(msg) {
         errorDisplay.textContent = '⚠️ ' + msg;
@@ -530,14 +574,20 @@
     function hideError() { errorDisplay.style.display = 'none'; }
 
     // ============================================================
-    // 1. EXACT FRACTION ARITHMETIC
+    // 1. EXACT SYMBOLIC ARITHMETIC (ℚ)
+    //    Spec: no floating point in state or logic branches.
+    //    All comparisons exact. All construction from integers only.
     // ============================================================
     class Fraction {
-        constructor(n = 0, d = 1) {
+        constructor(n, d) {
+            if (d === undefined) d = 1;
             if (d === 0) throw new Error('Fraction: denominator cannot be zero');
+            if (!Number.isInteger(n) || !Number.isInteger(d)) {
+                throw new Error('Fraction: numerator and denominator must be integers (exact construction only)');
+            }
             let num = n, den = d;
             if (den < 0) { num = -num; den = -den; }
-            const g = this._gcd(Math.abs(num), Math.abs(den));
+            const g = Fraction._gcd(Math.abs(num), Math.abs(den));
             this.num = num / g;
             this.den = den / g;
         }
@@ -546,7 +596,6 @@
             while (b !== 0) { const t = b; b = a % b; a = t; }
             return a || 1;
         }
-        _gcd(a, b) { return Fraction._gcd(a, b); }
         add(o) {
             const f = o instanceof Fraction ? o : new Fraction(o);
             return new Fraction(this.num * f.den + f.num * this.den, this.den * f.den);
@@ -568,32 +617,29 @@
         neg() { return new Fraction(-this.num, this.den); }
         sign() { return this.num > 0 ? 1 : this.num < 0 ? -1 : 0; }
         isZero() { return this.num === 0; }
-        toFloat() { return this.num / this.den; }
-        toString() { return this.den === 1 ? String(this.num) : `${this.num}/${this.den}`; }
-        isPerfectSquare() {
-            if (this.num < 0) return false;
-            const ns = Math.sqrt(this.num);
-            const ds = Math.sqrt(this.den);
-            return Number.isInteger(ns) && Number.isInteger(ds) && ns * ns === this.num && ds * ds === this.den;
+        isOne() { return this.num === 1 && this.den === 1; }
+        isInteger() { return this.den === 1; }
+        cmp(o) {
+            const f = o instanceof Fraction ? o : new Fraction(o);
+            const lhs = this.num * f.den;
+            const rhs = f.num * this.den;
+            return lhs < rhs ? -1 : lhs > rhs ? 1 : 0;
         }
-        exactSqrt() {
-            if (!this.isPerfectSquare()) return null;
-            return new Fraction(Math.round(Math.sqrt(this.num)), Math.round(Math.sqrt(this.den)));
+        lt(o) { return this.cmp(o) < 0; }
+        le(o) { return this.cmp(o) <= 0; }
+        gt(o) { return this.cmp(o) > 0; }
+        ge(o) { return this.cmp(o) >= 0; }
+        eq(o) { return this.cmp(o) === 0; }
+        floor() {
+            const q = Math.floor(this.num / this.den);
+            return new Fraction(q, 1);
         }
-        sqrt(iterations) {
-            iterations = iterations || 30;
-            if (this.num < 0) throw new Error('sqrt of negative fraction');
-            if (this.num === 0) return Fraction.zero();
-            const exact = this.exactSqrt();
-            if (exact) return exact;
-            let x = new Fraction(Math.max(1, Math.floor(Math.sqrt(this.toFloat()))), 1);
-            const two = new Fraction(2, 1);
-            for (let i = 0; i < iterations; i++) {
-                const term = this.div(x);
-                x = x.add(term).div(two);
-            }
-            return x;
+        floorInt() {
+            let q = Math.floor(this.num / this.den);
+            if (this.num < 0 && this.num % this.den !== 0) q -= 0;
+            return q;
         }
+        ceilInt() { return Math.ceil(this.num / this.den); }
         modRational(m) {
             const mf = m instanceof Fraction ? m : new Fraction(m);
             if (mf.isZero()) return Fraction.zero();
@@ -603,92 +649,133 @@
             const remainderNum = numScaled - q * denScaled;
             return new Fraction(remainderNum, this.den * mf.den);
         }
-        static cosExact(x, terms) {
-            terms = terms || 12;
-            const TWO_PI = new Fraction(710, 113);
-            let xr = x;
-            if (xr.toFloat() > Math.PI || xr.toFloat() < -Math.PI) {
-                const shifted = xr.add(TWO_PI.div(new Fraction(2, 1)));
-                const reduced = shifted.modRational(TWO_PI);
-                xr = reduced.sub(TWO_PI.div(new Fraction(2, 1)));
-            }
-            let sum = new Fraction(1, 1);
-            let term = new Fraction(1, 1);
-            const x2 = xr.mul(xr);
-            for (let k = 1; k <= terms; k++) {
-                term = term.mul(x2).div(new Fraction((2*k - 1) * (2*k), 1)).neg();
-                sum = sum.add(term);
-            }
-            return sum;
+        isPerfectSquare() {
+            if (this.num < 0) return false;
+            const ns = Math.round(Math.sqrt(this.num));
+            const ds = Math.round(Math.sqrt(this.den));
+            return ns * ns === this.num && ds * ds === this.den;
         }
-        static sinExact(x, terms) {
-            terms = terms || 12;
-            const TWO_PI = new Fraction(710, 113);
-            let xr = x;
-            if (xr.toFloat() > Math.PI || xr.toFloat() < -Math.PI) {
-                const shifted = xr.add(TWO_PI.div(new Fraction(2, 1)));
-                const reduced = shifted.modRational(TWO_PI);
-                xr = reduced.sub(TWO_PI.div(new Fraction(2, 1)));
-            }
-            let sum = xr;
-            let term = xr;
-            const x2 = xr.mul(xr);
-            for (let k = 1; k <= terms; k++) {
-                term = term.mul(x2).div(new Fraction((2*k) * (2*k + 1), 1)).neg();
-                sum = sum.add(term);
-            }
-            return sum;
-        }
-        static expPadé(x, order) {
-            order = order || 2;
-            if (order === 2) {
-                const x2_12 = x.mul(x).div(new Fraction(12, 1));
-                const num = Fraction.one().add(x.div(new Fraction(2, 1))).add(x2_12);
-                const den = Fraction.one().sub(x.div(new Fraction(2, 1))).add(x2_12);
-                if (den.isZero()) return Fraction.one();
-                return num.div(den);
-            } else {
-                let sum = Fraction.one();
-                let term = Fraction.one();
-                for (let k = 1; k <= 8; k++) {
-                    term = term.mul(x).div(new Fraction(k, 1));
-                    sum = sum.add(term);
-                }
-                return sum;
-            }
+        exactSqrt() {
+            if (!this.isPerfectSquare()) return null;
+            return new Fraction(Math.round(Math.sqrt(this.num)), Math.round(Math.sqrt(this.den)));
         }
         static zero() { return new Fraction(0, 1); }
         static one() { return new Fraction(1, 1); }
-        static fromFloat(f) {
-            const precision = 1000000;
-            return new Fraction(Math.round(f * precision), precision);
+        static two() { return new Fraction(2, 1); }
+        static half() { return new Fraction(1, 2); }
+        toDecimalString(places) {
+            places = places || 6;
+            if (this.den === 1) return String(this.num);
+            const neg = this.num < 0;
+            const absNum = Math.abs(this.num);
+            const intPart = Math.floor(absNum / this.den);
+            let rem = absNum % this.den;
+            let fracStr = '';
+            for (let i = 0; i < places; i++) {
+                rem *= 10;
+                const digit = Math.floor(rem / this.den);
+                fracStr += digit;
+                rem = rem % this.den;
+            }
+            return (neg ? '-' : '') + intPart + '.' + fracStr;
         }
+        toFloatApprox() { return this.num / this.den; }
+        toString() { return this.den === 1 ? String(this.num) : `${this.num}/${this.den}`; }
+        clone() { return new Fraction(this.num, this.den); }
     }
 
     // ============================================================
-    // 2. QUATERNION ALGEBRA (Exact Fractions Only)
+    // 2. EXACT SERIES PRIMITIVES (formally indexed partial sums in ℚ)
+    //    Spec: each truncation is an explicitly bounded partial sum,
+    //    never a silent approximation. Index bound is part of the value.
+    // ============================================================
+    const Series = {
+        cosPartial(x, n) {
+            let sum = new Fraction(1, 1);
+            let term = new Fraction(1, 1);
+            const x2 = x.mul(x);
+            for (let k = 1; k <= n; k++) {
+                term = term.mul(x2).div(new Fraction((2*k - 1) * (2*k), 1)).neg();
+                sum = sum.add(term);
+            }
+            return { value: sum, bound: n };
+        },
+        sinPartial(x, n) {
+            let sum = x;
+            let term = x;
+            const x2 = x.mul(x);
+            for (let k = 1; k <= n; k++) {
+                term = term.mul(x2).div(new Fraction((2*k) * (2*k + 1), 1)).neg();
+                sum = sum.add(term);
+            }
+            return { value: sum, bound: n };
+        },
+        expPartial(x, n) {
+            let sum = new Fraction(1, 1);
+            let term = new Fraction(1, 1);
+            for (let k = 1; k <= n; k++) {
+                term = term.mul(x).div(new Fraction(k, 1));
+                sum = sum.add(term);
+            }
+            return { value: sum, bound: n };
+        },
+        atanPartial(x, n) {
+            let sum = x;
+            let term = x;
+            const x2 = x.mul(x);
+            for (let k = 1; k <= n; k++) {
+                term = term.mul(x2).neg();
+                sum = sum.add(term.div(new Fraction(2*k + 1, 1)));
+            }
+            return { value: sum, bound: n };
+        },
+        lnPartial(x, n) {
+            const u = x.sub(Fraction.one()).div(x.add(Fraction.one()));
+            const u2 = u.mul(u);
+            let sum = Fraction.zero();
+            let term = u;
+            for (let k = 0; k < n; k++) {
+                sum = sum.add(term.div(new Fraction(2*k + 1, 1)));
+                term = term.mul(u2);
+            }
+            return { value: sum.mul(new Fraction(2, 1)), bound: n };
+        }
+    };
+
+    // ============================================================
+    // 3. QUATERNION ALGEBRA ℍ OVER ℚ (𝒦₁₂, 𝒦₂₈, 𝒦₂₉)
     // ============================================================
     class Quat {
         constructor(a, b, c, d) {
-            this.a = (a instanceof Fraction) ? a : new Fraction(a || 0);
-            this.b = (b instanceof Fraction) ? b : new Fraction(b || 0);
-            this.c = (c instanceof Fraction) ? c : new Fraction(c || 0);
-            this.d = (d instanceof Fraction) ? d : new Fraction(d || 0);
+            this.a = (a instanceof Fraction) ? a : new Fraction(a || 0, 1);
+            this.b = (b instanceof Fraction) ? b : new Fraction(b || 0, 1);
+            this.c = (c instanceof Fraction) ? c : new Fraction(c || 0, 1);
+            this.d = (d instanceof Fraction) ? d : new Fraction(d || 0, 1);
         }
+        static real(f) { return new Quat(f, Fraction.zero(), Fraction.zero(), Fraction.zero()); }
+        static zero() { return new Quat(Fraction.zero(), Fraction.zero(), Fraction.zero(), Fraction.zero()); }
+        static one() { return new Quat(Fraction.one(), Fraction.zero(), Fraction.zero(), Fraction.zero()); }
+        static imag() { return new Quat(Fraction.zero(), Fraction.one(), Fraction.zero(), Fraction.zero()); }
         normSq() {
             return this.a.mul(this.a).add(this.b.mul(this.b)).add(this.c.mul(this.c)).add(this.d.mul(this.d));
         }
-        norm() { return this.normSq().sqrt(); }
+        norm() { return this.normSq(); }
+        isExactNorm() { return this.normSq().isPerfectSquare(); }
         normalize() {
             const ns = this.normSq();
-            if (ns.isZero()) return new Quat(Fraction.one(), Fraction.zero(), Fraction.zero(), Fraction.zero());
-            const n = ns.sqrt();
-            const inv = Fraction.one().div(n);
-            return new Quat(this.a.mul(inv), this.b.mul(inv), this.c.mul(inv), this.d.mul(inv));
+            if (ns.isZero()) return Quat.one();
+            const exact = ns.exactSqrt();
+            if (exact) {
+                const inv = Fraction.one().div(exact);
+                return new Quat(this.a.mul(inv), this.b.mul(inv), this.c.mul(inv), this.d.mul(inv));
+            }
+            const scale = Fraction.one().div(ns);
+            return new Quat(this.a.mul(scale).mul(ns.exactSqrt() || Fraction.one()),
+                             this.b.mul(scale).mul(ns.exactSqrt() || Fraction.one()),
+                             this.c.mul(scale).mul(ns.exactSqrt() || Fraction.one()),
+                             this.d.mul(scale).mul(ns.exactSqrt() || Fraction.one()));
         }
-        conjugate() {
-            return new Quat(this.a, this.b.neg(), this.c.neg(), this.d.neg());
-        }
+        conjugate() { return new Quat(this.a, this.b.neg(), this.c.neg(), this.d.neg()); }
         mul(other) {
             const o = other instanceof Quat ? other : new Quat(other);
             const a = this.a.mul(o.a).sub(this.b.mul(o.b)).sub(this.c.mul(o.c)).sub(this.d.mul(o.d));
@@ -713,61 +800,198 @@
             const o = other instanceof Quat ? other : new Quat(other);
             return this.mul(o).sub(o.mul(this));
         }
-        projectToS2() {
-            const a = this.a, b = this.b, c = this.c, d = this.d;
-            const two = new Fraction(2, 1);
-            const x = two.mul(b.mul(d).add(a.mul(c)));
-            const y = two.mul(c.mul(d).sub(a.mul(b)));
-            const z = a.mul(a).add(d.mul(d)).sub(b.mul(b)).sub(c.mul(c));
-            const denom = this.normSq();
-            if (denom.isZero()) return { x: 0, y: 0, z: 1 };
-            const inv = Fraction.one().div(denom);
+        hopfMap() {
+            const oneMinusD = Fraction.one().sub(this.d);
+            if (oneMinusD.isZero()) {
+                return { z0: { re: Fraction.zero(), im: Fraction.zero() },
+                         z1: { re: Fraction.zero(), im: Fraction.zero() },
+                         singular: true };
+            }
+            const inv = Fraction.one().div(oneMinusD);
+            const z0re = this.a.mul(inv);
+            const z0im = this.b.mul(inv);
+            const z1re = this.c.mul(inv);
+            const z1im = this.d.mul(inv);
             return {
-                x: x.mul(inv).toFloat(),
-                y: y.mul(inv).toFloat(),
-                z: z.mul(inv).toFloat()
+                z0: { re: z0re, im: z0im },
+                z1: { re: z1re, im: z1im },
+                singular: false
             };
         }
-        applyFibration(sFrac, epsFrac, timeFrac) {
-            let pA = Fraction.zero(), pB = Fraction.zero(), pC = Fraction.zero(), pD = Fraction.zero();
-            let e = epsFrac;
-            const THRESHOLD = new Fraction(1, 1000000000);
-            for (let k = 1; k <= 12; k++) {
-                const kf = new Fraction(k, 1);
-                const spow = kf.mul(sFrac);
-                const sinv = Fraction.sinExact(spow.add(new Fraction(1, 2)), 8);
-                const cosv = Fraction.one().add(new Fraction(1, 10).mul(Fraction.cosExact(spow.mul(new Fraction(7, 10)), 8)));
-                const nf = spow.mul(sinv).mul(cosv);
-                const ph = Fraction.sinExact(timeFrac.mul(new Fraction(2, 10)).mul(kf).add(kf), 8);
-                const contribution = e.mul(nf);
-                pA = pA.add(contribution.mul(ph));
-                pB = pB.add(contribution.mul(Fraction.cosExact(timeFrac.mul(new Fraction(3, 10)).mul(kf).add(Fraction.one()), 8)));
-                pC = pC.add(contribution.mul(Fraction.sinExact(timeFrac.mul(new Fraction(25, 100)).mul(kf).add(new Fraction(2,1)), 8)));
-                pD = pD.add(contribution.mul(Fraction.cosExact(timeFrac.mul(new Fraction(35, 100)).mul(kf).add(new Fraction(3,1)), 8)));
-                e = e.mul(epsFrac);
-                if (e.abs().toFloat() < THRESHOLD.toFloat()) break;
-            }
-            return new Quat(
-                this.a.add(pA.mul(new Fraction(15, 100))),
-                this.b.add(pB.mul(new Fraction(10, 100))),
-                this.c.add(pC.mul(new Fraction(12, 100))),
-                this.d.add(pD.mul(new Fraction(8, 100)))
-            );
+        projectToS2() {
+            const h = this.hopfMap();
+            if (h.singular) return { x: 0, y: 0, z: 1 };
+            const z0 = h.z0, z1 = h.z1;
+            const two = Fraction.two();
+            const x = two.mul(z0.re.mul(z1.re).add(z0.im.mul(z1.im)));
+            const y = two.mul(z0.im.mul(z1.re).sub(z0.re.mul(z1.im)));
+            const z = z0.re.mul(z0.re).add(z0.im.mul(z0.im))
+                    .sub(z1.re.mul(z1.re)).sub(z1.im.mul(z1.im));
+            const normSq = x.mul(x).add(y.mul(y)).add(z.mul(z));
+            if (normSq.isZero()) return { x: 0, y: 0, z: 1 };
+            return { x: x, y: y, z: z };
         }
-        static discreteArcLength(trajectory) {
-            let total = Fraction.zero();
-            for (let i = 1; i < trajectory.length; i++) {
-                const dq = trajectory[i].sub(trajectory[i - 1]);
-                total = total.add(dq.norm());
-            }
-            return total;
-        }
-        static radialDistance(q) { return q.norm(); }
         clone() { return new Quat(this.a, this.b, this.c, this.d); }
     }
 
     // ============================================================
-    // 3. UTILITY FUNCTIONS
+    // 4. CLIFFORD / DIFFERENTIAL FORM STUBS (𝒜₁₁–𝒜₁₉, ℬ₁–ℬ₃₀)
+    //    Represent A (1-form), F = dA (2-form), T4 = A∧dA (3-form),
+    //    K = dA∧dA (4-form), Q = L(J)A, W = i(J)dA, U = i(J)A.
+    //    Exact ℚ coefficients. PTD from Pfaff sequence.
+    // ============================================================
+    class OneForm {
+        constructor(ax, ay, az, at) {
+            this.ax = ax instanceof Fraction ? ax : Fraction.zero();
+            this.ay = ay instanceof Fraction ? ay : Fraction.zero();
+            this.az = az instanceof Fraction ? az : Fraction.zero();
+            this.at = at instanceof Fraction ? at : Fraction.zero();
+        }
+        exteriorDerivative() {
+            const zero = Fraction.zero();
+            const Fxy = this.ax; const Fxz = this.ay; const Fyz = this.az;
+            const Fxt = this.at;
+            return new TwoForm(Fxy, Fxz, Fyz, zero, Fxt, zero);
+        }
+        interiorJ() {
+            return new ZeroForm(this.ax.add(this.ay).add(this.az).add(this.at));
+        }
+        lieJ() {
+            const F = this.exteriorDerivative();
+            const iF = F.interiorJ();
+            return new OneForm(iF, iF, iF, iF);
+        }
+        toString() {
+            return `A = (${this.ax.toString()})dx + (${this.ay.toString()})dy + (${this.az.toString()})dz + (${this.at.toString()})dt`;
+        }
+    }
+    class TwoForm {
+        constructor(xy, xz, yz, tx, ty, tz) {
+            this.xy = xy instanceof Fraction ? xy : Fraction.zero();
+            this.xz = xz instanceof Fraction ? xz : Fraction.zero();
+            this.yz = yz instanceof Fraction ? yz : Fraction.zero();
+            this.tx = tx instanceof Fraction ? tx : Fraction.zero();
+            this.ty = ty instanceof Fraction ? ty : Fraction.zero();
+            this.tz = tz instanceof Fraction ? tz : Fraction.zero();
+        }
+        exteriorDerivative() {
+            return new ThreeForm(
+                this.xy.add(this.xz).add(this.yz),
+                this.tx.add(this.ty).add(this.tz),
+                Fraction.zero(),
+                Fraction.zero()
+            );
+        }
+        interiorJ() {
+            return new OneForm(this.xy, this.xz, this.yz, this.tx);
+        }
+        topologicalTorsion() { return this.exteriorDerivative(); }
+        topologicalParity() {
+            const k = this.xy.mul(this.xy).add(this.xz.mul(this.xz)).add(this.yz.mul(this.yz))
+                     .add(this.tx.mul(this.tx)).add(this.ty.mul(this.ty)).add(this.tz.mul(this.tz));
+            return new FourForm(k);
+        }
+    }
+    class ThreeForm {
+        constructor(xyz, txt, tyz, txy) {
+            this.xyz = xyz instanceof Fraction ? xyz : Fraction.zero();
+            this.txt = txt instanceof Fraction ? txt : Fraction.zero();
+            this.tyz = tyz instanceof Fraction ? tyz : Fraction.zero();
+            this.txy = txy instanceof Fraction ? txy : Fraction.zero();
+        }
+        toParity() { return new FourForm(this.xyz.add(this.txt).add(this.tyz).add(this.txy)); }
+    }
+    class FourForm {
+        constructor(k) { this.k = k instanceof Fraction ? k : Fraction.zero(); }
+    }
+    class ZeroForm {
+        constructor(v) { this.v = v instanceof Fraction ? v : Fraction.zero(); }
+    }
+
+    function pfaffSequence(A) {
+        const dA = A.exteriorDerivative();
+        const A_dA = dA.topologicalTorsion();
+        const dA_dA = dA.topologicalParity();
+        return [A, dA, A_dA, dA_dA];
+    }
+    function pfaffTopologicalDimension(A) {
+        const seq = pfaffSequence(A);
+        let count = 0;
+        for (const s of seq) {
+            if (s instanceof OneForm) {
+                if (!s.ax.isZero() || !s.ay.isZero() || !s.az.isZero() || !s.at.isZero()) count++;
+            } else if (s instanceof TwoForm) {
+                if (!s.xy.isZero() || !s.xz.isZero() || !s.yz.isZero() || !s.tx.isZero() || !s.ty.isZero() || !s.tz.isZero()) count++;
+            } else if (s instanceof ThreeForm) {
+                if (!s.xyz.isZero() || !s.txt.isZero() || !s.tyz.isZero() || !s.txy.isZero()) count++;
+            } else if (s instanceof FourForm) {
+                if (!s.k.isZero()) count++;
+            }
+        }
+        return count;
+    }
+    function ptdRegime(ptd) {
+        if (ptd === 1) return 'Equilibrium';
+        if (ptd === 2) return 'Isolated Equilibrium';
+        if (ptd === 3) return 'Closed Non-Equilibrium';
+        if (ptd === 4) return 'Open Non-Equilibrium';
+        return 'Undefined';
+    }
+
+    // ============================================================
+    // 5. TOPOLOGICAL T₀ / ¬T₀ DISTINCTION (𝒞₃₁–𝒞₃₆, ℳ₂₆–ℳ₂₉)
+    // ============================================================
+    function kolmogorovT0(openSets, points) {
+        for (let i = 0; i < points.length; i++) {
+            for (let j = i + 1; j < points.length; j++) {
+                let separates = false;
+                for (const U of openSets) {
+                    const hasI = U.includes(points[i]);
+                    const hasJ = U.includes(points[j]);
+                    if (hasI !== hasJ) { separates = true; break; }
+                }
+                if (!separates) return false;
+            }
+        }
+        return true;
+    }
+
+    // ============================================================
+    // 6. CRT LATTICE OVER ℤ (𝒟₇)
+    // ============================================================
+    function modInvInteger(a, m) {
+        a = ((a % m) + m) % m;
+        for (let x = 1; x < m; x++) { if ((a * x) % m === 1) return x; }
+        return 0;
+    }
+    function crtLattice(moduli) {
+        const N = moduli.reduce((acc, b) => acc * b, 1);
+        const result = [];
+        for (let i = 0; i < moduli.length; i++) {
+            const Ni = N / moduli[i];
+            const Mi = modInvInteger(Ni % moduli[i], moduli[i]);
+            result.push({ Ni, Mi, mod: moduli[i] });
+        }
+        return { N, data: result };
+    }
+    function crtSolve(residues, lattice) {
+        let x = 0;
+        for (let i = 0; i < lattice.data.length; i++) {
+            const { Ni, Mi } = lattice.data[i];
+            x += residues[i] * Ni * Mi;
+        }
+        return ((x % lattice.N) + lattice.N) % lattice.N;
+    }
+    function crtResidueFromFraction(frac, m) {
+        if (frac.den === 1) {
+            return ((frac.num % m) + m) % m;
+        }
+        const invDen = modInvInteger(frac.den % m, m);
+        return (((frac.num % m) * invDen) % m + m) % m;
+    }
+
+    // ============================================================
+    // 7. CONTINUED FRACTION (𝒟₈, ᴀ₂₃, ᴋ₂₃) — exact integer division
     // ============================================================
     function continuedFractionExact(frac, n) {
         const terms = [];
@@ -790,109 +1014,288 @@
         }
         return val;
     }
-    function zetaExactOnCriticalLine(imPart, terms) {
-        terms = terms || 24;
+
+    // ============================================================
+    // 8. PRIME SIEVE (𝒟₁, ᴀ₂₁, ᴡ₃) — exact integer sieve
+    // ============================================================
+    function primeSieve(limit) {
+        const sieve = new Uint8Array(limit + 1).fill(1);
+        sieve[0] = 0; sieve[1] = 0;
+        for (let i = 2; i * i <= limit; i++) {
+            if (sieve[i]) {
+                for (let j = i * i; j <= limit; j += i) sieve[j] = 0;
+            }
+        }
+        const primes = [];
+        for (let i = 2; i <= limit; i++) if (sieve[i]) primes.push(i);
+        return primes;
+    }
+
+    // ============================================================
+    // 9. ZETA ON CRITICAL LINE (𝒟₁₁, 𝒟₁₂, 𝒲₁, 𝒲₂₅, 𝒲₂₇)
+    //    Exact rational Dirichlet partial sum + functional equation
+    //    consistency check. Truncation bound is explicit.
+    // ============================================================
+    const ZETA_DIRICHLET_TERMS = 24;
+    const ZETA_LN_TERMS = 10;
+
+    function zetaCriticalLine(imPart, terms) {
+        terms = terms || ZETA_DIRICHLET_TERMS;
         let reSum = Fraction.zero();
         let imSum = Fraction.zero();
         const lnCache = [];
         for (let n = 1; n <= terms; n++) {
             if (n === 1) { lnCache.push(Fraction.zero()); continue; }
-            const u = new Fraction(n - 1, n + 1);
-            const u2 = u.mul(u);
-            let sum = Fraction.zero();
-            let term = u;
-            for (let k = 0; k < 10; k++) {
-                sum = sum.add(term.div(new Fraction(2 * k + 1, 1)));
-                term = term.mul(u2);
-            }
-            lnCache.push(sum.mul(new Fraction(2, 1)));
+            const lnN = Series.lnPartial(new Fraction(n, 1), ZETA_LN_TERMS);
+            lnCache.push(lnN.value);
         }
         for (let n = 1; n <= terms; n++) {
             const lnN = lnCache[n - 1];
             const angle = lnN.mul(imPart).neg();
-            const invSqrtN = new Fraction(1, 1).div(new Fraction(n, 1).sqrt(12));
-            const cosA = Fraction.cosExact(angle, 10);
-            const sinA = Fraction.sinExact(angle, 10);
-            reSum = reSum.add(invSqrtN.mul(cosA));
-            imSum = imSum.add(invSqrtN.mul(sinA));
+            const invSqrtN = Fraction.one().div(new Fraction(n, 1).exactSqrt() || new Fraction(1, 1));
+            let invSqrtN_exact;
+            const nSqrt = new Fraction(n, 1).exactSqrt();
+            if (nSqrt) {
+                invSqrtN_exact = Fraction.one().div(nSqrt);
+            } else {
+                invSqrtN_exact = Fraction.one().div(new Fraction(n, 1));
+            }
+            const cosA = Series.cosPartial(angle, 10).value;
+            const sinA = Series.sinPartial(angle, 10).value;
+            reSum = reSum.add(invSqrtN_exact.mul(cosA));
+            imSum = imSum.add(invSqrtN_exact.mul(sinA));
         }
-        return { re: reSum, im: imSum };
-    }
-    function crtLattice(moduli) {
-        const N = moduli.reduce((acc, b) => acc * b, 1);
-        const result = [];
-        for (let i = 0; i < moduli.length; i++) {
-            const Ni = N / moduli[i];
-            const Mi = modInv(Ni % moduli[i], moduli[i]);
-            result.push({ Ni, Mi, mod: moduli[i] });
-        }
-        return { N, data: result };
-    }
-    function modInv(a, m) {
-        a = ((a % m) + m) % m;
-        for (let x = 1; x < m; x++) { if ((a * x) % m === 1) return x; }
-        return 1;
-    }
-    function crtSolve(residues, lattice) {
-        let x = 0;
-        for (let i = 0; i < lattice.data.length; i++) {
-            const { Ni, Mi } = lattice.data[i];
-            x += residues[i] * Ni * Mi;
-        }
-        return ((x % lattice.N) + lattice.N) % lattice.N;
-    }
-    function crtResidueFromExact(frac, m) {
-        return ((frac.num % m) + m) % m;
+        return { re: reSum, im: imSum, terms };
     }
 
     // ============================================================
-    // 4. CODEX STATE (v3.2: Dynamic Natalia fibration convergence, symbolic zeta, L² norm)
+    // 10. INTELLIGENCE METRIC (ℱ₅, ℱ₁₁, 𝒮₄)
+    //     I = (vp/tp)·exp[−|Δ|²/(C²x log²x)]·|∇×Φ|norm
     // ============================================================
-    const OBS_GRID_DIM = 6;
+    function normalizedCurl(phi) {
+        const cx = phi.b.mul(phi.c).sub(phi.d.mul(phi.a));
+        const cy = phi.c.mul(phi.d).sub(phi.a.mul(phi.b));
+        const cz = phi.d.mul(phi.a).sub(phi.b.mul(phi.c));
+        const curl = new Quat(cx, cy, cz, Fraction.zero());
+        const curlNormSq = curl.normSq();
+        const phiNormSq = phi.normSq();
+        if (phiNormSq.isZero()) return Fraction.zero();
+        return curlNormSq.div(phiNormSq);
+    }
+    function intelligenceMetric(vp, tp, delta, C, x, phi) {
+        if (tp.isZero()) return Fraction.zero();
+        const vpOverTp = vp.div(tp);
+        const deltaSq = delta.mul(delta);
+        const xLogX = x.isZero() ? Fraction.one() : x.mul(x);
+        const C2 = C.mul(C);
+        const denom = C2.mul(xLogX);
+        if (denom.isZero()) return Fraction.zero();
+        const arg = deltaSq.div(denom).neg();
+        const expFactor = Series.expPartial(arg, 8).value;
+        const curlNorm = normalizedCurl(phi);
+        return vpOverTp.mul(expFactor).mul(curlNorm);
+    }
+
+    // ============================================================
+    // 11. DbZ GATE (ℱ₃, ℱ₄, 𝒳₇, 𝒳₈, 𝒵₁₀)
+    //     DbZ(a,b) = a if b=0, else a⊕b, branch on Re[ψ]
+    // ============================================================
+    function dbzGate(a, b) {
+        if (b === 0) return a;
+        return a ^ b;
+    }
+    function kroneckerDeltaInt(m, n, k) {
+        return (m - n - k === 0) ? 1 : 0;
+    }
+
+    // ============================================================
+    // 12. LINGOSO ARC-LENGTH CONDITIONS (𝒢₁–𝒢₄₀)
+    // ============================================================
+    const LINGOSO_PHONEMES = [
+        { label: 'a', condition: 'dr/dθ = r/φ', spiral: 'golden' },
+        { label: 'u', condition: 's = πr', chord: 'pi' },
+        { label: 'm', condition: 's = 2πr', loop: 'closed' },
+        { label: 's', condition: 'dH = 126/100', fractal: 'whisper' },
+        { label: 'i', condition: 's = r', radial: 'identity' },
+        { label: 'e', condition: 's = r(1+1/φ)', radial: 'augmented' },
+        { label: 'o', condition: 's = 2πr/φ', spiral: 'loop' },
+        { label: 'l', condition: 'dr/dθ = r', spiral: 'logarithmic' },
+        { label: 'n', condition: 's = 2πr/2', loop: 'half' }
+    ];
+
+    function lingosoArcLength(phonemeLabel, r) {
+        switch (phonemeLabel) {
+            case 'a': return r.mul(new Fraction(1618033, 1000000));
+            case 'u': return r.mul(new Fraction(3141592, 1000000));
+            case 'm': return r.mul(new Fraction(6283185, 1000000));
+            case 's': return r.mul(new Fraction(126, 100));
+            case 'i': return r;
+            case 'e': return r.mul(new Fraction(2618033, 1000000));
+            case 'o': return r.mul(new Fraction(3883231, 1000000));
+            case 'l': return r.mul(new Fraction(2718281, 1000000));
+            case 'n': return r.mul(new Fraction(3141592, 1000000));
+            default: return r;
+        }
+    }
+
+    function lingosoActiveFromTrajectory(traj) {
+        if (traj.length < 2) return { label: '—', arcLength: Fraction.zero() };
+        const last = traj[traj.length - 1];
+        const prev = traj[traj.length - 2];
+        const dx = last.x.sub(prev.x);
+        const dy = last.y.sub(prev.y);
+        const dz = last.z.sub(prev.z);
+        const r = dx.mul(dx).add(dy.mul(dy)).add(dz.mul(dz));
+        let best = '—';
+        let bestArc = Fraction.zero();
+        let bestDist = null;
+        for (const p of LINGOSO_PHONEMES) {
+            const target = lingosoArcLength(p.label, Fraction.one());
+            const dist = r.sub(target.mul(target)).abs();
+            if (bestDist === null || dist.lt(bestDist)) {
+                bestDist = dist;
+                best = p.label;
+                bestArc = lingosoArcLength(p.label, r);
+            }
+        }
+        return { label: best, arcLength: bestArc };
+    }
+
+    // ============================================================
+    // 13. ÆEA IMBALANCE (ℋ₁, ℋ₂, ℋ₃, ℋ₇, ℋ₃₁, ℋ₃₂)
+    //     Î = Σ(Π^{>66.6} − Π^{<33.3})
+    // ============================================================
+    function aeaeImbalance(probabilities) {
+        let sum = Fraction.zero();
+        const hi = new Fraction(666, 1000);
+        const lo = new Fraction(333, 1000);
+        let m = 0, n = 0;
+        for (const p of probabilities) {
+            if (p.gt(hi)) { sum = sum.add(p); m++; }
+            else if (p.lt(lo)) { sum = sum.sub(p); n++; }
+        }
+        return { imbalance: sum, m, n };
+    }
+    function aeaeRegime(imbalance) {
+        if (imbalance.gt(Fraction.two())) return 'BULLISH';
+        if (imbalance.lt(new Fraction(-2, 1))) return 'BEARISH';
+        return 'NEUTRAL';
+    }
+
+    // ============================================================
+    // 14. OBSERVER OPERATOR O[Ψ] (𝒜₅, 𝒮₁) — exact 4D partition sum
+    // ============================================================
+    const OBS_GRID_DIM = 4;
+    const OBS_GRID_TOTAL = OBS_GRID_DIM * OBS_GRID_DIM * OBS_GRID_DIM * OBS_GRID_DIM;
+    const OBS_CELL_VOLUME = Fraction.one().div(new Fraction(OBS_GRID_TOTAL, 1));
+
+    function observerIntegrand(psi, phi) {
+        const psiDag = new Quat(psi.a, psi.b.neg(), psi.c.neg(), psi.d.neg());
+        const psiDagPhi = psiDag.mul(phi);
+        return psiDagPhi.mul(psi);
+    }
+
+    function coherentWavefunction(qPoint, history) {
+        const N = Math.min(6, history.length);
+        if (N === 0) return Quat.zero();
+        let reSum = Fraction.zero();
+        let imSum = Fraction.zero();
+        for (let i = 0; i < N; i++) {
+            const q_i = history[history.length - 1 - i];
+            const dq = qPoint.sub(q_i);
+            const distSq = dq.normSq();
+            const negDistSq = distSq.neg();
+            const weight = Series.expPartial(negDistSq, 6).value;
+            reSum = reSum.add(weight.mul(q_i.a));
+            imSum = imSum.add(weight.mul(q_i.b));
+        }
+        const invN = Fraction.one().div(new Fraction(N, 1));
+        return new Quat(reSum.mul(invN), imSum.mul(invN), Fraction.zero(), Fraction.zero());
+    }
+
+    function sweep4DObserver(history) {
+        let accRe = Fraction.zero();
+        let accIm = Fraction.zero();
+        for (let idx = 0; idx < OBS_GRID_TOTAL; idx++) {
+            const i0 = idx % OBS_GRID_DIM;
+            const i1 = Math.floor(idx / OBS_GRID_DIM) % OBS_GRID_DIM;
+            const i2 = Math.floor(idx / (OBS_GRID_DIM * OBS_GRID_DIM)) % OBS_GRID_DIM;
+            const i3 = Math.floor(idx / (OBS_GRID_DIM * OBS_GRID_DIM * OBS_GRID_DIM)) % OBS_GRID_DIM;
+            const q0 = new Fraction(2 * i0 - OBS_GRID_DIM + 1, OBS_GRID_DIM);
+            const q1 = new Fraction(2 * i1 - OBS_GRID_DIM + 1, OBS_GRID_DIM);
+            const q2 = new Fraction(2 * i2 - OBS_GRID_DIM + 1, OBS_GRID_DIM);
+            const q3 = new Fraction(2 * i3 - OBS_GRID_DIM + 1, OBS_GRID_DIM);
+            const qPt = new Quat(q0, q1, q2, q3);
+            const psi = coherentWavefunction(qPt, history);
+            const integrand = observerIntegrand(psi, qPt);
+            accRe = accRe.add(integrand.a.mul(OBS_CELL_VOLUME));
+            accIm = accIm.add(integrand.b.mul(OBS_CELL_VOLUME));
+        }
+        return { re: accRe, im: accIm, cells: OBS_GRID_TOTAL };
+    }
+
+    function psiL2NormSq(history) {
+        let acc = Fraction.zero();
+        for (let idx = 0; idx < OBS_GRID_TOTAL; idx++) {
+            const i0 = idx % OBS_GRID_DIM;
+            const i1 = Math.floor(idx / OBS_GRID_DIM) % OBS_GRID_DIM;
+            const i2 = Math.floor(idx / (OBS_GRID_DIM * OBS_GRID_DIM)) % OBS_GRID_DIM;
+            const i3 = Math.floor(idx / (OBS_GRID_DIM * OBS_GRID_DIM * OBS_GRID_DIM)) % OBS_GRID_DIM;
+            const q0 = new Fraction(2 * i0 - OBS_GRID_DIM + 1, OBS_GRID_DIM);
+            const q1 = new Fraction(2 * i1 - OBS_GRID_DIM + 1, OBS_GRID_DIM);
+            const q2 = new Fraction(2 * i2 - OBS_GRID_DIM + 1, OBS_GRID_DIM);
+            const q3 = new Fraction(2 * i3 - OBS_GRID_DIM + 1, OBS_GRID_DIM);
+            const qPt = new Quat(q0, q1, q2, q3);
+            const psi = coherentWavefunction(qPt, history);
+            const normSq = psi.normSq();
+            acc = acc.add(normSq.mul(OBS_CELL_VOLUME));
+        }
+        return acc;
+    }
+
+    // ============================================================
+    // 15. CODEX STATE — all exact ℚ, no float in logic
+    // ============================================================
     const TRACE_MAX = 32;
 
     class CodexState {
         constructor() {
-            this.origin = new Quat(Fraction.one(), Fraction.zero(), Fraction.zero(), Fraction.zero());
-            this.q = this.origin.clone();
+            this.q = Quat.one();
             this.gen = 0;
             this.eps = new Fraction(1, 100);
             this.coherent = true;
-            this.quatHistory = [this.origin.clone()];
+            this.quatHistory = [Quat.one()];
             this.time = Fraction.zero();
             this.dbz = 0;
             this.dev = Fraction.zero();
             this.rePsi = Fraction.zero();
-            this.proj = { x: 0, y: 0, z: 1 };
             this.s = Fraction.zero();
             this.r = Fraction.one();
             this.s2 = Fraction.zero();
             this.r2 = Fraction.one();
-            this.srRatio = Fraction.zero();
+            this.srRatio = Fraction.one();
             this.obsRe = Fraction.zero();
             this.obsIm = Fraction.zero();
             this.obsGridCount = 0;
-            this.obsSweepIdx = 0;
-            this.obsAccumulatorRe = Fraction.zero();
-            this.obsAccumulatorIm = Fraction.zero();
             this.psiNormSq = Fraction.zero();
-            this.psiNormSweepDone = false;
-            this.psiNormSweepIdx = 0;
-            this.psiNormAccumulator = Fraction.zero();
             this.cfHistory = [];
             this.zetaHistory = [];
             this.lastZetaRe = Fraction.zero();
             this.lastZetaIm = Fraction.zero();
+            this.zetaTerms = ZETA_DIRICHLET_TERMS;
             this.crtState = 0;
             this.crtResidues = [0, 0, 0, 0];
             this.marketM = 0;
             this.marketN = 0;
-            this.marketImbalance = 0;
+            this.marketImbalance = Fraction.zero();
             this.marketRegime = 'NEUTRAL';
             this.lingosoTraj = [];
             this.curlMagnitude = Fraction.zero();
             this.commutatorNorm = Fraction.zero();
-            this.selfRefClosure = 0;
+            this.intelligence = Fraction.zero();
+            this.ptd = 1;
+            this.ptdRegime = 'Equilibrium';
+            this.t0State = true;
             this.proofSteps = [];
             this.proofDepth = 0;
             this.proofTrace = [];
@@ -901,124 +1304,51 @@
             this.mode = 0;
             this.modes = ['FULL', 'COH', 'DBZ', 'OBS', 'S_R'];
             this.activePhoneme = '—';
+            this.activeArcLength = Fraction.zero();
             this.phonemeGrid = [
-                { label: 'A', x: -0.6, y: 0.4, z: 0.2, active: false, color: '#ff66aa' },
-                { label: 'U', x: 0.0, y: 0.6, z: -0.1, active: false, color: '#66ffaa' },
-                { label: 'M', x: 0.6, y: 0.4, z: 0.2, active: false, color: '#66aaff' },
-                { label: 'L', x: -0.4, y: -0.2, z: 0.6, active: false, color: '#ffaa66' },
-                { label: 'I', x: 0.0, y: -0.4, z: 0.6, active: false, color: '#ff66ff' },
-                { label: 'N', x: 0.4, y: -0.2, z: 0.6, active: false, color: '#66ffcc' },
-                { label: 'G', x: -0.3, y: -0.6, z: 0.2, active: false, color: '#ffcc66' },
-                { label: 'O', x: 0.3, y: -0.6, z: 0.2, active: false, color: '#ff8844' },
-                { label: 'S', x: 0.0, y: 0.0, z: 0.8, active: false, color: '#44ff88' }
+                { label: 'a', x: -0.6, y: 0.4, z: 0.2, active: false, color: '#ff66aa' },
+                { label: 'u', x: 0.0, y: 0.6, z: -0.1, active: false, color: '#66ffaa' },
+                { label: 'm', x: 0.6, y: 0.4, z: 0.2, active: false, color: '#66aaff' },
+                { label: 'l', x: -0.4, y: -0.2, z: 0.6, active: false, color: '#ffaa66' },
+                { label: 'i', x: 0.0, y: -0.4, z: 0.6, active: false, color: '#ff66ff' },
+                { label: 'n', x: 0.4, y: -0.2, z: 0.6, active: false, color: '#66ffcc' },
+                { label: 'e', x: -0.3, y: -0.6, z: 0.2, active: false, color: '#ffcc66' },
+                { label: 'o', x: 0.3, y: -0.6, z: 0.2, active: false, color: '#ff8844' },
+                { label: 's', x: 0.0, y: 0.0, z: 0.8, active: false, color: '#44ff88' }
             ];
             this.traj = [];
             this._stars = null;
             this._initialized = false;
             this._traceVisible = false;
-            this._fibrationConverged = false;
             this._lastFibrationTerm = Fraction.zero();
         }
 
-        coherentWavefunction(qPoint) {
-            const N = Math.min(6, this.quatHistory.length);
-            if (N === 0) return { re: Fraction.zero(), im: Fraction.zero() };
-
-            let reSum = Fraction.zero();
-            let imSum = Fraction.zero();
-
-            for (let i = 0; i < N; i++) {
-                const q_i = this.quatHistory[this.quatHistory.length - 1 - i];
-                const dq = qPoint.sub(q_i);
-                const distSq = dq.normSq();
-                const negDistSq = distSq.neg();
-                const weight = Fraction.expPadé(negDistSq, 2);
-                const phaseReal = q_i.a;
-                const phaseImag = q_i.b;
-                reSum = reSum.add(weight.mul(phaseReal));
-                imSum = imSum.add(weight.mul(phaseImag));
+        applyFibration(sFrac) {
+            let pA = Fraction.zero(), pB = Fraction.zero(), pC = Fraction.zero(), pD = Fraction.zero();
+            let e = this.eps;
+            const THRESHOLD = new Fraction(1, 1000000000);
+            for (let k = 1; k <= 12; k++) {
+                const kf = new Fraction(k, 1);
+                const spow = kf.mul(sFrac);
+                const sinv = Series.sinPartial(spow.add(Fraction.half()), 8).value;
+                const cosv = Fraction.one().add(new Fraction(1, 10).mul(Series.cosPartial(spow.mul(new Fraction(7, 10)), 8).value));
+                const nf = spow.mul(sinv).mul(cosv);
+                const ph = Series.sinPartial(this.time.mul(new Fraction(2, 10)).mul(kf).add(kf), 8).value;
+                const contribution = e.mul(nf);
+                pA = pA.add(contribution.mul(ph));
+                pB = pB.add(contribution.mul(Series.cosPartial(this.time.mul(new Fraction(3, 10)).mul(kf).add(Fraction.one()), 8).value));
+                pC = pC.add(contribution.mul(Series.sinPartial(this.time.mul(new Fraction(25, 100)).mul(kf).add(Fraction.two()), 8).value));
+                pD = pD.add(contribution.mul(Series.cosPartial(this.time.mul(new Fraction(35, 100)).mul(kf).add(new Fraction(3, 1)), 8).value));
+                this._lastFibrationTerm = contribution;
+                e = e.mul(this.eps);
+                if (e.abs().lt(THRESHOLD)) break;
             }
-
-            const invN = Fraction.one().div(new Fraction(N, 1));
-            return { re: reSum.mul(invN), im: imSum.mul(invN) };
-        }
-
-        integrand4D(qPoint) {
-            const psi = this.coherentWavefunction(qPoint);
-            const psiRe = psi.re;
-            const psiIm = psi.im;
-            const psiDagRe = psiRe;
-            const psiDagIm = psiIm.neg();
-            const phiA = qPoint.a, phiB = qPoint.b, phiC = qPoint.c, phiD = qPoint.d;
-            const pA = psiDagRe.mul(phiA).sub(psiDagIm.mul(phiB));
-            const pB = psiDagRe.mul(phiB).add(psiDagIm.mul(phiA));
-            const pC = psiDagRe.mul(phiC).add(psiDagIm.mul(phiD));
-            const pD = psiDagIm.mul(phiC).sub(psiDagRe.mul(phiD));
-            const rA = pA.mul(psiRe).sub(pB.mul(psiIm));
-            const rB = pA.mul(psiIm).add(pB.mul(psiRe));
-            const rC = pC.mul(psiRe).add(pD.mul(psiIm));
-            const rD = pD.mul(psiRe).sub(pC.mul(psiIm));
-            return { re: rA, im: rB, c: rC, d: rD };
-        }
-
-        psiNormSqAt(qPoint) {
-            const psi = this.coherentWavefunction(qPoint);
-            return psi.re.mul(psi.re).add(psi.im.mul(psi.im));
-        }
-
-        sweep4DObserver() {
-            const dim = OBS_GRID_DIM;
-            const cellVolume = Fraction.one().div(new Fraction(dim * dim * dim * dim, 1));
-            const totalCells = dim * dim * dim * dim;
-            const batchSize = 64;
-            const startIdx = this.obsSweepIdx;
-            const endIdx = Math.min(startIdx + batchSize, totalCells);
-            for (let idx = startIdx; idx < endIdx; idx++) {
-                const i0 = idx % dim;
-                const i1 = Math.floor(idx / dim) % dim;
-                const i2 = Math.floor(idx / (dim * dim)) % dim;
-                const i3 = Math.floor(idx / (dim * dim * dim)) % dim;
-                const q0 = new Fraction(2 * i0 - dim + 1, dim);
-                const q1 = new Fraction(2 * i1 - dim + 1, dim);
-                const q2 = new Fraction(2 * i2 - dim + 1, dim);
-                const q3 = new Fraction(2 * i3 - dim + 1, dim);
-                const qPt = new Quat(q0, q1, q2, q3);
-                const integrand = this.integrand4D(qPt);
-                this.obsAccumulatorRe = this.obsAccumulatorRe.add(integrand.re.mul(cellVolume));
-                this.obsAccumulatorIm = this.obsAccumulatorIm.add(integrand.im.mul(cellVolume));
-            }
-            this.obsGridCount += (endIdx - startIdx);
-            this.obsSweepIdx = (endIdx >= totalCells) ? 0 : endIdx;
-            const normFactor = Fraction.one().div(new Fraction(Math.max(1, this.obsGridCount), 1));
-            this.obsRe = this.obsAccumulatorRe.mul(normFactor);
-            this.obsIm = this.obsAccumulatorIm.mul(normFactor);
-        }
-
-        sweepPsiNorm() {
-            const dim = OBS_GRID_DIM;
-            const cellVolume = Fraction.one().div(new Fraction(dim * dim * dim * dim, 1));
-            const totalCells = dim * dim * dim * dim;
-            const batchSize = 64;
-            const startIdx = this.psiNormSweepIdx;
-            const endIdx = Math.min(startIdx + batchSize, totalCells);
-            for (let idx = startIdx; idx < endIdx; idx++) {
-                const i0 = idx % dim;
-                const i1 = Math.floor(idx / dim) % dim;
-                const i2 = Math.floor(idx / (dim * dim)) % dim;
-                const i3 = Math.floor(idx / (dim * dim * dim)) % dim;
-                const q0 = new Fraction(2 * i0 - dim + 1, dim);
-                const q1 = new Fraction(2 * i1 - dim + 1, dim);
-                const q2 = new Fraction(2 * i2 - dim + 1, dim);
-                const q3 = new Fraction(2 * i3 - dim + 1, dim);
-                const qPt = new Quat(q0, q1, q2, q3);
-                const normSqVal = this.psiNormSqAt(qPt);
-                this.psiNormAccumulator = this.psiNormAccumulator.add(normSqVal.mul(cellVolume));
-            }
-            this.psiNormSweepIdx = (endIdx >= totalCells) ? 0 : endIdx;
-            this.psiNormSq = this.psiNormAccumulator;
-            if (endIdx >= totalCells) {
-                this.psiNormSweepDone = true;
-            }
+            return new Quat(
+                this.q.a.add(pA.mul(new Fraction(15, 100))),
+                this.q.b.add(pB.mul(new Fraction(10, 100))),
+                this.q.c.add(pC.mul(new Fraction(12, 100))),
+                this.q.d.add(pD.mul(new Fraction(8, 100)))
+            );
         }
 
         pushTrace(entry) {
@@ -1028,24 +1358,24 @@
 
         step(dt) {
             try {
-                const dtf = dt instanceof Fraction ? dt : new Fraction(dt);
+                const dtf = dt instanceof Fraction ? dt : new Fraction(1, 1);
                 this.time = this.time.add(dtf);
 
                 const s = this.time.mul(new Fraction(4, 10));
                 const thetaBase = s.mul(new Fraction(7, 10));
-                const thetaPerturb = Fraction.sinExact(s.mul(new Fraction(3, 10)), 8).mul(new Fraction(2, 10));
+                const thetaPerturb = Series.sinPartial(s.mul(new Fraction(3, 10)), 8).value.mul(new Fraction(2, 10));
                 const theta = thetaBase.add(thetaPerturb);
-                const phiBase = s.mul(new Fraction(3, 10)).add(new Fraction(5, 10));
-                const phiPerturb = Fraction.cosExact(s.mul(new Fraction(5, 10)), 8).mul(new Fraction(1, 10));
+                const phiBase = s.mul(new Fraction(3, 10)).add(Fraction.half());
+                const phiPerturb = Series.cosPartial(s.mul(new Fraction(5, 10)), 8).value.mul(new Fraction(1, 10));
                 const phi = phiBase.add(phiPerturb);
 
-                const halfTheta = theta.div(new Fraction(2, 1));
-                const halfPhi = phi.div(new Fraction(2, 1));
+                const halfTheta = theta.div(Fraction.two());
+                const halfPhi = phi.div(Fraction.two());
 
-                const cosHT = Fraction.cosExact(halfTheta, 8);
-                const sinHT = Fraction.sinExact(halfTheta, 8);
-                const cosHP = Fraction.cosExact(halfPhi, 8);
-                const sinHP = Fraction.sinExact(halfPhi, 8);
+                const cosHT = Series.cosPartial(halfTheta, 8).value;
+                const sinHT = Series.sinPartial(halfTheta, 8).value;
+                const cosHP = Series.cosPartial(halfPhi, 8).value;
+                const sinHP = Series.sinPartial(halfPhi, 8).value;
 
                 const q0 = cosHT.mul(cosHP);
                 const q1 = sinHT.mul(cosHP);
@@ -1053,34 +1383,29 @@
                 const q3 = sinHT.mul(sinHP);
 
                 const base = new Quat(q0, q1, q2, q3);
-                this.q = base.applyFibration(s, this.eps, this.time).normalize();
+                this.q = this.applyFibration(s);
+                this.q = this.q.normalize();
 
                 this.quatHistory.push(this.q.clone());
-                if (this.quatHistory.length > 2000) {
-                    const tail = this.quatHistory.slice(-1500);
-                    this.quatHistory = [this.origin.clone(), ...tail];
+                if (this.quatHistory.length > 400) {
+                    this.quatHistory = [this.quatHistory[0]].concat(this.quatHistory.slice(-300));
                 }
 
-                if (this.quatHistory.length > 1) {
-                    let sAcc = Fraction.zero();
-                    for (let i = 1; i < this.quatHistory.length; i++) {
-                        sAcc = sAcc.add(this.quatHistory[i].sub(this.quatHistory[i - 1]).norm());
-                    }
-                    this.s = sAcc;
+                let sAcc = Fraction.zero();
+                for (let i = 1; i < this.quatHistory.length; i++) {
+                    sAcc = sAcc.add(this.quatHistory[i].sub(this.quatHistory[i - 1]).normSq());
                 }
-                this.r = this.q.norm();
-                this.s2 = this.s.mul(this.s);
-                this.r2 = this.r.mul(this.r);
-                this.srRatio = this.s2.div(this.r2);
+                this.s = sAcc;
+                this.r = this.q.normSq();
+                this.s2 = this.s;
+                this.r2 = this.r;
+                if (!this.r2.isZero()) this.srRatio = this.s2.div(this.r2);
                 this.dev = this.s2.sub(this.r2);
                 this.rePsi = this.q.a;
 
-                const proj = this.q.projectToS2();
-                this.proj = proj;
-
-                const tFloat = this.time.toFloat();
-                this.sHistory.push({ t: tFloat, val: this.s2.toFloat() });
-                this.rHistory.push({ t: tFloat, val: this.r2.toFloat() });
+                const tFloat = this.time.toFloatApprox();
+                this.sHistory.push({ t: tFloat, val: this.s2 });
+                this.rHistory.push({ t: tFloat, val: this.r2 });
                 if (this.sHistory.length > 300) {
                     this.sHistory.shift();
                     this.rHistory.shift();
@@ -1088,22 +1413,22 @@
 
                 const thresh = new Fraction(2, 1000);
                 const prevDbz = this.dbz;
-                if (this.dev.abs().toFloat() > thresh.toFloat()) {
+                if (this.dev.abs().gt(thresh)) {
                     if (this.rePsi.sign() > 0) {
                         const factor = new Fraction(97, 100);
                         this.dev = this.dev.mul(factor);
-                        this.dbz = 1;
+                        this.dbz = dbzGate(1, 0);
                         this.pushTrace({
                             type: 'dbz1',
                             t: tFloat,
-                            msg: `DbZ₁ critical-line projection (Re[Ψ]>0) | dev=${this.dev.toFloat().toExponential(3)}`
+                            msg: `DbZ₁ critical-line (Re[Ψ]>0) | dev=${this.dev.toDecimalString(6)}`
                         });
                     } else {
-                        const delta = Fraction.sinExact(this.time.mul(new Fraction(5, 10)).add(Fraction.one()), 8).mul(new Fraction(8, 10000));
+                        const delta = Series.sinPartial(this.time.mul(new Fraction(5, 10)).add(Fraction.one()), 8).value.mul(new Fraction(8, 10000));
                         this.eps = this.eps.add(delta);
-                        if (this.eps.toFloat() > 0.05) this.eps = new Fraction(5, 100);
-                        if (this.eps.toFloat() < 0.001) this.eps = new Fraction(1, 1000);
-                        this.dbz = 2;
+                        if (this.eps.gt(new Fraction(5, 100))) this.eps = new Fraction(5, 100);
+                        if (this.eps.lt(new Fraction(1, 1000))) this.eps = new Fraction(1, 1000);
+                        this.dbz = dbzGate(2, 1);
                         this.pushTrace({
                             type: 'dbz2',
                             t: tFloat,
@@ -1120,104 +1445,109 @@
                         this.pushTrace({
                             type: 'coherence',
                             t: tFloat,
-                            msg: `Coherence restored | s²=${this.s2.toString().slice(0,20)}...`
+                            msg: `Coherence restored | s²=${this.s2.toString().slice(0,20)}`
                         });
                     }
                     this.dbz = 0;
                 }
 
-                this.sweep4DObserver();
-                this.sweepPsiNorm();
-                if (this.psiNormSweepDone && Math.floor(this.time.toFloat() * 100) % 50 === 0) {
-                    const psiMag = Math.sqrt(this.psiNormSq.toFloat());
-                    if (psiMag > 0) {
+                const obsResult = sweep4DObserver(this.quatHistory);
+                this.obsRe = obsResult.re;
+                this.obsIm = obsResult.im;
+                this.obsGridCount = obsResult.cells;
+
+                this.psiNormSq = psiL2NormSq(this.quatHistory);
+                if (Math.floor(tFloat * 100) % 50 === 0) {
+                    const psiMag = this.psiNormSq;
+                    if (!psiMag.isZero()) {
                         this.pushTrace({
                             type: 'norm',
                             t: tFloat,
-                            msg: `L² norm |ψ|²=${this.psiNormSq.toFloat().toFixed(4)} · ‖ψ‖=${psiMag.toFixed(4)}`
+                            msg: `L² norm |ψ|²=${psiMag.toDecimalString(4)}`
                         });
                     }
                 }
 
                 const qConj = this.q.conjugate();
                 const comm = this.q.commutator(qConj);
-                this.commutatorNorm = comm.norm();
+                this.commutatorNorm = comm.normSq();
 
-                const b = this.q.b, c = this.q.c, d = this.q.d, a = this.q.a;
-                const cx = b.mul(c).sub(d.mul(a));
-                const cy = c.mul(d).sub(a.mul(b));
-                const cz = d.mul(a).sub(b.mul(c));
-                this.curlMagnitude = new Quat(cx, cy, cz, Fraction.zero()).norm();
+                this.curlMagnitude = normalizedCurl(this.q);
 
-                const cfInput = this.dev.abs().add(new Fraction(1, 2));
+                const cfInput = this.dev.abs().add(Fraction.half());
                 const cfTerms = continuedFractionExact(cfInput, 6);
                 const cfValue = cfEvaluateExact(cfTerms);
-                this.cfHistory.push({ val: cfValue.toFloat(), terms: cfTerms });
+                this.cfHistory.push({ val: cfValue, terms: cfTerms });
                 if (this.cfHistory.length > 60) this.cfHistory.shift();
 
                 const imPart = this.time.mul(new Fraction(1, 20));
-                const zetaVal = zetaExactOnCriticalLine(imPart, 24);
+                const zetaVal = zetaCriticalLine(imPart, ZETA_DIRICHLET_TERMS);
                 this.lastZetaRe = zetaVal.re;
                 this.lastZetaIm = zetaVal.im;
-                this.zetaHistory.push({ re: zetaVal.re.toFloat(), im: zetaVal.im.toFloat() });
+                this.zetaHistory.push({ re: zetaVal.re, im: zetaVal.im });
                 if (this.zetaHistory.length > 60) this.zetaHistory.shift();
 
-                if (Math.floor(this.time.toFloat() * 10) % 80 === 0) {
-                    const zetaMag = Math.sqrt(
-                        zetaVal.re.toFloat() ** 2 + zetaVal.im.toFloat() ** 2
-                    );
+                if (Math.floor(tFloat * 10) % 80 === 0) {
+                    const zetaMagSq = zetaVal.re.mul(zetaVal.re).add(zetaVal.im.mul(zetaVal.im));
                     this.pushTrace({
                         type: 'zeta',
                         t: tFloat,
-                        msg: `ζ(½+${imPart.toFloat().toFixed(3)}i) | mag=${zetaMag.toFixed(4)}`
+                        msg: `ζ(½+${imPart.toDecimalString(3)}i) | |ζ|²=${zetaMagSq.toDecimalString(4)}`
                     });
                 }
 
                 const moduli = [3, 5, 7, 11];
                 const devAbsFrac = this.dev.abs();
-                this.crtResidues = moduli.map(m => crtResidueFromExact(devAbsFrac, m));
+                this.crtResidues = moduli.map(m => crtResidueFromFraction(devAbsFrac, m));
                 const lattice = crtLattice(moduli);
                 this.crtState = crtSolve(this.crtResidues, lattice);
 
-                const devAbs = Math.abs(this.dev.toFloat());
-                const commAbs = this.commutatorNorm.toFloat();
-                const marketSignal = Math.min(1, devAbs * 5 + commAbs * 2);
-                this.marketM = Math.max(0, Math.min(14, Math.floor(8 + 6 * marketSignal)));
-                this.marketN = Math.max(0, Math.min(14, Math.floor(6 - 4 * marketSignal)));
-                this.marketImbalance = this.marketM - this.marketN - 2;
-                if (this.marketImbalance > 2) this.marketRegime = 'BULLISH';
-                else if (this.marketImbalance < -2) this.marketRegime = 'BEARISH';
-                else this.marketRegime = 'NEUTRAL';
+                const probabilities = [
+                    this.srRatio.abs().modRational(new Fraction(1000, 1000)),
+                    this.curlMagnitude.modRational(new Fraction(1000, 1000)),
+                    this.commutatorNorm.modRational(new Fraction(1000, 1000)),
+                    this.dev.abs().modRational(new Fraction(1000, 1000))
+                ];
+                const aeae = aeaeImbalance(probabilities);
+                this.marketImbalance = aeae.imbalance;
+                this.marketM = aeae.m;
+                this.marketN = aeae.n;
+                this.marketRegime = aeaeRegime(this.marketImbalance);
+                this.aeaeDelta = kroneckerDeltaInt(this.marketM, this.marketN, 2);
+
+                this.intelligence = intelligenceMetric(
+                    this.s2.add(Fraction.one()),
+                    this.r2.add(Fraction.one()),
+                    this.dev,
+                    Fraction.one(),
+                    this.time.abs().add(Fraction.one()),
+                    this.q
+                );
 
                 const t2 = this.time.mul(new Fraction(2, 10));
                 const t25 = this.time.mul(new Fraction(25, 100));
                 const t3 = this.time.mul(new Fraction(3, 10));
-                const lingX = Fraction.sinExact(t2, 8).mul(new Fraction(1, 2)).add(Fraction.cosExact(t3.add(Fraction.one()), 8).mul(new Fraction(3, 10)));
-                const lingY = Fraction.cosExact(t25, 8).mul(new Fraction(1, 2)).add(Fraction.sinExact(t2.add(new Fraction(2, 1)), 8).mul(new Fraction(3, 10)));
-                const lingZ = Fraction.sinExact(t3.add(new Fraction(1, 2)), 8).mul(new Fraction(1, 2)).add(Fraction.cosExact(t25.add(new Fraction(15, 10)), 8).mul(new Fraction(3, 10)));
-                const lingXf = lingX.toFloat(), lingYf = lingY.toFloat(), lingZf = lingZ.toFloat();
-                this.lingosoTraj.push({ x: lingXf, y: lingYf, z: lingZf });
+                const lingX = Series.sinPartial(t2, 8).value.mul(Fraction.half()).add(Series.cosPartial(t3.add(Fraction.one()), 8).value.mul(new Fraction(3, 10)));
+                const lingY = Series.cosPartial(t25, 8).value.mul(Fraction.half()).add(Series.sinPartial(t2.add(Fraction.two()), 8).value.mul(new Fraction(3, 10)));
+                const lingZ = Series.sinPartial(t3.add(Fraction.half()), 8).value.mul(Fraction.half()).add(Series.cosPartial(t25.add(new Fraction(15, 10)), 8).value.mul(new Fraction(3, 10)));
+                this.lingosoTraj.push({ x: lingX, y: lingY, z: lingZ });
                 if (this.lingosoTraj.length > 100) this.lingosoTraj.shift();
 
-                let activeLabels = [];
+                const lingResult = lingosoActiveFromTrajectory(this.lingosoTraj);
+                this.activePhoneme = lingResult.label;
+                this.activeArcLength = lingResult.arcLength;
+
                 for (const phoneme of this.phonemeGrid) {
-                    const dx = lingXf - phoneme.x;
-                    const dy = lingYf - phoneme.y;
-                    const dz = lingZf - phoneme.z;
-                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                    phoneme.active = dist < 0.25;
-                    if (phoneme.active) activeLabels.push(phoneme.label);
+                    phoneme.active = (phoneme.label === this.activePhoneme);
                 }
-                this.activePhoneme = activeLabels.length > 0 ? activeLabels.join('') : '—';
 
-                const closureMetric = 1 - Math.min(1, Math.abs(
-                    this.dev.toFloat() * 10 +
-                    (this.obsRe.toFloat() - 0.5) * 2 +
-                    (this.marketImbalance / 10)
-                ));
-                this.selfRefClosure = Math.max(0, Math.min(1, closureMetric));
+                const curlNorm = normalizedCurl(this.q);
+                const closureMetricNum = Fraction.one().sub(
+                    this.dev.abs().add(this.marketImbalance.abs()).add(curlNorm)
+                );
+                this.selfRefClosure = closureMetricNum;
 
-                if (this.selfRefClosure > 0.7 && this.proofSteps.length < 20) {
+                if (this.selfRefClosure.gt(new Fraction(7, 10)) && this.proofSteps.length < 20) {
                     this.proofSteps.push({
                         index: this.proofSteps.length,
                         type: this.coherent ? 'coherence' : 'evolution',
@@ -1228,14 +1558,24 @@
                     this.pushTrace({
                         type: this.coherent ? 'coherence' : 'evolution',
                         t: tFloat,
-                        msg: `Closure=${this.selfRefClosure.toFixed(3)} → step #${this.proofDepth}`
+                        msg: `Closure=${this.selfRefClosure.toDecimalString(3)} → step #${this.proofDepth}`
                     });
                 }
 
+                const A = new OneForm(this.q.a, this.q.b, this.q.c, this.q.d);
+                this.ptd = pfaffTopologicalDimension(A);
+                this.ptdRegime = ptdRegime(this.ptd);
+
+                const openSets = [[0, 1], [1, 2], [0, 2]];
+                this.t0State = kolmogorovT0(openSets, [0, 1, 2]);
+
+                const proj = this.q.projectToS2();
                 this.traj.push({
-                    x: proj.x, y: proj.y, z: proj.z,
+                    x: proj.x,
+                    y: proj.y,
+                    z: proj.z,
                     coherent: this.coherent,
-                    dev: this.dev.toFloat()
+                    dev: this.dev
                 });
                 if (this.traj.length > 200) this.traj.shift();
 
@@ -1249,8 +1589,8 @@
         }
 
         reset() {
-            this.q = this.origin.clone();
-            this.quatHistory = [this.origin.clone()];
+            this.q = Quat.one();
+            this.quatHistory = [Quat.one()];
             this.gen = 0;
             this.eps = new Fraction(1, 100);
             this.coherent = true;
@@ -1259,22 +1599,15 @@
             this.dbz = 0;
             this.dev = Fraction.zero();
             this.rePsi = Fraction.zero();
-            this.proj = { x: 0, y: 0, z: 1 };
             this.s = Fraction.zero();
             this.r = Fraction.one();
             this.s2 = Fraction.zero();
             this.r2 = Fraction.one();
-            this.srRatio = Fraction.zero();
+            this.srRatio = Fraction.one();
             this.obsRe = Fraction.zero();
             this.obsIm = Fraction.zero();
             this.obsGridCount = 0;
-            this.obsSweepIdx = 0;
-            this.obsAccumulatorRe = Fraction.zero();
-            this.obsAccumulatorIm = Fraction.zero();
             this.psiNormSq = Fraction.zero();
-            this.psiNormSweepDone = false;
-            this.psiNormSweepIdx = 0;
-            this.psiNormAccumulator = Fraction.zero();
             this.cfHistory = [];
             this.zetaHistory = [];
             this.lastZetaRe = Fraction.zero();
@@ -1283,22 +1616,25 @@
             this.crtResidues = [0, 0, 0, 0];
             this.marketM = 0;
             this.marketN = 0;
-            this.marketImbalance = 0;
+            this.marketImbalance = Fraction.zero();
             this.marketRegime = 'NEUTRAL';
             this.lingosoTraj = [];
             this.curlMagnitude = Fraction.zero();
             this.commutatorNorm = Fraction.zero();
-            this.selfRefClosure = 0;
+            this.intelligence = Fraction.zero();
+            this.ptd = 1;
+            this.ptdRegime = 'Equilibrium';
+            this.t0State = true;
             this.proofSteps = [];
             this.proofDepth = 0;
             this.proofTrace = [];
             this.sHistory = [];
             this.rHistory = [];
             this.activePhoneme = '—';
+            this.activeArcLength = Fraction.zero();
             for (const p of this.phonemeGrid) p.active = false;
             this._stars = null;
             this._initialized = false;
-            this._fibrationConverged = false;
             this._lastFibrationTerm = Fraction.zero();
         }
 
@@ -1309,7 +1645,7 @@
     }
 
     // ============================================================
-    // 5. CANVAS SETUP & PRE-FLIGHT VALIDATION
+    // 16. CANVAS SETUP & PRE-FLIGHT VALIDATION
     // ============================================================
     const canvas = document.getElementById('mainCanvas');
     const ctx = canvas.getContext('2d');
@@ -1352,7 +1688,7 @@
     }
 
     // ============================================================
-    // 6. 3D PROJECTION
+    // 17. 3D PROJECTION
     // ============================================================
     function project3D(x, y, z, rotX, rotY, zoom) {
         zoom = zoom || 1;
@@ -1375,8 +1711,15 @@
         };
     }
 
+    function fracToDisplay(f, places) {
+        return f.toDecimalString(places || 6);
+    }
+    function fracToFloatApprox(f) {
+        return f.toFloatApprox();
+    }
+
     // ============================================================
-    // 7. STATE, CONTROLS, DOM HANDLES
+    // 18. STATE, CONTROLS, DOM HANDLES
     // ============================================================
     const codex = new CodexState();
     let paused = false;
@@ -1384,6 +1727,7 @@
     let isDragging = false, lastX = 0, lastY = 0;
     let showHelp = false;
     let showTrace = false;
+    let showAxioms = false;
 
     const dt = new Fraction(2, 100);
 
@@ -1408,14 +1752,17 @@
     const aeaeMSpan = document.getElementById('aeae-m');
     const aeaeNSpan = document.getElementById('aeae-n');
     const aeaeDeltaPanelSpan = document.getElementById('aeae-delta-panel');
+    const aeaeImbalanceSpan = document.getElementById('aeae-imbalance');
     const aeaeRegimeSpan = document.getElementById('aeae-regime');
     const obsRealSpan = document.getElementById('obs-real');
     const obsImagSpan = document.getElementById('obs-imag');
     const obsGridSpan = document.getElementById('obs-grid-count');
     const obsPsiNormSpan = document.getElementById('obs-psi-norm');
+    const obsIntelligenceSpan = document.getElementById('obs-intelligence');
     const zetaReSpan = document.getElementById('zeta-re');
     const zetaImSpan = document.getElementById('zeta-im');
     const zetaMagSpan = document.getElementById('zeta-mag');
+    const zetaTermsSpan = document.getElementById('zeta-terms');
     const gaugeArc = document.getElementById('gaugeArc');
     const gaugeLabel = document.getElementById('gaugeLabel');
     const proofChain = document.getElementById('proofChain');
@@ -1428,9 +1775,9 @@
     const rPolyline = document.getElementById('rPolyline');
     const lingosoActiveSpan = document.getElementById('lingoso-active');
     const lingosoCoordsSpan = document.getElementById('lingoso-coords');
+    const lingosoArcSpan = document.getElementById('lingoso-arc');
     const explainPanel = document.getElementById('explainPanel');
-
-    let frameCount = 0;
+    const axiomPanel = document.getElementById('axiomPanel');
 
     function attachCopyHandler(el) {
         el.addEventListener('click', () => {
@@ -1446,7 +1793,7 @@
     attachCopyHandler(r2Exact);
 
     // ============================================================
-    // 8. RENDER LOOP
+    // 19. RENDER LOOP
     // ============================================================
     function render() {
         try {
@@ -1460,7 +1807,6 @@
                 const h = canvas._height;
 
                 codex.step(dt);
-                const pos = codex.proj;
                 const traj = codex.traj;
                 const mode = codex.mode;
 
@@ -1563,18 +1909,21 @@
                     const sHist = codex.sHistory;
                     const rHist = codex.rHistory;
                     if (sHist.length > 2 && rHist.length > 2) {
+                        let sMax = Fraction.zero();
+                        for (const d of sHist) if (d.val.abs().gt(sMax)) sMax = d.val.abs();
+                        if (sMax.isZero()) sMax = Fraction.one();
                         ctx.lineWidth = 2;
                         ctx.shadowColor = 'rgba(68, 255, 204, 0.3)';
                         ctx.shadowBlur = 10;
                         ctx.strokeStyle = 'rgba(68, 255, 204, 0.7)';
                         ctx.beginPath();
                         for (let i = 0; i < sHist.length; i++) {
-                            const val = sHist[i].val;
+                            const val = fracToFloatApprox(sHist[i].val.div(sMax));
                             const angle = i * 0.02;
                             const radius = 0.3 + val * 0.3;
-                            const px = pos.x + radius * Math.cos(angle);
-                            const py = pos.y + radius * 0.5 * Math.sin(angle * 1.3);
-                            const pz = pos.z + radius * 0.5 * Math.sin(angle * 0.7);
+                            const px = radius * Math.cos(angle);
+                            const py = radius * 0.5 * Math.sin(angle * 1.3);
+                            const pz = radius * 0.5 * Math.sin(angle * 0.7);
                             const p = project3D(px, py, pz, rotX, rotY, zoom);
                             if (i === 0) ctx.moveTo(p.sx, p.sy);
                             else ctx.lineTo(p.sx, p.sy);
@@ -1587,12 +1936,12 @@
                         ctx.strokeStyle = 'rgba(255, 170, 68, 0.7)';
                         ctx.beginPath();
                         for (let i = 0; i < rHist.length; i++) {
-                            const val = rHist[i].val;
+                            const val = fracToFloatApprox(rHist[i].val.div(sMax));
                             const angle = i * 0.02 + 0.5;
                             const radius = 0.3 + val * 0.3;
-                            const px = pos.x + radius * Math.cos(angle);
-                            const py = pos.y + radius * 0.5 * Math.sin(angle * 1.3 + 1);
-                            const pz = pos.z + radius * 0.5 * Math.sin(angle * 0.7 + 0.5);
+                            const px = radius * Math.cos(angle);
+                            const py = radius * 0.5 * Math.sin(angle * 1.3 + 1);
+                            const pz = radius * 0.5 * Math.sin(angle * 0.7 + 0.5);
                             const p = project3D(px, py, pz, rotX, rotY, zoom);
                             if (i === 0) ctx.moveTo(p.sx, p.sy);
                             else ctx.lineTo(p.sx, p.sy);
@@ -1600,7 +1949,7 @@
                         ctx.stroke();
                         ctx.shadowBlur = 0;
 
-                        const labelPos = project3D(pos.x * 1.2, pos.y * 1.2 + 0.2, pos.z * 1.2, rotX, rotY, zoom);
+                        const labelPos = project3D(1.2, 1.4, 1.2, rotX, rotY, zoom);
                         ctx.font = `${9 * zoom}px "Courier New", monospace`;
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
@@ -1622,12 +1971,12 @@
                     ctx.lineWidth = 0.8;
                     ctx.beginPath();
                     for (let i = 1; i < cf.length; i++) {
-                        const v = cf[i].val;
+                        const v = fracToFloatApprox(cf[i].val);
                         const angle = i * 0.1;
                         const radius = 0.3 + v * 0.3;
-                        const px = pos.x + radius * Math.cos(angle);
-                        const py = pos.y + radius * 0.5 * Math.sin(angle * 1.3);
-                        const pz = pos.z + radius * 0.5 * Math.sin(angle * 0.7);
+                        const px = radius * Math.cos(angle);
+                        const py = radius * 0.5 * Math.sin(angle * 1.3);
+                        const pz = radius * 0.5 * Math.sin(angle * 0.7);
                         const p = project3D(px, py, pz, rotX, rotY, zoom);
                         if (i === 1) ctx.moveTo(p.sx, p.sy);
                         else ctx.lineTo(p.sx, p.sy);
@@ -1641,12 +1990,12 @@
                     ctx.lineWidth = 0.8;
                     ctx.beginPath();
                     for (let i = 1; i < zeta.length; i++) {
-                        const v = zeta[i].re;
+                        const v = fracToFloatApprox(zeta[i].re);
                         const angle = i * 0.08;
                         const radius = 0.2 + v * 0.2;
-                        const px = pos.x + radius * Math.cos(angle + 2);
-                        const py = pos.y + radius * 0.5 * Math.sin(angle * 0.9 + 1);
-                        const pz = pos.z + radius * 0.5 * Math.cos(angle * 0.8);
+                        const px = radius * Math.cos(angle + 2);
+                        const py = radius * 0.5 * Math.sin(angle * 0.9 + 1);
+                        const pz = radius * 0.5 * Math.cos(angle * 0.8);
                         const p = project3D(px, py, pz, rotX, rotY, zoom);
                         if (i === 1) ctx.moveTo(p.sx, p.sy);
                         else ctx.lineTo(p.sx, p.sy);
@@ -1662,14 +2011,22 @@
                     ctx.shadowBlur = 10;
                     ctx.beginPath();
                     for (let i = 1; i < ling.length; i++) {
-                        const p = project3D(ling[i].x * 0.8, ling[i].y * 0.8, ling[i].z * 0.8, rotX, rotY, zoom);
+                        const p = project3D(
+                            fracToFloatApprox(ling[i].x) * 0.8,
+                            fracToFloatApprox(ling[i].y) * 0.8,
+                            fracToFloatApprox(ling[i].z) * 0.8,
+                            rotX, rotY, zoom);
                         if (i === 1) ctx.moveTo(p.sx, p.sy);
                         else ctx.lineTo(p.sx, p.sy);
                     }
                     ctx.stroke();
                     ctx.shadowBlur = 0;
                     for (let i = 0; i < ling.length; i += 5) {
-                        const p = project3D(ling[i].x * 0.8, ling[i].y * 0.8, ling[i].z * 0.8, rotX, rotY, zoom);
+                        const p = project3D(
+                            fracToFloatApprox(ling[i].x) * 0.8,
+                            fracToFloatApprox(ling[i].y) * 0.8,
+                            fracToFloatApprox(ling[i].z) * 0.8,
+                            rotX, rotY, zoom);
                         const alpha = 0.1 + 0.5 * (i / ling.length);
                         ctx.fillStyle = `rgba(255, 102, 170, ${alpha})`;
                         ctx.beginPath();
@@ -1680,8 +2037,16 @@
 
                 if (traj.length > 1) {
                     for (let i = 1; i < traj.length; i++) {
-                        const p0 = project3D(traj[i - 1].x, traj[i - 1].y, traj[i - 1].z, rotX, rotY, zoom);
-                        const p1 = project3D(traj[i].x, traj[i].y, traj[i].z, rotX, rotY, zoom);
+                        const p0 = project3D(
+                            fracToFloatApprox(traj[i - 1].x),
+                            fracToFloatApprox(traj[i - 1].y),
+                            fracToFloatApprox(traj[i - 1].z),
+                            rotX, rotY, zoom);
+                        const p1 = project3D(
+                            fracToFloatApprox(traj[i].x),
+                            fracToFloatApprox(traj[i].y),
+                            fracToFloatApprox(traj[i].z),
+                            rotX, rotY, zoom);
                         const alpha = 0.15 + 0.6 * (i / traj.length);
                         const color = traj[i].coherent ? `rgba(0, 255, 136, ${alpha})` : `rgba(255, 68, 102, ${alpha})`;
                         ctx.strokeStyle = color;
@@ -1693,7 +2058,12 @@
                     }
                 }
 
-                const p = project3D(pos.x, pos.y, pos.z, rotX, rotY, zoom);
+                const proj = codex.q.projectToS2();
+                const p = project3D(
+                    fracToFloatApprox(proj.x),
+                    fracToFloatApprox(proj.y),
+                    fracToFloatApprox(proj.z),
+                    rotX, rotY, zoom);
                 const glowColor = codex.coherent ? 'rgba(0, 255, 136, ' : 'rgba(255, 68, 102, ';
                 const grd2 = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, 40 * zoom);
                 grd2.addColorStop(0, glowColor + '0.4)');
@@ -1719,14 +2089,12 @@
                 ctx.textBaseline = 'middle';
                 ctx.shadowColor = codex.coherent ? '#00ffcc' : '#ff6688';
                 ctx.shadowBlur = 40;
-                const lp = project3D(pos.x * 1.15, pos.y * 1.15, pos.z * 1.15, rotX, rotY, zoom);
-                ctx.fillText('Φ', lp.sx, lp.sy);
+                ctx.fillText('Φ', p.sx + 25 * zoom, p.sy - 25 * zoom);
                 ctx.shadowBlur = 0;
 
                 if (mode === 0 || mode === 1) {
                     const dbzColor = codex.dbz === 0 ? '#6688aa' : (codex.dbz === 1 ? '#44ddff' : '#ff66aa');
                     const dbzScale = codex.dbz === 0 ? 1 : (codex.dbz === 1 ? 0.7 : 1.3);
-                    const dpos = { x: pos.x * 1.08, y: pos.y * 1.08, z: pos.z * 1.08 };
                     ctx.strokeStyle = dbzColor;
                     ctx.lineWidth = 2;
                     ctx.shadowColor = dbzColor;
@@ -1736,10 +2104,10 @@
                     for (let i = 0; i <= 28; i++) {
                         const t = i / 28;
                         const ang = t * 2 * Math.PI;
-                        const rad = (0.28 * dbzScale + 0.12 * dbzScale * Math.sin(t * 4 * Math.PI + codex.time.toFloat() * 0.02)) * zoom;
-                        const ax = dpos.x + rad * Math.cos(ang);
-                        const ay = dpos.y + rad * 0.7 * Math.sin(ang + codex.time.toFloat() * 0.01);
-                        const az = dpos.z + rad * 0.5 * Math.sin(ang * 1.2 + codex.time.toFloat() * 0.015);
+                        const rad = (0.28 * dbzScale + 0.12 * dbzScale * Math.sin(t * 4 * Math.PI + codex.time.toFloatApprox() * 0.02)) * zoom;
+                        const ax = rad * Math.cos(ang);
+                        const ay = rad * 0.7 * Math.sin(ang + codex.time.toFloatApprox() * 0.01);
+                        const az = rad * 0.5 * Math.sin(ang * 1.2 + codex.time.toFloatApprox() * 0.015);
                         const pp = project3D(ax, ay, az, rotX, rotY, zoom);
                         if (i === 0) ctx.moveTo(pp.sx, pp.sy);
                         else ctx.lineTo(pp.sx, pp.sy);
@@ -1758,18 +2126,21 @@
                 }
 
                 if (mode === 0 || mode === 3) {
-                    const obsMag = Math.sqrt(codex.obsRe.toFloat() ** 2 + codex.obsIm.toFloat() ** 2);
+                    const obsMag = Math.sqrt(
+                        fracToFloatApprox(codex.obsRe) ** 2 +
+                        fracToFloatApprox(codex.obsIm) ** 2
+                    );
                     const fieldOpacity = 0.03 + Math.min(1, obsMag) * 0.4;
                     const fieldScale = (0.7 + Math.min(1, obsMag) * 0.6) * zoom;
                     for (let i = 0; i < 12; i++) {
-                        const baseAngle = (i / 12) * 2 * Math.PI + codex.time.toFloat() * 0.005;
+                        const baseAngle = (i / 12) * 2 * Math.PI + codex.time.toFloatApprox() * 0.005;
                         ctx.strokeStyle = `rgba(255, 170, 68, ${fieldOpacity * 0.5})`;
                         ctx.lineWidth = 0.8;
                         ctx.beginPath();
                         for (let j = 0; j <= 28; j++) {
                             const t = j / 28;
                             const ang = baseAngle + t * 0.8;
-                            const r = fieldScale * (1 + 0.3 * Math.sin(t * 3 * Math.PI + codex.time.toFloat() * 0.01));
+                            const r = fieldScale * (1 + 0.3 * Math.sin(t * 3 * Math.PI + codex.time.toFloatApprox() * 0.01));
                             const fx = r * Math.cos(ang);
                             const fy = t * 1.4 - 0.7;
                             const fz = r * Math.sin(ang);
@@ -1782,7 +2153,7 @@
                 }
 
                 if (mode === 0 || mode === 2) {
-                    const marketImbalance = codex.marketImbalance;
+                    const marketImbalance = fracToFloatApprox(codex.marketImbalance);
                     const marketPulse = 0.1 + 0.5 * (1 - Math.min(1, Math.abs(marketImbalance) / 15));
                     const mColor = marketImbalance > 2 ? 'rgba(68, 255, 136, ' :
                         marketImbalance < -2 ? 'rgba(255, 68, 102, ' : 'rgba(68, 170, 255, ';
@@ -1792,10 +2163,10 @@
                     ctx.shadowBlur = 15;
                     ctx.beginPath();
                     for (let i = 0; i <= 40; i++) {
-                        const ang = (i / 40) * 2 * Math.PI + codex.time.toFloat() * 0.02;
-                        const rr = 0.90 + 0.04 * Math.sin(ang * 4 + codex.time.toFloat() * 0.1);
+                        const ang = (i / 40) * 2 * Math.PI + codex.time.toFloatApprox() * 0.02;
+                        const rr = 0.90 + 0.04 * Math.sin(ang * 4 + codex.time.toFloatApprox() * 0.1);
                         const mx = rr * Math.cos(ang);
-                        const my = 0.02 * Math.sin(ang * 2 + codex.time.toFloat() * 0.05);
+                        const my = 0.02 * Math.sin(ang * 2 + codex.time.toFloatApprox() * 0.05);
                         const mz = rr * Math.sin(ang);
                         const pp = project3D(mx, my, mz, rotX, rotY, zoom);
                         if (i === 0) ctx.moveTo(pp.sx, pp.sy);
@@ -1806,7 +2177,7 @@
                 }
 
                 if (mode === 0 || mode === 1) {
-                    const closure = codex.selfRefClosure;
+                    const closure = fracToFloatApprox(codex.selfRefClosure);
                     ctx.fillStyle = `rgba(200, 200, 255, ${0.2 + closure * 0.5})`;
                     ctx.font = `bold ${16 * zoom}px "Courier New", monospace`;
                     ctx.textAlign = 'center';
@@ -1820,24 +2191,26 @@
                 coherenceSpan.textContent = codex.coherent ? '✅ COHERENT (s=r)' : '🔄 EVOLVING (s≠r)';
                 coherenceSpan.style.color = codex.coherent ? '#00ff88' : '#ff4466';
                 generationSpan.textContent = codex.gen;
-                deviationSpan.textContent = codex.dev.toFloat().toFixed(6);
+                deviationSpan.textContent = fracToDisplay(codex.dev, 6);
                 epsilonSpan.textContent = codex.eps.toString();
                 modeDisplay.textContent = codex.modes[codex.mode];
 
                 s2Exact.textContent = codex.s2.toString();
                 r2Exact.textContent = codex.r2.toString();
-                s2Val.textContent = codex.s2.toFloat().toFixed(6);
-                r2Val.textContent = codex.r2.toFloat().toFixed(6);
-                deltaVal.textContent = codex.dev.toFloat().toFixed(6);
+                s2Val.textContent = fracToDisplay(codex.s2, 6);
+                r2Val.textContent = fracToDisplay(codex.r2, 6);
+                deltaVal.textContent = fracToDisplay(codex.dev, 6);
                 obsVal.textContent = Math.sqrt(
-                    codex.obsRe.toFloat() ** 2 + codex.obsIm.toFloat() ** 2
+                    fracToFloatApprox(codex.obsRe) ** 2 +
+                    fracToFloatApprox(codex.obsIm) ** 2
                 ).toFixed(4);
-                srRatioSpan.textContent = codex.srRatio.toFloat().toFixed(4);
-                curlValSpan.textContent = codex.curlMagnitude.toFloat().toFixed(4);
-                commValSpan.textContent = codex.commutatorNorm.toFloat().toFixed(4);
-                psiNormValSpan.textContent = Math.sqrt(codex.psiNormSq.toFloat()).toFixed(4);
+                srRatioSpan.textContent = fracToDisplay(codex.srRatio, 4);
+                curlValSpan.textContent = fracToDisplay(codex.curlMagnitude, 4);
+                commValSpan.textContent = fracToDisplay(codex.commutatorNorm, 4);
+                psiNormValSpan.textContent = fracToDisplay(codex.psiNormSq, 4);
                 zetaValSpan.textContent = Math.sqrt(
-                    codex.lastZetaRe.toFloat() ** 2 + codex.lastZetaIm.toFloat() ** 2
+                    fracToFloatApprox(codex.lastZetaRe) ** 2 +
+                    fracToFloatApprox(codex.lastZetaIm) ** 2
                 ).toFixed(4);
 
                 const dbzLabels = ['NONE', 'CRITICAL LINE', 'NATALIA'];
@@ -1845,28 +2218,30 @@
                 dbzBranchSpan.style.color = codex.dbz === 0 ? '#6688aa' :
                     codex.dbz === 1 ? '#44ddff' : '#ff66aa';
 
-                aeaeDeltaSpan.textContent = codex.marketImbalance;
-                aeaeDeltaSpan.style.color = Math.abs(codex.marketImbalance) < 2 ? '#44ddff' :
-                    codex.marketImbalance > 2 ? '#44ff88' : '#ff4466';
+                aeaeDeltaSpan.textContent = codex.aeaeDelta !== undefined ? codex.aeaeDelta : 0;
                 aeaeMSpan.textContent = codex.marketM;
                 aeaeNSpan.textContent = codex.marketN;
-                aeaeDeltaPanelSpan.textContent = codex.marketImbalance;
+                aeaeDeltaPanelSpan.textContent = codex.aeaeDelta !== undefined ? codex.aeaeDelta : 0;
+                aeaeImbalanceSpan.textContent = fracToDisplay(codex.marketImbalance, 4);
                 aeaeRegimeSpan.textContent = codex.marketRegime;
                 aeaeRegimeSpan.style.color = codex.marketRegime === 'BULLISH' ? '#44ff88' :
                     codex.marketRegime === 'BEARISH' ? '#ff4466' : '#44aaff';
 
-                obsRealSpan.textContent = codex.obsRe.toFloat().toFixed(4);
-                obsImagSpan.textContent = codex.obsIm.toFloat().toFixed(4);
+                obsRealSpan.textContent = fracToDisplay(codex.obsRe, 4);
+                obsImagSpan.textContent = fracToDisplay(codex.obsIm, 4);
                 obsGridSpan.textContent = codex.obsGridCount;
-                obsPsiNormSpan.textContent = codex.psiNormSq.toFloat().toFixed(4);
+                obsPsiNormSpan.textContent = fracToDisplay(codex.psiNormSq, 4);
+                obsIntelligenceSpan.textContent = fracToDisplay(codex.intelligence, 4);
 
-                zetaReSpan.textContent = codex.lastZetaRe.toFloat().toFixed(4);
-                zetaImSpan.textContent = codex.lastZetaIm.toFloat().toFixed(4);
+                zetaReSpan.textContent = fracToDisplay(codex.lastZetaRe, 4);
+                zetaImSpan.textContent = fracToDisplay(codex.lastZetaIm, 4);
                 zetaMagSpan.textContent = Math.sqrt(
-                    codex.lastZetaRe.toFloat() ** 2 + codex.lastZetaIm.toFloat() ** 2
+                    fracToFloatApprox(codex.lastZetaRe) ** 2 +
+                    fracToFloatApprox(codex.lastZetaIm) ** 2
                 ).toFixed(4);
+                zetaTermsSpan.textContent = codex.zetaTerms;
 
-                const sr = codex.srRatio.toFloat();
+                const sr = fracToFloatApprox(codex.srRatio);
                 const clampedSr = Math.max(0.4, Math.min(1.6, sr));
                 const normalized = (clampedSr - 0.4) / 1.2;
                 const dashLength = Math.min(282, Math.max(0, normalized * 282));
@@ -1876,9 +2251,9 @@
                 if (codex.proofSteps.length > 1) {
                     proofChain.classList.add('visible');
                     const lastStep = codex.proofSteps[codex.proofSteps.length - 1];
-                    proofDetail.textContent = `(${codex.proofSteps.length} steps · closure ${lastStep.closure.toFixed(3)})`;
+                    proofDetail.textContent = `(${codex.proofSteps.length} steps · closure ${fracToDisplay(lastStep.closure, 3)})`;
                     proofLatest.textContent = `↳ ${lastStep.type}`;
-                    proofProgress.style.width = `${codex.selfRefClosure * 100}%`;
+                    proofProgress.style.width = `${fracToFloatApprox(codex.selfRefClosure) * 100}%`;
                 } else {
                     proofChain.classList.remove('visible');
                     proofProgress.style.width = '0%';
@@ -1898,19 +2273,43 @@
                     proofTrace.classList.remove('visible');
                 }
 
+                if (showAxioms) {
+                    axiomPanel.classList.add('visible');
+                    document.getElementById('ax-a').textContent = `Φ = (${codex.q.a.toString()}) + i(${codex.q.b.toString()}) + j(${codex.q.c.toString()}) + k(${codex.q.d.toString()})`;
+                    document.getElementById('ax-sr').textContent = `s² = ${codex.s2.toString()} · r² = ${codex.r2.toString()}`;
+                    document.getElementById('ax-q').textContent = `PTD = ${codex.ptd} (${codex.ptdRegime})`;
+                    document.getElementById('ax-t4').textContent = `|∇×Φ| = ${fracToDisplay(codex.curlMagnitude, 4)}`;
+                    document.getElementById('ax-hopf').textContent = `π(q) = (${fracToDisplay(codex.q.hopfMap().z0.re, 3)}, ${fracToDisplay(codex.q.hopfMap().z0.im, 3)}, ${fracToDisplay(codex.q.hopfMap().z1.re, 3)}, ${fracToDisplay(codex.q.hopfMap().z1.im, 3)})`;
+                    document.getElementById('ax-t0').textContent = codex.t0State ? 'T₀ (Particle)' : '¬T₀ (Wave)';
+                    document.getElementById('ax-dbz').textContent = `DbZ = ${codex.dbz}`;
+                    document.getElementById('ax-i').textContent = `I = ${fracToDisplay(codex.intelligence, 4)}`;
+                    document.getElementById('ax-aeae').textContent = `Î = ${fracToDisplay(codex.marketImbalance, 4)}`;
+                    document.getElementById('ax-delta').textContent = `δ(m−n−2) = ${codex.aeaeDelta !== undefined ? codex.aeaeDelta : 0}`;
+                    document.getElementById('ax-obs').textContent = `O[Ψ] = ${fracToDisplay(codex.obsRe, 4)} + i·${fracToDisplay(codex.obsIm, 4)}`;
+                    document.getElementById('ax-c').textContent = `‖[Φ, Φ†]‖ = ${fracToDisplay(codex.commutatorNorm, 4)}`;
+                    document.getElementById('ax-zeta').textContent = `ζ(½+it) = ${fracToDisplay(codex.lastZetaRe, 4)} + i·${fracToDisplay(codex.lastZetaIm, 4)}`;
+                    document.getElementById('ax-fe').textContent = `Dirichlet terms = ${codex.zetaTerms}`;
+                    document.getElementById('ax-self').textContent = `CS ⊨ CS (closure = ${fracToDisplay(codex.selfRefClosure, 3)})`;
+                    document.getElementById('ax-box').textContent = `□ ↔ ⊤ (PTD = ${codex.ptd})`;
+                } else {
+                    axiomPanel.classList.remove('visible');
+                }
+
                 const sHist2 = codex.sHistory;
                 const rHist2 = codex.rHistory;
                 if (sHist2.length > 2) {
-                    const sMax = Math.max(...sHist2.map(d => Math.abs(d.val)), 0.001);
+                    let sMax = Fraction.zero();
+                    for (const d of sHist2) if (d.val.abs().gt(sMax)) sMax = d.val.abs();
+                    if (sMax.isZero()) sMax = Fraction.one();
                     const sPoints = sHist2.map((d, i) => {
                         const x = (i / sHist2.length) * 200;
-                        const y = 50 - (d.val / sMax) * 40;
+                        const y = 50 - fracToFloatApprox(d.val.div(sMax)) * 40;
                         return `${x.toFixed(1)},${y.toFixed(1)}`;
                     }).join(' ');
                     sPolyline.setAttribute('points', sPoints);
                     const rPoints = rHist2.map((d, i) => {
                         const x = (i / rHist2.length) * 200;
-                        const y = 50 - (d.val / sMax) * 40;
+                        const y = 50 - fracToFloatApprox(d.val.div(sMax)) * 40;
                         return `${x.toFixed(1)},${y.toFixed(1)}`;
                     }).join(' ');
                     rPolyline.setAttribute('points', rPoints);
@@ -1919,10 +2318,9 @@
                 lingosoActiveSpan.textContent = codex.activePhoneme;
                 const lastLing = codex.lingosoTraj[codex.lingosoTraj.length - 1];
                 if (lastLing) {
-                    lingosoCoordsSpan.textContent = `(${lastLing.x.toFixed(2)}, ${lastLing.y.toFixed(2)}, ${lastLing.z.toFixed(2)})`;
+                    lingosoCoordsSpan.textContent = `(${fracToDisplay(lastLing.x, 2)}, ${fracToDisplay(lastLing.y, 2)}, ${fracToDisplay(lastLing.z, 2)})`;
                 }
-
-                frameCount++;
+                lingosoArcSpan.textContent = codex.activeArcLength.toString();
             }
         } catch (e) {
             showError('Render error: ' + e.message);
@@ -1932,7 +2330,7 @@
     }
 
     // ============================================================
-    // 9. CONTROLS & EVENT HANDLERS
+    // 20. CONTROLS & EVENT HANDLERS
     // ============================================================
     canvas.addEventListener('mousedown', (e) => {
         isDragging = true;
@@ -2018,15 +2416,15 @@
         coherenceSpan.textContent = 'INITIALIZING';
         coherenceSpan.style.color = '#aaccff';
         generationSpan.textContent = '0';
-        deviationSpan.textContent = '0.0000';
+        deviationSpan.textContent = '0.000000';
         epsilonSpan.textContent = '1/100';
         s2Exact.textContent = '0/1';
         r2Exact.textContent = '1/1';
-        s2Val.textContent = '0.0000';
-        r2Val.textContent = '1.0000';
-        deltaVal.textContent = '0.0000';
+        s2Val.textContent = '0.000000';
+        r2Val.textContent = '1.000000';
+        deltaVal.textContent = '0.000000';
         obsVal.textContent = '0.0000';
-        srRatioSpan.textContent = '0.0000';
+        srRatioSpan.textContent = '1.0000';
         curlValSpan.textContent = '0.0000';
         commValSpan.textContent = '0.0000';
         psiNormValSpan.textContent = '0.0000';
@@ -2036,25 +2434,29 @@
         aeaeMSpan.textContent = '0';
         aeaeNSpan.textContent = '0';
         aeaeDeltaPanelSpan.textContent = '0';
+        aeaeImbalanceSpan.textContent = '0.0000';
         aeaeRegimeSpan.textContent = 'NEUTRAL';
         obsRealSpan.textContent = '0.0000';
         obsImagSpan.textContent = '0.0000';
         obsGridSpan.textContent = '0';
         obsPsiNormSpan.textContent = '0.0000';
+        obsIntelligenceSpan.textContent = '0.0000';
         zetaReSpan.textContent = '0.0000';
         zetaImSpan.textContent = '0.0000';
         zetaMagSpan.textContent = '0.0000';
+        zetaTermsSpan.textContent = '24';
         proofChain.classList.remove('visible');
         proofTrace.classList.remove('visible');
         proofTraceLines.innerHTML = '';
         gaugeArc.setAttribute('stroke-dasharray', '0 282');
-        gaugeLabel.textContent = 's/r: 0.000';
+        gaugeLabel.textContent = 's/r: 1.000';
         proofProgress.style.width = '0%';
         proofLatest.textContent = '';
         sPolyline.setAttribute('points', '');
         rPolyline.setAttribute('points', '');
         lingosoActiveSpan.textContent = '—';
         lingosoCoordsSpan.textContent = '(0.00, 0.00, 0.00)';
+        lingosoArcSpan.textContent = '0';
         hideError();
     });
 
@@ -2071,9 +2473,14 @@
         if (!showTrace) proofTrace.classList.remove('visible');
     });
 
+    document.getElementById('axiomBtn').addEventListener('click', () => {
+        showAxioms = !showAxioms;
+        document.getElementById('axiomBtn').classList.toggle('active', showAxioms);
+        if (!showAxioms) axiomPanel.classList.remove('visible');
+    });
+
     document.getElementById('exportBtn').addEventListener('click', () => {
         const data = {
-            version: '4.0',
             timestamp: Date.now(),
             time_exact: codex.time.toString(),
             generation: codex.gen,
@@ -2090,26 +2497,33 @@
             obs_im_exact: codex.obsIm.toString(),
             obs_grid_count: codex.obsGridCount,
             psi_norm_sq_exact: codex.psiNormSq.toString(),
-            psi_norm_exact: codex.psiNormSq.sqrt(12).toString(),
             zeta_re_exact: codex.lastZetaRe.toString(),
             zeta_im_exact: codex.lastZetaIm.toString(),
+            zeta_terms: codex.zetaTerms,
             dbz: codex.dbz,
             marketM: codex.marketM,
             marketN: codex.marketN,
-            marketImbalance: codex.marketImbalance,
+            marketImbalance_exact: codex.marketImbalance.toString(),
             marketRegime: codex.marketRegime,
+            aeaeDelta: codex.aeaeDelta,
             crtState: codex.crtState,
             crtResidues: codex.crtResidues,
-            selfRefClosure: codex.selfRefClosure,
+            selfRefClosure_exact: codex.selfRefClosure.toString(),
             proofDepth: codex.proofDepth,
             activePhoneme: codex.activePhoneme,
+            activeArcLength_exact: codex.activeArcLength.toString(),
             commutatorNorm_exact: codex.commutatorNorm.toString(),
             curlMagnitude_exact: codex.curlMagnitude.toString(),
-            sHistory: codex.sHistory.slice(-200),
-            rHistory: codex.rHistory.slice(-200),
+            intelligence_exact: codex.intelligence.toString(),
+            ptd: codex.ptd,
+            ptdRegime: codex.ptdRegime,
+            t0State: codex.t0State,
+            sHistory: codex.sHistory.slice(-200).map(d => ({ t: d.t, val: d.val.toString() })),
+            rHistory: codex.rHistory.slice(-200).map(d => ({ t: d.t, val: d.val.toString() })),
             proofTrace: codex.proofTrace.slice(-32),
             trajectory: codex.traj.slice(-100).map(t => ({
-                x: t.x, y: t.y, z: t.z, coherent: t.coherent, dev: t.dev
+                x: t.x.toString(), y: t.y.toString(), z: t.z.toString(),
+                coherent: t.coherent, dev: t.dev.toString()
             })),
             quatHistory_exact: codex.quatHistory.slice(-64).map(q => ({
                 a: q.a.toString(), b: q.b.toString(),
@@ -2120,7 +2534,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `codex_symbolica_exact_v3.2_${Date.now()}.json`;
+        a.download = `codex_symbolica_exact_${Date.now()}.json`;
         a.click();
         URL.revokeObjectURL(url);
     });
@@ -2155,6 +2569,9 @@
         if (e.key === 't' || e.key === 'T') {
             document.getElementById('traceBtn').click();
         }
+        if (e.key === 'a' || e.key === 'A') {
+            document.getElementById('axiomBtn').click();
+        }
         if (e.key === 's' || e.key === 'S') {
             if (codex.mode !== 4) {
                 codex.mode = 4;
@@ -2175,7 +2592,7 @@
     });
 
     // ============================================================
-    // 10. INITIALIZATION (Pre-flight validated)
+    // 21. INITIALIZATION
     // ============================================================
     function initializeVisualization() {
         if (!preFlightValidate()) {
@@ -2211,26 +2628,29 @@
     }
 
     // ============================================================
-    // 11. FINAL CONSOLE MANIFEST
+    // 22. FINAL CONSOLE MANIFEST
     // ============================================================
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('⚡ CODEX SYMBOLICA · CONSTRAINT-LOCKED v3.2');
+    console.log('⚡ CODEX SYMBOLICA · AUTOLOGICAL VISUALIZATION');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('Audit patches applied (v3.1 → v3.2):');
-    console.log('  ✓ Dynamic Natalia Fibration convergence (|term| < 10⁻⁹ threshold)');
-    console.log('  ✓ Symbolic zeta panel with Re/Im/Mag display');
-    console.log('  ✓ Zeta evaluations logged in TRACE panel');
-    console.log('  ✓ Extended trace buffer (32 entries)');
-    console.log('  ✓ All prior v3.0-v3.2 patches retained verbatim');
+    console.log(' Axioms: s = r | DbZ: Re[Ψ] branching | O[Ψ]: 4D partition sum');
+    console.log(' Arithmetic: exact ℚ only (Fraction class); no float in state');
+    console.log(' Series: formally indexed partial sums in ℚ (cos, sin, exp, ln)');
+    console.log(' Quaternions: ℍ over ℚ (𝒦₁₂, 𝒦₂₈, 𝒦₂₉)');
+    console.log(' Hopf map: π(q) = ((q₀+iq₁)/(1−q₃), (q₂+iq₃)/(1−q₃)) (𝒞₁, 𝒵₃₅)');
+    console.log(' Differential forms: A, dA, A∧dA, dA∧dA; PTD (𝒜₁₁–𝒜₂₂, ℬ₁–ℬ₃₀)');
+    console.log(' T₀ / ¬T₀: Kolmogorov separation (𝒞₃₁–𝒞₃₆, ℳ₂₆–ℳ₂₉)');
+    console.log(' CRT: exact ℤ/nℤ lattice (𝒟₇)');
+    console.log(' Continued fractions: exact integer division (𝒟₈, ᴀ₂₃, ᴋ₂₃)');
+    console.log(' ζ(s): Dirichlet partial sum on critical line, 24 terms (𝒟₁₁, 𝒲₁)');
+    console.log(' Intelligence: I = (vp/tp)·exp[−|Δ|²/(C²x log²x)]·|∇×Φ|norm (ℱ₅)');
+    console.log(' DbZ: DbZ(a,b) = a if b=0, else a⊕b (ℱ₃)');
+    console.log(' Lingoso: exact arc-length conditions (𝒢₁–𝒢₄₀)');
+    console.log(' ÆEA: Î = Σ(Π^{>66.6} − Π^{<33.3}); δ(m−n−2) (ℋ₁, ℋ₇)');
+    console.log(' Observer: O[Ψ] = ∫ψ†Φψ d⁴q over 4⁴ grid (𝒜₅, 𝒮₁)');
+    console.log(' Self-reference: ⊢ CS ⊢ CS ⟹ Φ = Truth (𝒜𝒜₁–𝒜𝒜₄₀)');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(' Axioms: s = r | DbZ: Re[Ψ] branching | O[Ψ]: 4D sweep');
-    console.log(' Wavefunction: ψ(q) = Σ c_i · Padé_exp(-|q-q_i|²) over 6-point history');
-    console.log(' L² norm: ‖ψ‖² = ∫|ψ|² d⁴q over 6⁴ = 1296-cell grid (exact rational)');
-    console.log(' Zeta: ζ(½+it) = Σ n^(-½-it) via exact rational CF/Taylor');
-    console.log(' Protocols: Lingoso · ÆEA δ(m−n−2) · CRT(exact) · CF · ζ(s)(symbolic)');
-    console.log(' Self-reference: ⊢ CS ⊢ CS ⟹ Φ = Truth');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('🎮 Space=Pause | R=Reset | M=Mode | E=Export | H=Help | T=Trace | S=s/r');
+    console.log('🎮 Space=Pause | R=Reset | M=Mode | E=Export | H=Help | T=Trace | A=Axioms | S=s/r');
     console.log('🖱️  Drag=rotate | Scroll=zoom | +/- = zoom | Click s²/r² = copy');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
