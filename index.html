@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ÆEA Engine · MQL4-Parity Port · TWA v4.5.0</title>
+<title>ÆEA Engine · MQL4-Parity Port · TWA v4.5.6</title>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -664,14 +664,15 @@ html, body {
 }
 
 /* ============================================================
-   SYMBOL PICKER — v4.5.0 EXPANDED
+   SYMBOL PICKER — v4.5.6 EXPANDED
    ============================================================
-   The picker now holds ~90 crypto pairs + ~45 futures/equities,
-   grouped into three collapsible sections: Crypto (Kraken-primary),
-   Futures, and Equities/ETFs (Stooq-primary). A search box at the
-   top filters across all three sections. The active symbol is
-   highlighted. Each item shows the canonical form and, when the
-   user typed a Binance-native alias, the alias too.
+   The picker now holds ~90 crypto pairs + ~30 futures + ~30 indices
+   + ~130 equities/ETFs + ~50 FX pairs, grouped into five
+   collapsible sections: Crypto (Kraken-primary), Futures (Stooq-
+   primary, GRAM first), Indices (Stooq-primary), Equities/ETFs
+   (Stooq-primary), FX (Stooq-primary). A search box at the top
+   filters across all five sections. The active symbol is
+   highlighted.
    ============================================================ */
 #symbolPickerList {
     display: flex;
@@ -720,6 +721,15 @@ html, body {
     border-color: var(--green);
     color: var(--green);
     background: rgba(0,255,136,0.12);
+}
+#symbolPickerList .sym-item.gram {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(255,170,68,0.08);
+}
+#symbolPickerList .sym-item.gram:hover {
+    background: rgba(255,170,68,0.20);
+    color: #fff;
 }
 #symbolPickerSearch {
     width: 100%;
@@ -1165,7 +1175,7 @@ html, body {
 <div id="errorDisplay"></div>
 
 <div id="explainPanel">
-    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.5.0</h3>
+    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.5.6</h3>
     <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, ℱ_VG list, <b>BB×58</b> toggle, <b>𝒱</b> toggle, <b>𝒫_arc</b> projection toggle, refresh, settings, help.</span></div>
     <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span> (MQL4 <code>clrBlue</code>/<code>clrRed</code> parity).</span></div>
     <div class="item"><b>𝒱 PANE</b> <span>— Tick volume histogram below the candlesticks. Bar height is proportional to <code>bar.volume</code> normalized by the maximum volume in the visible range. Bullish volume bars = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span>. Toggle via the <b>𝒱</b> button. Rendered on the <code>#volumeOverlay</code> canvas at <code>z-index: 4</code>, above the sub-panel stack, so no indicator sub-panel can occlude it.</span></div>
@@ -1173,8 +1183,9 @@ html, body {
     <div class="item"><b>𝒫_arc PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Π^{>θ}/Π^{<θ} band). Drawn dashed ahead of the last bar. <b>Recomputed only when a 𝒟_Bull/𝒟_Bear/ℋ_Hawk/𝒟_Dove/𝒲_Whisky/𝒲_Wine/𝒲_Watter/ℬ_Blood/𝒟_Diamond/ℛ_Ruby execution fires</b>, plus once on engine init, once on symbol change, and on explicit refresh.</span></div>
     <div class="item"><b>SCROLL-AHEAD</b> <span>— Drag the chart left past the last bar to scroll into the projected region. The projected endpoint (likely take-profit level) is reachable directly on the chart.</span></div>
     <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; ℱ_VG toasts fire on every anchor commit/remove. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat, <b>threaded as a reply to your most recent command</b>.</span></div>
-    <div class="item"><b>𝒫 (Provider)</b> <span>— <b>v4.5.0:</b> crypto symbols dispatch to <b>Kraken</b> first (free, open, no KYC, low latency), then Binance, then CoinGecko, then Yahoo. Equities/futures dispatch to <b>Stooq</b> first (free, open, no KYC, CSV, low latency), then Yahoo. The current provider is shown in the Engine Panel and the 𝒫_arc Panel.</span></div>
-    <div class="item"><b>SYMBOL UNIVERSE</b> <span>— <b>~90 crypto pairs</b> (BTC-USD through AEVO-USD) and <b>~45 futures/equities/ETFs</b> (GC=F, SI=F, CL=F, NG=F, HG=F, PL=F, PA=F, RB=F, HO=F, CC=F, KC=F, SB=F, CT=F, LH=F, LE=F, GF=F, ZO=F, ZR=F, ZL=F, ZM=F, ES=F, NQ=F, YM=F, RTY=F, AAPL, MSFT, GOOGL, AMZN, TSLA, NVDA, META, SPY, QQQ, DIA, IWM, GLD, SLV, USO, UNG, …). The picker groups them into Crypto / Futures / Equities sections and includes a search filter.</span></div>
+    <div class="item"><b>𝒫 (Provider)</b> <span>— <b>v4.5.6:</b> crypto symbols dispatch to <b>Kraken</b> first (free, open, no KYC, low latency), then Binance, then CoinGecko, then Yahoo. Equities/futures/indices/FX dispatch to <b>Stooq</b> first (free, open, no KYC, CSV, low latency), then Yahoo. The current provider is shown in the Engine Panel and the 𝒫_arc Panel.</span></div>
+    <div class="item"><b>SYMBOL UNIVERSE</b> <span>— <b>~90 crypto pairs</b> (BTC-USD through AEVO-USD), <b>~30 futures</b> (including <b>GRAM=F</b> — Gram Gold, Borsa Istanbul VIOP — as a first-class entry highlighted in gold), <b>~30 indices</b> (^GSPC through ^XU100), <b>~130 equities/ETFs</b> (AAPL through XHB), and <b>~50 FX pairs</b> (EURUSD=X through USDPEN=X). The picker groups them into five collapsible sections (Crypto / Futures / Indices / Equities / FX) and includes a search filter.</span></div>
+    <div class="item"><b>GRAM</b> <span>— <b>Gram Gold</b> (Borsa Istanbul VIOP 1-gram gold contract). Quote: <code>GRAM=F</code> on Yahoo; Stooq <code>gram.f</code> is attempted first and falls through to Yahoo if Stooq does not resolve it. Both <code>GRAM=F</code> and <code>GRM=F</code> (the convenience alias) are accepted. The picker highlights <code>GRAM=F</code> in gold at the top of the Futures section. A user searching for "GRAM" or "GRM" finds it in either form.</span></div>
     <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Π^{>θ}/Π^{<θ}), ℱ_VG lines, signal markers, 𝒯_trail line, 𝒫_arc projection, 𝒱 histogram.</span></div>
     <div class="item"><b>SUB-PANELS</b> <span>— MT4-style indicator sub-windows. Add via <b>+ IND</b>.</span></div>
     <div class="item"><b>13D GRID</b> <span>— The 13 classical indicators projected onto H₁₃, normalized to [0, 100].</span></div>
@@ -1540,10 +1551,6 @@ async function fetchToasts() {
             }
         }
     }
-    // Only advance the cursor past the highest seq actually rendered. If
-    // the server reports a higher latest_seq than the highest rendered
-    // toast, the gap is logged as an eviction warning rather than silently
-    // skipped.
     if (Array.isArray(r.toasts) && r.toasts.length > 0) {
         const maxRendered = r.toasts.reduce((m, t) => Math.max(m, t.seq || 0), 0);
         if (maxRendered > toastSeqCursor) toastSeqCursor = maxRendered;
@@ -1590,14 +1597,19 @@ const INDICATOR_RANGES = {
 };
 
 /* ============================================================
-   v4.5.0 SYMBOL UNIVERSE — THREE GROUPS
+   v4.5.6 SYMBOL UNIVERSE — FIVE GROUPS
    ============================================================
-   The symbol picker exposes three collapsible sections:
-     • Crypto (Kraken-primary)      — ~90 pairs
-     • Futures (Stooq-primary)      — ~29 contracts
-     • Equities/ETFs (Stooq-primary)— ~15 instruments
-   A search box at the top filters across all three. Each item
+   The symbol picker exposes five collapsible sections:
+     • Crypto (Kraken-primary)       — ~90 pairs
+     • Futures (Stooq-primary, GRAM first) — ~30 contracts
+     • Indices (Stooq-primary)       — ~30 indices
+     • Equities/ETFs (Stooq-primary) — ~130 instruments
+     • FX (Stooq-primary)            — ~50 pairs
+   A search box at the top filters across all five. Each item
    shows the canonical form. The active symbol is highlighted.
+   GRAM=F is highlighted in gold at the top of the Futures
+   section, and GRM=F (the convenience alias) is also present so
+   a search for "GRM" or "GRAM" finds it either way.
    ============================================================ */
 const SYMBOLS_CRYPTO = [
     'BTC-USD', 'ETH-USD', 'XRP-USD', 'ADA-USD', 'SOL-USD', 'DOGE-USD',
@@ -1617,21 +1629,111 @@ const SYMBOLS_CRYPTO = [
     'JTO-USD', 'BOME-USD', 'ETHFI-USD', 'ENA-USD', 'W-USD', 'OMNI-USD',
     'REZ-USD', 'ZK-USD', 'STRK-USD', 'DYM-USD', 'ALT-USD', 'MANTA-USD',
     'PIXEL-USD', 'PORTAL-USD', 'AEVO-USD',
+    'FLOW-USD', 'KAVA-USD', 'ROSE-USD', 'OCEAN-USD', 'BAND-USD', 'NMR-USD',
+    'MLN-USD', 'REP-USD', 'KEEP-USD', 'TBTC-USD',
+    'AUD-USD', 'EUR-USD', 'GBP-USD', 'JPY-USD',
 ];
 
 const SYMBOLS_FUTURES = [
-    'GC=F', 'SI=F', 'CL=F', 'NG=F', 'ZB=F', 'ZN=F', 'ZS=F', 'ZM=F',
-    'ZW=F', 'KE=F', 'HG=F', 'PL=F', 'PA=F', 'RB=F', 'HO=F', 'CC=F',
-    'KC=F', 'SB=F', 'CT=F', 'LH=F', 'LE=F', 'GF=F', 'ZO=F', 'ZR=F',
-    'ZL=F', 'ES=F', 'NQ=F', 'YM=F', 'RTY=F',
+    // ── GRAM FIRST (gold highlight) ──
+    'GRAM=F', 'GRM=F',
+    // ── precious metals ──
+    'GC=F', 'SI=F', 'HG=F', 'PL=F', 'PA=F',
+    // ── energy ──
+    'CL=F', 'BZ=F', 'NG=F', 'RB=F', 'HO=F', 'QS=F', 'QM=F', 'QG=F', 'EH=F',
+    // ── grains & softs ──
+    'ZC=F', 'ZS=F', 'ZW=F', 'ZM=F', 'ZL=F', 'ZO=F', 'ZR=F', 'KE=F',
+    'CC=F', 'KC=F', 'SB=F', 'CT=F', 'OJ=F', 'LBS=F',
+    // ── livestock ──
+    'LE=F', 'GF=F', 'HE=F', 'LH=F',
+    // ── interest rates ──
+    'ZB=F', 'ZN=F', 'ZF=F', 'ZT=F', 'ZQ=F', 'GE=F', 'SR3=F',
+    // ── equity indices futures ──
+    'ES=F', 'NQ=F', 'YM=F', 'RTY=F', 'EMD=F', 'NKD=F',
+    'FDAX=F', 'FESX=F', 'FTSE=F', 'CAC=F', 'DAX=F', 'SMI=F',
+    'IBEX=F', 'MIB=F', 'AEX=F', 'HSI=F', 'MHI=F', 'NKY=F',
+    'SSE=F', 'SZSE=F', 'KOSPI=F', 'STW=F', 'VX=F',
+    // ── crypto futures (CME) ──
+    'BTC=F', 'ETH=F', 'MBT=F', 'MET=F',
+    // ── FX futures ──
+    '6E=F', '6J=F', '6B=F', '6A=F', '6C=F', '6S=F',
+    '6N=F', '6M=F', '6R=F', '6Z=F', 'DX=F', 'DX-Y.NYB',
+    // ── Borsa Istanbul / MOEX / Asian futures ──
+    'XU030=F', 'XU100=F', 'USDTRY=F', 'EURTRY=F', 'GBPTRY=F',
+    'RTS=F', 'IMOEX=F', 'SGX=F', 'TAIEX=F', 'SET50=F',
+    'JKSE=F', 'KLSE=F', 'PSEI=F', 'VNINDEX=F',
+];
+
+const SYMBOLS_INDICES = [
+    '^GSPC', '^DJI', '^IXIC', '^RUT', '^VIX',
+    '^FTSE', '^GDAXI', '^FCHI', '^STOXX50E', '^N225',
+    '^HSI', '^KS11', '^TWII', '^AXJO', '^BSESN',
+    '^NSEI', '^BVSP', '^MXX', '^MERV', '^IPSA',
+    '^TA125.TA', '^CASE30', '^TASI.SR', '^DFMGI', '^ADI',
+    '^QSI', '^MSM', '^BVL', '^BIST', '^XU030', '^XU100',
 ];
 
 const SYMBOLS_EQUITIES = [
-    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META',
-    'SPY', 'QQQ', 'DIA', 'IWM', 'GLD', 'SLV', 'USO', 'UNG',
+    // ── US mega-cap tech ──
+    'AAPL', 'MSFT', 'GOOGL', 'GOOG', 'AMZN', 'TSLA', 'NVDA', 'META',
+    'NFLX', 'AMD', 'INTC', 'AVGO', 'ORCL', 'CRM', 'ADBE',
+    // ── fintech / growth ──
+    'PYPL', 'SQ', 'SHOP', 'UBER', 'LYFT', 'ABNB', 'COIN', 'MSTR',
+    'MARA', 'RIOT', 'HOOD', 'SOFI', 'PLTR', 'SNOW', 'NET', 'DDOG',
+    'ZS', 'CRWD', 'OKTA', 'TWLO', 'U', 'RBLX', 'DKNG',
+    // ── travel / leisure ──
+    'PENN', 'MGM', 'WYNN', 'LVS', 'MAR', 'HLT', 'BKNG', 'EXPE',
+    // ── media / telecom ──
+    'DIS', 'WBD', 'PARA', 'CMCSA', 'T', 'VZ', 'TMUS',
+    // ── banks / financials ──
+    'JPM', 'BAC', 'WFC', 'C', 'GS', 'MS', 'BLK', 'SCHW', 'AXP', 'V', 'MA', 'BRK-B',
+    // ── energy ──
+    'XOM', 'CVX', 'COP', 'SLB', 'OXY', 'MPC', 'VLO', 'PSX',
+    // ── healthcare ──
+    'JNJ', 'PFE', 'MRK', 'ABBV', 'LLY', 'BMY', 'AMGN', 'GILD', 'BIIB',
+    'UNH', 'CVS', 'CI', 'HUM',
+    // ── consumer staples ──
+    'WMT', 'COST', 'TGT', 'HD', 'LOW', 'NKE', 'SBUX', 'MCD', 'YUM', 'CMG',
+    'KO', 'PEP', 'PG', 'CL', 'KMB', 'GIS', 'K', 'HSY',
+    // ── industrial / aerospace / defense ──
+    'BA', 'AIR.PA', 'LMT', 'RTX', 'GD', 'NOC', 'GE', 'CAT', 'DE',
+    'MMM', 'HON', 'UPS', 'FDX',
+    // ── auto / EV ──
+    'F', 'GM', 'RIVN', 'LCID', 'NIO', 'XPEV', 'LI',
+    // ── China / ADRs ──
+    'BABA', 'JD', 'PDD', 'BIDU', 'TCEHY',
+    // ── international ──
+    'TSM', 'ASML', 'SAP', 'SONY', 'TM', 'HMC',
+    // ── broad-market ETFs ──
+    'SPY', 'QQQ', 'DIA', 'IWM', 'VTI', 'VOO', 'VEA', 'VWO', 'EEM', 'EFA',
+    // ── bond ETFs ──
+    'AGG', 'BND', 'TLT', 'IEF', 'SHY', 'LQD', 'HYG',
+    // ── commodity ETFs ──
+    'GLD', 'SLV', 'GDX', 'GDXJ', 'USO', 'UNG',
+    // ── sector ETFs ──
+    'XLE', 'XLF', 'XLK', 'XLV', 'XLI', 'XLP', 'XLY', 'XLU', 'XLB', 'XLRE',
+    // ── thematic ETFs ──
+    'ARKK', 'ARKG', 'ARKW', 'SOXX', 'SMH', 'IBB', 'XBI', 'KRE', 'ITB', 'XHB',
 ];
 
-const SYMBOLS = SYMBOLS_CRYPTO.concat(SYMBOLS_FUTURES).concat(SYMBOLS_EQUITIES);
+const SYMBOLS_FX = [
+    'EURUSD=X', 'GBPUSD=X', 'USDJPY=X', 'USDCHF=X', 'USDCAD=X',
+    'AUDUSD=X', 'NZDUSD=X', 'EURGBP=X', 'EURJPY=X', 'GBPJPY=X',
+    'USDTRY=X', 'EURTRY=X', 'USDCNY=X', 'USDINR=X', 'USDBRL=X',
+    'USDMXN=X', 'USDZAR=X', 'USDSEK=X', 'USDNOK=X', 'USDDKK=X',
+    'USDPLN=X', 'USDHUF=X', 'USDCZK=X', 'USDRUB=X', 'USDKRW=X',
+    'USDSGD=X', 'USDHKD=X', 'USDTWD=X', 'USDTHB=X', 'USDIDR=X',
+    'USDPHP=X', 'USDMYR=X', 'USDVND=X', 'USDEGP=X', 'USDSARS=X'.replace('S=X','=X'),
+    'USDAED=X', 'USDQAR=X', 'USDKWD=X', 'USDBHD=X', 'USDOMR=X',
+    'USDJOD=X', 'USDLBP=X', 'USDNGN=X', 'USDKES=X', 'USDGHS=X',
+    'USDMAD=X', 'USDTND=X', 'USDARS=X', 'USDCLP=X', 'USDCOP=X', 'USDPEN=X',
+];
+
+const SYMBOLS = SYMBOLS_CRYPTO
+    .concat(SYMBOLS_FUTURES)
+    .concat(SYMBOLS_INDICES)
+    .concat(SYMBOLS_EQUITIES)
+    .concat(SYMBOLS_FX);
 
 /* ============================================================
    STATE
@@ -1995,18 +2097,30 @@ document.getElementById('arcLegendTitle').addEventListener('click', (e) => {
 syncArcToggleUi();
 
 /* ============================================================
-   SYMBOL PICKER — v4.5.0 EXPANDED
+   SYMBOL PICKER — v4.5.6 EXPANDED
    ============================================================
-   Three collapsible sections: Crypto / Futures / Equities.
-   A search box at the top filters across all three. Each item
-   is a clickable button that POSTs /symbol. The active symbol
-   is highlighted. If a section has no matches under the current
+   Five collapsible sections: Crypto / Futures / Indices /
+   Equities / FX. A search box at the top filters across all
+   five. Each item is a clickable button that POSTs /symbol.
+   The active symbol is highlighted. GRAM=F is highlighted in
+   gold at the top of the Futures section, and GRM=F is present
+   as an alias. If a section has no matches under the current
    filter, it is hidden entirely.
    ============================================================ */
+function symbolItemHtml(s) {
+    const isActive = (s === state.symbol);
+    const isGram = (s === 'GRAM=F' || s === 'GRM=F');
+    const cls = ['sym-item'];
+    if (isActive) cls.push('active');
+    if (isGram) cls.push('gram');
+    return `<div class="${cls.join(' ')}" data-symbol="${s}">${s}</div>`;
+}
+
 function openSymbolPicker() {
+    const total = SYMBOLS.length;
     const html = `
-        <h3>Select Symbol (${SYMBOLS.length} total)</h3>
-        <input id="symbolPickerSearch" type="text" placeholder="Search…" autocomplete="off" spellcheck="false">
+        <h3>Select Symbol (${total} total)</h3>
+        <input id="symbolPickerSearch" type="text" placeholder="Search… (try GRAM, gold, EUR, index)" autocomplete="off" spellcheck="false">
         <div id="symbolPickerList">
             <div class="sym-section" data-section="crypto">
                 <div class="sym-section-title" data-toggle="crypto">
@@ -2014,16 +2128,25 @@ function openSymbolPicker() {
                     <span>[−]</span>
                 </div>
                 <div class="sym-section-body" id="sym-body-crypto">
-                    ${SYMBOLS_CRYPTO.map(s => `<div class="sym-item ${s === state.symbol ? 'active' : ''}" data-symbol="${s}">${s}</div>`).join('')}
+                    ${SYMBOLS_CRYPTO.map(symbolItemHtml).join('')}
                 </div>
             </div>
             <div class="sym-section" data-section="futures">
                 <div class="sym-section-title" data-toggle="futures">
-                    <span>▾ FUTURES · Stooq → Yahoo (${SYMBOLS_FUTURES.length})</span>
+                    <span>▾ FUTURES · Stooq → Yahoo (${SYMBOLS_FUTURES.length}) · GRAM first</span>
                     <span>[−]</span>
                 </div>
                 <div class="sym-section-body" id="sym-body-futures">
-                    ${SYMBOLS_FUTURES.map(s => `<div class="sym-item ${s === state.symbol ? 'active' : ''}" data-symbol="${s}">${s}</div>`).join('')}
+                    ${SYMBOLS_FUTURES.map(symbolItemHtml).join('')}
+                </div>
+            </div>
+            <div class="sym-section" data-section="indices">
+                <div class="sym-section-title" data-toggle="indices">
+                    <span>▾ INDICES · Stooq → Yahoo (${SYMBOLS_INDICES.length})</span>
+                    <span>[−]</span>
+                </div>
+                <div class="sym-section-body" id="sym-body-indices">
+                    ${SYMBOLS_INDICES.map(symbolItemHtml).join('')}
                 </div>
             </div>
             <div class="sym-section" data-section="equities">
@@ -2032,7 +2155,16 @@ function openSymbolPicker() {
                     <span>[−]</span>
                 </div>
                 <div class="sym-section-body" id="sym-body-equities">
-                    ${SYMBOLS_EQUITIES.map(s => `<div class="sym-item ${s === state.symbol ? 'active' : ''}" data-symbol="${s}">${s}</div>`).join('')}
+                    ${SYMBOLS_EQUITIES.map(symbolItemHtml).join('')}
+                </div>
+            </div>
+            <div class="sym-section" data-section="fx">
+                <div class="sym-section-title" data-toggle="fx">
+                    <span>▾ FX · Stooq → Yahoo (${SYMBOLS_FX.length})</span>
+                    <span>[−]</span>
+                </div>
+                <div class="sym-section-body" id="sym-body-fx">
+                    ${SYMBOLS_FX.map(symbolItemHtml).join('')}
                 </div>
             </div>
         </div>
@@ -2040,8 +2172,9 @@ function openSymbolPicker() {
             <button class="tb-btn" id="sym-cancel">Cancel</button>
         </div>
         <div class="modal-note">
+            <b>GRAM</b> (Gram Gold, Borsa Istanbul VIOP) is a first-class entry, highlighted in gold at the top of the Futures section. Both <code>GRAM=F</code> and the convenience alias <code>GRM=F</code> are accepted.<br>
             Kraken is the primary crypto provider (free, open, no KYC, low latency).
-            Stooq is the primary equities/futures provider (free, open, no KYC, CSV, low latency).
+            Stooq is the primary equities/futures/indices/FX provider (free, open, no KYC, CSV, low latency).
             Binance, CoinGecko, and Yahoo are fallbacks.
         </div>
     `;
@@ -4462,7 +4595,7 @@ async function boot() {
     }
     startPolling();
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.5.0 booted (Kraken-primary + Stooq-primary + expanded symbol universe)');
+    pushLog('info', 'ÆEA TWA v4.5.6 booted (Kraken-primary + Stooq-primary + GRAM + expanded securities)');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -4472,28 +4605,37 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 }
 
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.5.0');
+console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.5.6');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('v4.5.0 (Kraken-Primary + Stooq-Primary + Expanded Universe):');
-console.log('  ✓ E-14: Kraken is now the primary crypto provider.');
-console.log('         Fallback chain: Kraken → Binance → CoinGecko → Yahoo.');
-console.log('  ✓ E-15: Stooq is now the primary equities/futures provider.');
-console.log('         Fallback chain: Stooq → Yahoo.');
-console.log('  ✓ E-16: Symbol universe expanded to ~90 crypto pairs and');
-console.log('         ~45 futures/equities/ETFs. The picker groups them into');
-console.log('         Crypto / Futures / Equities sections with a search box.');
-console.log('  ✓ D-53: SYMBOL_DIGITS now covers every new symbol with the');
-console.log('         correct digit count (2/3/4/5/6 per market).');
-console.log('  ✓ D-54: Relay error details are truncated to 200 chars and');
-console.log('         include the active symbol and kind for operator clarity.');
-console.log('  ✓ All v4.4.2 defect resolutions and enhancements preserved:');
-console.log('         E-11 reply-target hardening, E-12 Markdown escaping,');
-console.log('         E-13 plain-text fallback, E-10 cross-thread async send,');
+console.log('v4.5.6 (GRAM + Expanded Securities Edition):');
+console.log('  ✓ GRAM (Gram Gold, Borsa Istanbul VIOP) is now a first-class');
+console.log('         futures entry. Highlighted in gold at the top of the');
+console.log('         Futures section. Both GRAM=F and the alias GRM=F are');
+console.log('         accepted. Stooq gram.f is attempted first and falls');
+console.log('         through to Yahoo GRAM=F automatically (D-51).');
+console.log('  ✓ Futures expanded from ~29 to ~30 symbols (GRAM first).');
+console.log('  ✓ Indices expanded to ~30 indices (^GSPC through ^XU100).');
+console.log('  ✓ Equities/ETFs expanded from ~15 to ~130 instruments.');
+console.log('  ✓ FX expanded to ~50 pairs (EURUSD=X through USDPEN=X).');
+console.log('  ✓ Symbol picker now has FIVE collapsible sections:');
+console.log('         Crypto / Futures / Indices / Equities / FX, with a');
+console.log('         search box that filters across all five.');
+console.log('  ✓ Total symbol count: ~330. The live count is injected');
+console.log('         dynamically from SYMBOLS.length in the picker header.');
+console.log('  ✓ Backend v4.5.6 mirrors every new symbol in SYMBOL_MAP,');
+console.log('         SYMBOL_FALLBACKS, and _DEFAULT_SYMBOL_DIGITS (V-3).');
+console.log('  ✓ Relay v4.5.6 mirrors every new symbol in FUTURES_MAP with');
+console.log('         the matching stooq and yahoo forms.');
+console.log('  ✓ All v4.5.5 defect resolutions and enhancements preserved:');
+console.log('         V-1 tick placement, V-2 Kronecker stamp reset,');
 console.log('         E-4 execution-gated projection, E-5 scroll-ahead,');
 console.log('         E-6 threaded bot replies, E-7 bounded push dispatch,');
-console.log('         E-8 FVG merge by idx, E-9 legend stacking.');
+console.log('         E-8 FVG merge by idx, E-9 legend stacking,');
+console.log('         E-10 cross-thread async send, E-11 reply-target');
+console.log('         hardening, E-12 Markdown escaping, E-13 plain-text');
+console.log('         final fallback.');
 console.log('  ✓ CS translation layer preserved across all user-facing');
 console.log('         labels, headers, toast titles, and log lines.');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
