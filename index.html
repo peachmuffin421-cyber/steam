@@ -1263,12 +1263,18 @@ function csVal(value) {
 /* ============================================================
    BACKEND CONFIGURATION
    ============================================================ */
+// The fork-author edit point. Populated so that step 4 of
+// resolveBackendUrl() resolves to the live Heroku origin even when the
+// Telegram WebView strips the ?backend= query string on first navigation.
+// This is the F-A fix: a populated DEFAULT_BACKENDS[0] is the belt-and-
+// suspenders fallback for the WebView-stripping case.
 const DEFAULT_BACKENDS = [
-    // ▸ FORK AUTHOR: replace with your Heroku origin, e.g.
-    //     'https://your-app-name.herokuapp.com/'
-    // Leave as '' to force explicit configuration via ?backend=.
-    '',
+    'https://aeea-df7f2ade617d.herokuapp.com/',
 ];
+
+const LS_KEY = 'aeea_backend_url';
+const LS_BOOT_KEY = 'aeea_backend_boot_ts';
+const RE_RESOLVE_WINDOW_MS = 5 * 60 * 1000;
 
 function normalizeBackend(u) {
     if (u === null || u === undefined) return '';
@@ -1294,38 +1300,57 @@ function normalizeBackend(u) {
 // detect and surface.
 const BACKEND_QS_MALFORMED = '__BACKEND_QS_MALFORMED__';
 
+function readQsBackend() {
+    try {
+        const qs = new URLSearchParams(window.location.search);
+        return qs.get('backend');
+    } catch (e) {
+        return null;
+    }
+}
+
+function persistBackend(url) {
+    if (!url || url === BACKEND_QS_MALFORMED) return;
+    try { localStorage.setItem(LS_KEY, url); } catch (e) {}
+    try { localStorage.setItem(LS_BOOT_KEY, String(Date.now())); } catch (e) {}
+}
+
 function resolveBackendUrl() {
     try {
         // Step 1 (authoritative): ?backend= query string.
-        let q = null;
-        try {
-            const qs = new URLSearchParams(window.location.search);
-            q = qs.get('backend');
-        } catch (e) { q = null; }
+        const q = readQsBackend();
         if (q !== null && q !== '') {
             const n = normalizeBackend(q);
             if (n) {
-                try { localStorage.setItem('aeea_backend_url', n); } catch (e) {}
+                persistBackend(n);
                 return n;
             }
-            // Query string present but malformed — fail loudly, do not fall through.
+            // Query string present but malformed. Persist nothing; return the
+            // sentinel so boot() can surface it. Do NOT fall through to
+            // same-origin (that is the GitHub Pages 404 loop).
             return BACKEND_QS_MALFORMED;
         }
         // Step 2: window override.
         if (typeof window.__AEEA_BACKEND_URL__ === 'string' && window.__AEEA_BACKEND_URL__.length > 0) {
             const n = normalizeBackend(window.__AEEA_BACKEND_URL__);
-            if (n) return n;
+            if (n) {
+                persistBackend(n);
+                return n;
+            }
         }
         // Step 3: persisted.
         try {
-            const ls = localStorage.getItem('aeea_backend_url');
+            const ls = localStorage.getItem(LS_KEY);
             const n = normalizeBackend(ls);
             if (n) return n;
         } catch (e) {}
-        // Step 4: DEFAULT_BACKENDS.
+        // Step 4: DEFAULT_BACKENDS (populated above).
         for (const candidate of DEFAULT_BACKENDS) {
             const n = normalizeBackend(candidate);
-            if (n) return n;
+            if (n) {
+                persistBackend(n);
+                return n;
+            }
         }
     } catch (e) {}
     return '';
@@ -1335,13 +1360,8 @@ let BACKEND_URL = resolveBackendUrl();
 const BACKEND_QS_WAS_MALFORMED = (BACKEND_URL === BACKEND_QS_MALFORMED);
 let HAS_BACKEND = (!BACKEND_QS_WAS_MALFORMED) && BACKEND_URL.length > 0;
 
-// Log the resolution outcome once, so the user can see in DevTools (and in
-// the log bar) exactly which URL was chosen and why.
 (function logBackendResolution() {
-    const qs = (function() {
-        try { return new URLSearchParams(window.location.search).get('backend'); }
-        catch (e) { return null; }
-    })();
+    const qs = readQsBackend();
     if (BACKEND_QS_WAS_MALFORMED) {
         console.error('[ÆEA] ?backend= present but malformed:', qs);
         console.error('[ÆEA] Expected a value like https://your-app.herokuapp.com/');
@@ -1355,20 +1375,32 @@ let HAS_BACKEND = (!BACKEND_QS_WAS_MALFORMED) && BACKEND_URL.length > 0;
     }
 })();
 
-// Some Telegram WebViews (notably iOS) strip the ?backend= query on the first
-// navigation but preserve localStorage. Others strip both. Re-resolve once on
-// the first visibilitychange after boot, and if the backend URL newly
-// resolves, re-run fetchAll() without a full reload.
-let _backendReresolved = false;
+// Telegram WebView re-resolution hook. The F-D fix: retry on every
+// visibilitychange for the first RE_RESOLVE_WINDOW_MS after boot, then stop.
+// This survives the case where Telegram strips the query AFTER the first
+// visibilitychange (some Android WebViews do this on the second navigation).
+let _reResolveUntil = 0;
+function _ensureReResolveWindow() {
+    if (_reResolveUntil) return;
+    let boot = 0;
+    try { boot = parseInt(localStorage.getItem(LS_BOOT_KEY) || '0', 10) || 0; } catch (e) {}
+    if (!boot) {
+        boot = Date.now();
+        try { localStorage.setItem(LS_BOOT_KEY, String(boot)); } catch (e) {}
+    }
+    _reResolveUntil = boot + RE_RESOLVE_WINDOW_MS;
+}
+
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
-    if (_backendReresolved) return;
-    _backendReresolved = true;
+    _ensureReResolveWindow();
+    if (Date.now() > _reResolveUntil) return;
     const fresh = resolveBackendUrl();
     if (fresh === BACKEND_QS_MALFORMED) return;
     if (fresh && fresh !== BACKEND_URL) {
         BACKEND_URL = fresh;
         HAS_BACKEND = true;
+        pushLog('info', 'Backend re-resolved: ' + BACKEND_URL);
         try { setConnBadge('wait', 'connecting…'); } catch (e) {}
         fetchAll();
         startPolling();
@@ -1687,12 +1719,6 @@ const INDICATOR_RANGES = {
 /* ============================================================
    CRYPTO SYMBOL LIST — exact intersection with the patched
    worker CRYPTO_MAP.
-   ============================================================
-   Every entry below resolves to a live Kraken OR Binance OR
-   CoinGecko triple in the relay's CRYPTO_MAP. Entries whose
-   triple was dead (Kraken "", Binance "", CoinGecko "") in
-   the prior vFinal have been removed. The intersection is
-   the contract.
    ============================================================ */
 const SYMBOLS_CRYPTO = [
     'BTC-USD', 'ETH-USD', 'XRP-USD', 'ADA-USD', 'SOL-USD', 'DOGE-USD',
@@ -3531,7 +3557,7 @@ function renderChart() {
         ctx.fillStyle = '#335577';
         ctx.font = '12px "Courier New", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(HAS_BACKEND ? 'Awaiting OHLCV data…' : 'Backend URL not configured — add ?backend=https://your-app.herokuapp.com/', w / 2, h / 2);
+        ctx.fillText(HAS_BACKEND ? 'Awaiting OHLCV data…' : 'Backend URL not configured — add ?backend=https://aeea-df7f2ade617d.herokuapp.com/', w / 2, h / 2);
         resizeVolumeOverlay();
         drawVolumeOverlay();
         return;
@@ -4501,13 +4527,11 @@ async function fetchAll() {
     }
     if (!HAS_BACKEND) {
         setConnBadge('err', 'no backend');
-        showError('Backend URL not configured. Append ?backend=https://your-app.herokuapp.com/ to the Mini App URL.', 8000);
+        showError('Backend URL not configured. Append ?backend=https://aeea-df7f2ade617d.herokuapp.com/ to the Mini App URL.', 8000);
         return;
     }
     if (isBackedOff()) return;
     hideError();
-    // Probe /health first so a 404 (GitHub Pages) or a 401 (auth) is surfaced
-    // as a distinct badge state instead of a generic "unreachable".
     const health = await apiJson('/health', { timeoutMs: 6000 });
     if (health && health.__error) {
         noteFailure();
@@ -4526,11 +4550,6 @@ async function fetchAll() {
         }
         return;
     }
-    // /health can return 200 with engine_initialized=false (bot is running,
-    // but /start_feed has not been called). In that case
-    // fetchMiniAppState() will 503 on every poll while the badge would
-    // otherwise show green. Treat "engine not ready" as a distinct yellow
-    // state so the user knows the backend is reachable and what to do.
     if (health.engine_initialized === false) {
         setConnBadge('wait', 'engine not ready');
         showError('Backend is reachable but the engine has not been initialized. Send /start_feed to the bot.', 8000);
@@ -4734,12 +4753,12 @@ async function boot() {
     syncVolToggleUi();
     if (BACKEND_QS_WAS_MALFORMED) {
         setConnBadge('err', 'bad ?backend=');
-        showError('The ?backend= query string is present but is not a valid https:// URL. Expected: ?backend=https://your-app.herokuapp.com/ — received: ' + String((function(){try{return new URLSearchParams(window.location.search).get('backend');}catch(e){return '?';}})()).slice(0, 80), 15000);
+        showError('The ?backend= query string is present but is not a valid https:// URL. Expected: ?backend=https://aeea-df7f2ade617d.herokuapp.com/ — received: ' + String((function(){try{return new URLSearchParams(window.location.search).get('backend');}catch(e){return '?';}})()).slice(0, 80), 15000);
         return;
     }
     if (!HAS_BACKEND) {
         setConnBadge('err', 'no backend');
-        showError('Backend URL not configured. Append ?backend=https://your-app.herokuapp.com/ to the Mini App URL, or set window.__AEEA_BACKEND_URL__ before load.', 10000);
+        showError('Backend URL not configured. Append ?backend=https://aeea-df7f2ade617d.herokuapp.com/ to the Mini App URL, or set window.__AEEA_BACKEND_URL__ before load.', 10000);
         return;
     }
     setConnBadge('wait', 'connecting…');
