@@ -4239,7 +4239,17 @@ function noteFailure() {
 function noteSuccess() {
     consecutiveFailures = 0;
     backoffUntil = 0;
-    setConnBadge('ok', 'connected');
+    
+    // Only update the badge if it's not already green. 
+    // This prevents flickering if some fast sub-fetches succeed 
+    // while a slow one (like /miniapp-state) times out.
+    const currentText = connBadge ? connBadge.textContent : '';
+    if (currentText !== 'connected' && currentText !== 'engine not ready') {
+        setConnBadge('ok', 'connected');
+    }
+    
+    // Clear any active error messages if the backend is actually responding
+    hideError(); 
 }
 
 async function fetchOhlcv() {
