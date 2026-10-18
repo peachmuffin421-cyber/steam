@@ -1251,6 +1251,8 @@ const CS_VALUE_MAP = {
 
 function csVal(value) {
     if (value === null || value === undefined) return '—';
+    if (value === true) return '⟦𝒯⟧';
+    if (value === false) return '⟦ℱ⟧';
     const s = String(value).trim();
     if (!s) return '—';
     const upper = s.toUpperCase();
@@ -4665,6 +4667,7 @@ async function fetchAll() {
     // network-class failure (hang or abort), not a hard 4xx/5xx.
     if (health && health.__error && health.__network && health.__status === undefined) {
         setConnBadge('wait', 'waking dyno…');
+        hideError(); // <--- ADD THIS: Clears the red box while waiting
         pushLog('info', 'Health probe timed out at 6 s — retrying with 45 s (cold Heroku dyno).');
         health = await apiJson('/health', { timeoutMs: 45000 });
     }
