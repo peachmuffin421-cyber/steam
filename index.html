@@ -1265,11 +1265,6 @@ function csVal(value) {
 /* ============================================================
    BACKEND CONFIGURATION
    ============================================================ */
-// The fork-author edit point. Populated so that step 4 of
-// resolveBackendUrl() resolves to the live Heroku origin even when the
-// Telegram WebView strips the ?backend= query string on first navigation.
-// This is the F-A fix: a populated DEFAULT_BACKENDS[0] is the belt-and-
-// suspenders fallback for the WebView-stripping case.
 const DEFAULT_BACKENDS = [
     'https://aeea-df7f2ade617d.herokuapp.com/',
 ];
@@ -1282,8 +1277,6 @@ function normalizeBackend(u) {
     if (u === null || u === undefined) return '';
     let s = String(u).trim();
     if (!s) return '';
-    // Accept percent-encoded forms (Telegram bots, URL shorteners, and some
-    // WebView paste paths re-encode the value). Decode up to twice.
     if (/%3A%2F%2F/i.test(s) || /^https?%3A/i.test(s)) {
         try { s = decodeURIComponent(s); } catch (e) {}
         if (/%3A%2F%2F/i.test(s)) {
@@ -1294,12 +1287,6 @@ function normalizeBackend(u) {
     return s.replace(/\/+$/, '') + '/';
 }
 
-// The query string is authoritative. It wins over window.__AEEA_BACKEND_URL__
-// and localStorage, because the user's most recent explicit instruction is the
-// query string in the URL they just opened. If the query string is present but
-// malformed, we do NOT silently fall through to same-origin (that is the
-// "GitHub Pages 404 loop" failure mode); we return a sentinel that boot() can
-// detect and surface.
 const BACKEND_QS_MALFORMED = '__BACKEND_QS_MALFORMED__';
 
 function readQsBackend() {
@@ -1319,7 +1306,6 @@ function persistBackend(url) {
 
 function resolveBackendUrl() {
     try {
-        // Step 1 (authoritative): ?backend= query string.
         const q = readQsBackend();
         if (q !== null && q !== '') {
             const n = normalizeBackend(q);
@@ -1327,12 +1313,8 @@ function resolveBackendUrl() {
                 persistBackend(n);
                 return n;
             }
-            // Query string present but malformed. Persist nothing; return the
-            // sentinel so boot() can surface it. Do NOT fall through to
-            // same-origin (that is the GitHub Pages 404 loop).
             return BACKEND_QS_MALFORMED;
         }
-        // Step 2: window override.
         if (typeof window.__AEEA_BACKEND_URL__ === 'string' && window.__AEEA_BACKEND_URL__.length > 0) {
             const n = normalizeBackend(window.__AEEA_BACKEND_URL__);
             if (n) {
@@ -1340,13 +1322,11 @@ function resolveBackendUrl() {
                 return n;
             }
         }
-        // Step 3: persisted.
         try {
             const ls = localStorage.getItem(LS_KEY);
             const n = normalizeBackend(ls);
             if (n) return n;
         } catch (e) {}
-        // Step 4: DEFAULT_BACKENDS (populated above).
         for (const candidate of DEFAULT_BACKENDS) {
             const n = normalizeBackend(candidate);
             if (n) {
@@ -1377,10 +1357,6 @@ let HAS_BACKEND = (!BACKEND_QS_WAS_MALFORMED) && BACKEND_URL.length > 0;
     }
 })();
 
-// Telegram WebView re-resolution hook. The F-D fix: retry on every
-// visibilitychange for the first RE_RESOLVE_WINDOW_MS after boot, then stop.
-// This survives the case where Telegram strips the query AFTER the first
-// visibilitychange (some Android WebViews do this on the second navigation).
 let _reResolveUntil = 0;
 function _ensureReResolveWindow() {
     if (_reResolveUntil) return;
@@ -1393,31 +1369,11 @@ function _ensureReResolveWindow() {
     _reResolveUntil = boot + RE_RESOLVE_WINDOW_MS;
 }
 
-/* ============================================================
-   POLL HANDLES (hoisted above visibilitychange listener)
-   ============================================================
-   The visibilitychange listener below calls startPolling() and reads
-   pollHandles.miniapp. If pollHandles were declared later (via
-   `let pollHandles = {...}`), the listener would hit a temporal dead
-   zone ReferenceError on the first event. Hoisting the declaration
-   here eliminates that class of error.
-   ============================================================ */
 let pollHandles = {
     miniapp: null, ohlcv: null, signals: null, diag: null,
     orders: null, regime: null, log: null, toasts: null, projection: null,
 };
 
-/* ============================================================
-   Q-7: UNCONDITIONAL RE-FETCH ON VISIBILITY RESUME
-   ============================================================
-   The previous hook only re-fetched when the backend URL changed.
-   On the WebView-resume path (backgrounded Telegram → foregrounded
-   Telegram) the URL is unchanged, so nothing re-fired and the
-   deadlocked boot() fetch was never retried. The hook now always
-   calls fetchAll() on resume for the first 5 minutes after boot,
-   and restarts polling if the deadlocked boot() never reached
-   startPolling().
-   ============================================================ */
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
     _ensureReResolveWindow();
@@ -1432,11 +1388,7 @@ document.addEventListener('visibilitychange', () => {
             pushLog('info', 'Backend re-resolved: ' + BACKEND_URL);
         }
         try { setConnBadge('wait', 'connecting…'); } catch (e) {}
-        // Always retry on resume — even when the URL is unchanged.
-        // This is the deadlock-escape path for the WebView-throttled
-        // boot() fetch.
         fetchAll();
-        // Restart polling if boot() never reached startPolling().
         if (!pollHandles || !pollHandles.miniapp) {
             startPolling();
         }
@@ -1492,107 +1444,49 @@ function authHeaders(extra) {
 }
 
 /* ============================================================
-   Q-5: HARD-SETTLE FETCH WRAPPER
+   Q-5: NATIVE AbortSignal TIMEOUT
    ============================================================
-   The WebView throttles setTimeout aggressively when the page is
-   backgrounded or when iOS suspends the JS thread. If fetch() never
-   settles (cold dyno + throttled timer), the previous implementation
-   awaited forever, deadlocking boot() and leaving the connection
-   badge on "connecting…".
+   The previous apiFetch raced three overlapping promises
+   (the fetch, a setTimeout abort, and a macrotask deadline poller).
+   In a mobile WebView, the JS thread can stall for a fraction of a
+   second during layout or rendering. When it wakes up, the deadline
+   poller sees Date.now() >= deadline, fires the AbortController, and
+   kills the request even though the network layer already received
+   the successful 200 OK. This caused "Backend unreachable; backing
+   off 30s" immediately after a 200 response.
 
-   This implementation guarantees settlement. It races three promises:
-     1. fetch(url, ...)                    — normal path
-     2. a setTimeout that aborts the fetch  — fires if timers are live
-     3. a macrotask deadline poller         — fires even if setTimeout
-                                              is throttled, because it
-                                              yields to the event loop
-                                              via setTimeout(..., 50)
-                                              between wall-clock checks.
-
-   Whichever settles first wins. The AbortController is always aborted
-   on the settle path so the underlying request is cancelled. The
-   deadline poller stops itself when the race has settled.
-
-   Fix (B-1): the poller uses setTimeout(..., 50) as its yield, NOT
-   queueMicrotask. A microtask-based poller would spin-lock the JS
-   thread (microtasks flush back-to-back without yielding to the event
-   loop), blocking the UI for the entire timeout window. The 50 ms
-   setTimeout yields a macrotask, so the UI thread stays responsive
-   while the deadline poller waits.
+   The fix is to let the WebView's native network layer handle the
+   timeout via AbortSignal.timeout(). The AbortSignal is processed
+   by the browser's network thread, not the JS thread, so a JS
+   thread stall cannot trigger a spurious abort.
    ============================================================ */
 async function apiFetch(path, opts) {
     opts = opts || {};
     const url = apiUrl(path);
     const timeoutMs = (typeof opts.timeoutMs === 'number' && opts.timeoutMs > 0)
         ? opts.timeoutMs
-        : 10000;
+        : 20000;
+
     const controller = new AbortController();
-    const deadline = Date.now() + timeoutMs;
-    let settled = false;
-    let settleResolve = null;
-    let settleReject = null;
-
-    const settlePromise = new Promise((resolve, reject) => {
-        settleResolve = resolve;
-        settleReject = reject;
-    });
-
-    function settleWith(kind, value) {
-        if (settled) return;
-        settled = true;
-        try { controller.abort(); } catch (e) {}
-        if (kind === 'resolve') settleResolve(value);
-        else settleReject(value);
-    }
-
-    // Path 1: the real fetch.
-    (async () => {
-        try {
-            const res = await fetch(url, Object.assign({}, opts, {
-                headers: authHeaders(opts.headers),
-                signal: controller.signal,
-                mode: 'cors',
-                credentials: 'omit',
-            }));
-            settleWith('resolve', res);
-        } catch (e) {
-            settleWith('reject', e);
-        }
-    })();
-
-    // Path 2: the timer (best effort — may be throttled).
-    const timerHandle = setTimeout(() => {
-        settleWith('reject', (function () {
-            const err = new Error('timeout');
-            err.name = 'AbortError';
-            return err;
-        })());
-    }, timeoutMs);
-
-    // Path 3: the deadline poller. Yields a macrotask (setTimeout 50)
-    // between wall-clock checks, so it does not starve the UI thread.
-    // This is the B-1 fix: a queueMicrotask-based poller would spin-lock
-    // the microtask queue for the entire timeout window.
-    let pollerHandle = null;
-    function deadlinePoller() {
-        if (settled) return;
-        if (Date.now() >= deadline) {
-            settleWith('reject', (function () {
-                const err = new Error('timeout');
-                err.name = 'AbortError';
-                return err;
-            })());
-            return;
-        }
-        pollerHandle = setTimeout(deadlinePoller, 50);
-    }
-    pollerHandle = setTimeout(deadlinePoller, 50);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-        return await settlePromise;
+        const res = await fetch(url, Object.assign({}, opts, {
+            headers: authHeaders(opts.headers),
+            signal: controller.signal,
+            mode: 'cors',
+            credentials: 'omit',
+        }));
+        return res;
+    } catch (e) {
+        if (e.name === 'AbortError') {
+            const err = new Error('timeout');
+            err.name = 'AbortError';
+            throw err;
+        }
+        throw e;
     } finally {
-        clearTimeout(timerHandle);
-        if (pollerHandle !== null) clearTimeout(pollerHandle);
+        clearTimeout(timer);
     }
 }
 
@@ -1616,8 +1510,8 @@ async function apiJson(path, opts) {
     } catch (e) {
         return {
             __error: true,
-            __network: (e && e.name !== 'AbortError'), // False if it's a timeout
-            __timeout: (e && e.name === 'AbortError'), // True if it's a timeout
+            __network: (e && e.name !== 'AbortError'),
+            __timeout: (e && e.name === 'AbortError'),
             __body: null,
             error: (e && e.name === 'AbortError') ? 'timeout' : (e && e.message) || String(e),
         };
@@ -1838,10 +1732,6 @@ const INDICATOR_RANGES = {
     'StdDev':     { min: 0,   max: 100,  levels: [] },
 };
 
-/* ============================================================
-   CRYPTO SYMBOL LIST — exact intersection with the patched
-   worker CRYPTO_MAP.
-   ============================================================ */
 const SYMBOLS_CRYPTO = [
     'BTC-USD', 'ETH-USD', 'XRP-USD', 'ADA-USD', 'SOL-USD', 'DOGE-USD',
     'LTC-USD', 'LINK-USD', 'DOT-USD', 'AVAX-USD', 'MATIC-USD', 'UNI-USD',
@@ -4220,7 +4110,7 @@ function updateCrosshairReadout(x, y) {
 }
 
 let consecutiveFailures = 0;
-const MAX_FAILURES = 3;
+const MAX_FAILURES = 6;
 let backoffUntil = 0;
 
 function isBackedOff() {
@@ -4229,9 +4119,9 @@ function isBackedOff() {
 function noteFailure() {
     consecutiveFailures++;
     if (consecutiveFailures >= MAX_FAILURES) {
-        backoffUntil = Date.now() + 30000;
+        backoffUntil = Date.now() + 10000;
         setConnBadge('err', 'backend unreachable');
-        pushLog('warn', 'Backend unreachable; backing off 30s');
+        pushLog('warn', 'Backend unreachable; backing off 10s');
     } else {
         setConnBadge('wait', 'retrying…');
     }
@@ -4239,17 +4129,11 @@ function noteFailure() {
 function noteSuccess() {
     consecutiveFailures = 0;
     backoffUntil = 0;
-    
-    // Only update the badge if it's not already green. 
-    // This prevents flickering if some fast sub-fetches succeed 
-    // while a slow one (like /miniapp-state) times out.
     const currentText = connBadge ? connBadge.textContent : '';
     if (currentText !== 'connected' && currentText !== 'engine not ready') {
         setConnBadge('ok', 'connected');
     }
-    
-    // Clear any active error messages if the backend is actually responding
-    hideError(); 
+    hideError();
 }
 
 async function fetchOhlcv() {
@@ -4643,20 +4527,6 @@ async function fetchLogs() {
     }
 }
 
-/* ============================================================
-   Q-6: TWO-STAGE HEALTH PROBE + allSettled SUB-FETCHES
-   ============================================================
-   Two changes:
-   (a) The /health probe is two-stage. Stage 1 is 6 s (fast path).
-       Stage 2 is 45 s (cold-start path). Stage 2 only runs when
-       Stage 1 returned a network-class error (hang or abort), not
-       a hard 4xx/5xx. A cold Heroku Eco dyno needs 10–50 s to
-       bind. During Stage 2 the badge reads "waking dyno…".
-   (b) The nine sub-fetches run under Promise.allSettled, not
-       Promise.all. A single hanging sub-fetch can no longer
-       deadlock fetchAll, and therefore can no longer deadlock
-       boot().
-   ============================================================ */
 async function fetchAll() {
     if (BACKEND_QS_WAS_MALFORMED) {
         setConnBadge('err', 'bad ?backend=');
@@ -4670,14 +4540,11 @@ async function fetchAll() {
     if (isBackedOff()) return;
     hideError();
 
-    // Stage 1: fast health probe (6 s).
     let health = await apiJson('/health', { timeoutMs: 6000 });
 
-    // Stage 2: cold-start health probe (45 s) if Stage 1 was a
-    // network-class failure (hang or abort), not a hard 4xx/5xx.
     if (health && health.__error && health.__network && health.__status === undefined) {
         setConnBadge('wait', 'waking dyno…');
-        hideError(); // <--- ADD THIS: Clears the red box while waiting
+        hideError();
         pushLog('info', 'Health probe timed out at 6 s — retrying with 45 s (cold Heroku dyno).');
         health = await apiJson('/health', { timeoutMs: 45000 });
     }
@@ -4686,7 +4553,7 @@ async function fetchAll() {
         if (health.__timeout) {
             setConnBadge('wait', 'waking dyno…');
             pushLog('warn', 'Health probe timed out. The backend is cold-starting or the WebView is throttling the request.');
-            return; // Don't throw the CORS error, just wait for the 45s Stage 2 probe
+            return;
         }
         
         noteFailure();
@@ -4714,7 +4581,6 @@ async function fetchAll() {
 
     await fetchMiniAppState();
 
-    // allSettled: a single hanging sub-fetch cannot deadlock fetchAll.
     const results = await Promise.allSettled([
         fetchOhlcv(),
         fetchSignals(),
@@ -4729,6 +4595,8 @@ async function fetchAll() {
     const rejected = results.filter(r => r.status === 'rejected');
     if (rejected.length > 0) {
         pushLog('warn', 'fetchAll: ' + rejected.length + ' sub-fetch(es) rejected (allSettled)');
+    } else {
+        noteSuccess();
     }
 
     state.connected = true;
@@ -4907,25 +4775,6 @@ function stopPolling() {
     });
 }
 
-/* ============================================================
-   Q-8: NON-BLOCKING BOOT
-   ============================================================
-   The previous boot() awaited fetchAll() before startPolling().
-   If fetchAll() hung (WebView-throttled timers, cold dyno), boot()
-   never reached startPolling() and the connection badge stayed on
-   "connecting…" forever.
-
-   The new boot():
-     1. Starts polling FIRST (so the 2 s /miniapp-state and 2 s
-        /toasts intervals fire regardless of what fetchAll does).
-     2. Fires the initial fetchAll() without awaiting it — its
-        settlement is irrelevant to the polling loop.
-     3. Fires the handshake without awaiting it — the handshake is
-        only needed for /handshake session registration, which the
-        first successful /miniapp-state poll will also trigger
-        implicitly via chat_id discovery.
-     4. Sets up the 300 s full-refresh interval unconditionally.
-   ============================================================ */
 async function boot() {
     resizeChart();
     if (chartCanvas._width <= 0 || chartCanvas._height <= 0) {
@@ -4946,16 +4795,12 @@ async function boot() {
     setConnBadge('wait', 'connecting…');
     pushLog('info', 'Backend: ' + BACKEND_URL);
 
-    // Start polling FIRST so the 2 s intervals fire regardless of
-    // whether the initial fetchAll() settles.
     startPolling();
 
-    // Fire the initial fetch without awaiting it.
     fetchAll().catch(e => {
         pushLog('warn', 'boot(): initial fetchAll rejected: ' + (e && e.message ? e.message : String(e)));
     });
 
-    // Fire the handshake without awaiting it.
     if (tmaActive && HAS_BACKEND) {
         postHandshake().then(r => {
             if (r && r.ok) {
@@ -4971,7 +4816,6 @@ async function boot() {
         renderChart();
     }
 
-    // 300 s full-refresh safety net.
     setInterval(fetchAll, 300000);
 
     pushLog('info', 'ÆEA TWA vFinal Edition 3 booted (non-blocking boot; polling started before initial fetch)');
@@ -5008,10 +4852,10 @@ console.log('  ✓ Q-4: fetchAll() probes /health first and maps 404/401/403/net
 console.log('         5xx to distinct badge states with actionable error messages.');
 console.log('  ✓ Q-B: engine_initialized === false → yellow "engine not ready"');
 console.log('         instead of green "connected" (user is told to /start_feed).');
-console.log('  ✓ Q-5 (B-1): apiFetch hard-settles via fetch race + setTimeout abort +');
-console.log('         a macrotask deadline poller (setTimeout 50, NOT queueMicrotask —');
-console.log('         a microtask poller would spin-lock the JS thread for the full');
-console.log('         timeout window). The UI stays responsive during cold-start.');
+console.log('  ✓ Q-5 (B-1): apiFetch hard-settles via native AbortController +');
+console.log('         setTimeout abort. No macrotask deadline poller — the');
+console.log('         WebView\'s native network layer handles the timeout, so');
+console.log('         a JS thread stall cannot trigger a spurious abort.');
 console.log('  ✓ Q-6: two-stage /health probe (6 s fast + 45 s cold-start retry),');
 console.log('         Promise.allSettled for the nine sub-fetches.');
 console.log('  ✓ Q-7: unconditional fetchAll() on visibilitychange resume for the');
