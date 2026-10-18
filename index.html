@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ÆEA Engine · MQL4-Parity Port · TWA v4.5.6</title>
+<title>ÆEA Engine · MQL4-Parity Port · TWA vFinal Edition 3</title>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -658,15 +658,7 @@ html, body {
 }
 
 /* ============================================================
-   SYMBOL PICKER — v4.5.6 FIVE-SECTION EXPANDED
-   ============================================================
-   Five collapsible sections:
-     • Crypto (Kraken-primary)       — ~200 pairs
-     • Futures (Stooq-primary)       — ~70 contracts
-     • Equities/ETFs (Stooq-primary) — ~500 instruments
-     • Forex (Yahoo)                 — ~50 pairs
-     • Indices (Yahoo)               — ~18 indices
-   A search box at the top filters across all five.
+   SYMBOL PICKER — vFinal FIVE-SECTION EXPANDED (PRUNED)
    ============================================================ */
 #symbolPickerList {
     display: flex;
@@ -1039,6 +1031,7 @@ html, body {
         <div class="bb-row"><span class="bb-swatch lower"></span> Lower (white, p3→p60)</div>
         <div class="bb-row" style="margin-top:3px;">Period 3 = faintest · Period 60 = strongest</div>
         <div class="bb-row">Population σ (BigInt-backed), dev=2, close, shift=0</div>
+        <div class="bb-row" style="margin-top:3px;opacity:0.7;">The BigInt accumulators are exact; the final Math.sqrt is float64.</div>
     </div>
 </div>
 
@@ -1103,12 +1096,12 @@ html, body {
 
     <div class="dockPanel" id="derivativePanel">
         <div class="dock-title">Directional Derivatives</div>
-        <div class="row"><span class="lbl">Z</span><span class="val" id="der-Z">1</span><span class="lbl">z</span><span class="val" id="der-z">1</span><span class="lbl">iZ</span><span class="val" id="der-iZ">1</span><span class="lbl">iz</span><span class="val" id="der-iz">1</span></div>
-        <div class="row"><span class="lbl">O</span><span class="val" id="der-O">1</span><span class="lbl">o</span><span class="val" id="der-o">1</span><span class="lbl">iO</span><span class="val" id="der-iO">1</span><span class="lbl">io</span><span class="val" id="der-io">1</span></div>
-        <div class="row"><span class="lbl">W</span><span class="val" id="der-W">1</span><span class="lbl">w</span><span class="val" id="der-w">1</span><span class="lbl">iW</span><span class="val" id="der-iW">1</span><span class="lbl">iw</span><span class="val" id="der-iw">1</span></div>
-        <div class="row"><span class="lbl">I</span><span class="val" id="der-I">0</span><span class="lbl">iI</span><span class="val" id="der-iI">0</span><span class="lbl">J</span><span class="val" id="der-J">0</span><span class="lbl">iJ</span><span class="val" id="der-iJ">0</span></div>
-        <div class="row"><span class="lbl">X_scan</span><span class="val" id="der-Xscan">1</span><span class="lbl">Y_scan</span><span class="val" id="der-Yscan">1</span></div>
-        <div class="row"><span class="lbl">S</span><span class="val" id="der-S">62</span><span class="lbl">T</span><span class="val" id="der-T">62</span><span class="lbl">r</span><span class="val" id="der-r">0</span><span class="lbl">ir</span><span class="val" id="der-ir">0</span></div>
+        <div class="row"><span class="lbl">𝒵</span><span class="val" id="der-Z">1</span><span class="lbl">𝒵'</span><span class="val" id="der-z">1</span><span class="lbl">ℐ𝒵</span><span class="val" id="der-iZ">1</span><span class="lbl">ℐ𝒵'</span><span class="val" id="der-iz">1</span></div>
+        <div class="row"><span class="lbl">𝒪</span><span class="val" id="der-O">1</span><span class="lbl">𝒪'</span><span class="val" id="der-o">1</span><span class="lbl">ℐ𝒪</span><span class="val" id="der-iO">1</span><span class="lbl">ℐ𝒪'</span><span class="val" id="der-io">1</span></div>
+        <div class="row"><span class="lbl">𝒲</span><span class="val" id="der-W">1</span><span class="lbl">𝒲'</span><span class="val" id="der-w">1</span><span class="lbl">ℐ𝒲</span><span class="val" id="der-iW">1</span><span class="lbl">ℐ𝒲'</span><span class="val" id="der-iw">1</span></div>
+        <div class="row"><span class="lbl">ℐ</span><span class="val" id="der-I">0</span><span class="lbl">ℐ'</span><span class="val" id="der-iI">0</span><span class="lbl">𝒥</span><span class="val" id="der-J">0</span><span class="lbl">𝒥'</span><span class="val" id="der-iJ">0</span></div>
+        <div class="row"><span class="lbl">𝒳_scan</span><span class="val" id="der-Xscan">1</span><span class="lbl">𝒴_scan</span><span class="val" id="der-Yscan">1</span></div>
+        <div class="row"><span class="lbl">𝒮</span><span class="val" id="der-S">62</span><span class="lbl">𝒯</span><span class="val" id="der-T">62</span><span class="lbl">𝒓</span><span class="val" id="der-r">0</span><span class="lbl">ℐ𝒓</span><span class="val" id="der-ir">0</span></div>
         <div class="row"><span class="lbl">𝒜_ATR</span><span class="val" id="der-atr">50</span><span class="lbl">𝒜_StdDev</span><span class="val" id="der-std">50</span></div>
         <div class="row"><span class="lbl">𝒜_IHKk</span><span class="val" id="der-ihkk">50</span><span class="lbl">𝒜_IHKt</span><span class="val" id="der-ihkt">50</span></div>
     </div>
@@ -1160,23 +1153,23 @@ html, body {
 <div id="errorDisplay"></div>
 
 <div id="explainPanel">
-    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.5.6</h3>
+    <h3>⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA vFinal Edition 3</h3>
     <div class="item"><b>TOOLBAR</b> <span>— Symbol picker, timeframe picker, chart-type toggle, view switcher (CHART / 13D / REGIME), indicator adder, ℱ_VG list, <b>BB×58</b> toggle, <b>𝒱</b> toggle, <b>𝒫_arc</b> projection toggle, refresh, settings, help.</span></div>
     <div class="item"><b>CANDLES</b> <span>— Bullish = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span> (MQL4 <code>clrBlue</code>/<code>clrRed</code> parity).</span></div>
-    <div class="item"><b>𝒱 PANE</b> <span>— Tick volume histogram below the candlesticks. Bar height is proportional to <code>bar.volume</code> normalized by the maximum volume in the visible range. Bullish volume bars = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span>. Toggle via the <b>𝒱</b> button. Rendered on the <code>#volumeOverlay</code> canvas at <code>z-index: 4</code>, above the sub-panel stack, so no indicator sub-panel can occlude it.</span></div>
-    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. σ is computed via BigInt-backed exact arithmetic.</span></div>
-    <div class="item"><b>𝒫_arc PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Π^{>θ}/Π^{<θ} band). Drawn dashed ahead of the last bar. <b>Recomputed only when a 𝒟_Bull/𝒟_Bear/ℋ_Hawk/𝒟_Dove/𝒲_Whisky/𝒲_Wine/𝒲_Watter/ℬ_Blood/𝒟_Diamond/ℛ_Ruby execution fires</b>, plus once on engine init, once on symbol change, and on explicit refresh.</span></div>
+    <div class="item"><b>𝒱 PANE</b> <span>— Tick volume histogram below the candlesticks. Bar height is proportional to <code>bar.volume</code> normalized by the maximum volume in the visible range. Bullish volume bars = <span style="color:#0000ff;">blue</span>, bearish = <span style="color:#ff0000;">red</span>. Toggle via the <b>𝒱</b> button.</span></div>
+    <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. SMA and variance accumulators are BigInt-backed at 1e12 scale; the final <code>Math.sqrt</code> is float64.</span></div>
+    <div class="item"><b>𝒫_arc PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Π^{>θ}/Π^{<θ} band). The cosine is evaluated with a 15-digit exact-rational Taylor series (π ≈ 3.141592653589793 as the fraction 3141592653589793/1000000000000000). Drawn dashed ahead of the last bar. Recomputed only when a 𝒟_Bull/𝒟_Bear/ℋ_Hawk/𝒟_Dove/𝒲_Whisky/𝒲_Wine/𝒲_Watter/ℬ_Blood/𝒟_Diamond/ℛ_Ruby execution fires, plus once on engine init, once on symbol change, and on explicit refresh.</span></div>
     <div class="item"><b>SCROLL-AHEAD</b> <span>— Drag the chart left past the last bar to scroll into the projected region. The projected endpoint (likely take-profit level) is reachable directly on the chart.</span></div>
     <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; ℱ_VG toasts fire on every anchor commit/remove. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat, <b>threaded as a reply to your most recent command</b>.</span></div>
-    <div class="item"><b>𝒫 (Provider)</b> <span>— <b>v4.5.6:</b> crypto symbols dispatch to <b>Kraken</b> first (free, open, no KYC, low latency), then Binance, then CoinGecko, then Yahoo. Futures and equities dispatch to <b>Stooq</b> first (free, open, no KYC, CSV, low latency), then Yahoo. Forex and indices dispatch to <b>Yahoo</b> only. The current provider is shown in the Engine Panel and the 𝒫_arc Panel.</span></div>
-    <div class="item"><b>SYMBOL UNIVERSE</b> <span>— <b>GRAM-USD (TON)</b> is now a first-class crypto symbol. The universe spans <b>~200 crypto pairs</b>, <b>~70 futures contracts</b> (including micros MES/MNQ/MYM/M2K and CME crypto futures BTC=F, ETH=F), <b>~500 US equities and ETFs</b>, <b>~50 forex pairs</b>, and <b>~18 world indices</b>. The picker groups them into five collapsible sections and includes a search filter.</span></div>
+    <div class="item"><b>𝒫 (Provider)</b> <span>— <b>vFinal:</b> crypto symbols dispatch to <b>Kraken</b> first (free, open, no KYC, low latency), then Binance, then CoinGecko, then Yahoo. Futures and equities dispatch to <b>Stooq</b> first (free, open, no KYC, CSV, low latency), then Yahoo. Forex and indices dispatch to <b>Yahoo</b> only. The current provider is shown in the Engine Panel and the 𝒫_arc Panel.</span></div>
+    <div class="item"><b>SYMBOL UNIVERSE</b> <span>— <b>GRAM-USD (TON)</b> is a first-class crypto symbol. The picker's crypto section is pruned to the exact intersection with the relay's live Kraken/Binance/Gecko coverage — every listed symbol resolves to a real price on at least one provider. CoinGecko-only entries (BNB-USD, OKB-USD, HT-USD, KCS-USD, USDT-USD) serve a 24-hour rolling USD volume, not exchange tick volume, under the 𝒱 column. The universe additionally spans <b>~70 futures contracts</b> (including micros MES/MNQ/MYM/M2K and CME crypto futures BTC=F, ETH=F), <b>~500 US equities and ETFs</b>, <b>~50 forex pairs</b>, and <b>~18 world indices</b>. The picker groups them into five collapsible sections and includes a search filter.</span></div>
     <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Π^{>θ}/Π^{<θ}), ℱ_VG lines, signal markers, 𝒯_trail line, 𝒫_arc projection, 𝒱 histogram.</span></div>
     <div class="item"><b>SUB-PANELS</b> <span>— MT4-style indicator sub-windows. Add via <b>+ IND</b>.</span></div>
     <div class="item"><b>13D GRID</b> <span>— The 13 classical indicators projected onto H₁₃, normalized to [0, 100].</span></div>
     <div class="item"><b>ℛ_regime MAP</b> <span>— Per-bar regime classification: 𝒮_Range / 𝒮_Volatile / 𝒮_Trend / 𝒮_Stable, with time-extension variants.</span></div>
     <div class="item"><b>δ</b> <span>— δ(m−n−2). m = overbought count, n = oversold count. H() fires when m ≥ 12, L() fires when n ≥ 12.</span></div>
     <div class="item"><b>ENGINE PANEL</b> <span>— 𝒦 / π / δ_dime / μ / τ / 𝒦_invert / 𝒜 / ℬ / 𝒞 / 𝒸 / 𝒯_tick_tock / 𝒮 / 𝒯_trail / 𝒯_track / 𝒯_stand / 𝒪 / 𝒮_safety / 𝒫 / 𝒱 / ℳ_last.</span></div>
-    <div class="item"><b>DERIVATIVE PANEL</b> <span>— Z / z / O / o / W / w / I / iI / J / iJ / X_scan / Y_scan / S / T / r / ir / 𝒜_ATR / 𝒜_StdDev / 𝒜_IHKk / 𝒜_IHKt.</span></div>
+    <div class="item"><b>DERIVATIVE PANEL</b> <span>— 𝒵 / 𝒵' / 𝒪 / 𝒪' / 𝒲 / 𝒲' / ℐ / ℐ' / 𝒥 / 𝒥' / 𝒳_scan / 𝒴_scan / 𝒮 / 𝒯 / 𝒓 / ℐ𝒓 / 𝒜_ATR / 𝒜_StdDev / 𝒜_IHKk / 𝒜_IHKt.</span></div>
     <div class="item"><b>𝒫_arc PANEL</b> <span>— Branch / horizon / slope / amplitude / center / damping / provider / trigger / next / end / updated.</span></div>
     <div class="item"><b>ORDER TICKET</b> <span>— Place simulated orders with lot/SL/TP. Numeric fields accept exact decimal strings.</span></div>
     <div class="item"><b>ℱ_VG</b> <span>— Long-press on chart to draw a 𝒯_Top/ℬ_Bott ℱ_VG. Tap an ℱ_VG line to delete.</span></div>
@@ -1224,6 +1217,47 @@ const _cssVars = {
 
 function getCssVar(name, fallback) {
     return _cssVars.get(name, fallback);
+}
+
+/* ============================================================
+   C-2: CS VALUE TRANSLATION
+   ============================================================ */
+const CS_VALUE_MAP = {
+    'BUY': '↑',
+    'SELL': '↓',
+    'NEUTRAL': '⊙',
+    'ACTIVE': '𝒜₃',
+    'INACTIVE': '𝒜₄',
+    'ON': '𝒜₃',
+    'OFF': '𝒜₄',
+    'UP': '↟',
+    'DOWN': '↡',
+    'LONG': '↑',
+    'SHORT': '↓',
+    'CLOSE': '𝒞_Close',
+    'NONE': '𝒩',
+    'FLYING': '↟',
+    'FALLING': '↡',
+    'WAIT/DECERN': '⋯',
+    'YES': '⟦𝒴⟧',
+    'NO': '⟦𝒩⟧',
+    'TRUE': '⟦𝒯⟧',
+    'FALSE': '⟦ℱ⟧',
+    'BULLISH': '𝒮_Bull',
+    'BEARISH': '𝒮_Bear',
+    'UNKNOWN': '𝒰',
+    'STABLE': '𝒮_Stable',
+};
+
+function csVal(value) {
+    if (value === null || value === undefined) return '—';
+    const s = String(value).trim();
+    if (!s) return '—';
+    const upper = s.toUpperCase();
+    if (Object.prototype.hasOwnProperty.call(CS_VALUE_MAP, upper)) {
+        return CS_VALUE_MAP[upper];
+    }
+    return s;
 }
 
 /* ============================================================
@@ -1455,12 +1489,12 @@ function pushToast(toast) {
         if (toast.type === 'BUY') el.classList.add('signal-buy');
         else if (toast.type === 'SELL') el.classList.add('signal-sell');
         else el.classList.add('signal-neutral');
-        const dirCs = toast.type === 'BUY' ? '↑' : (toast.type === 'SELL' ? '↓' : '⊙');
+        const dirCs = csVal(toast.type);
         el.innerHTML =
             '<div class="toast-title">🎯 𝒮_signal · ' + escapeHtml(dirCs) + '</div>' +
             '<div class="toast-line">Price <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
             '<div class="toast-line">m <span class="v">' + escapeHtml(String(toast.m ?? '—')) + '</span> · n <span class="v">' + escapeHtml(String(toast.n ?? '—')) + '</span> · h <span class="v">' + escapeHtml(String(toast.h ?? '—')) + '</span></div>' +
-            '<div class="toast-line">' + escapeHtml(toast.regime || '') + ' · tick ' + escapeHtml(String(toast.tick ?? '—')) + '</div>';
+            '<div class="toast-line">' + escapeHtml(regimeToCS(toast.regime || '')) + ' · tick ' + escapeHtml(String(toast.tick ?? '—')) + '</div>';
     } else if (toast.kind === 'fvg') {
         const isTop = (toast.type === 'top');
         el.classList.add(isTop ? 'fvg-top' : 'fvg-bott');
@@ -1477,6 +1511,7 @@ function pushToast(toast) {
             'Watter': '💧', 'Blood': '🩸', 'Hawk': '🦅', 'Dove': '🕊️',
             'Diamond': '🔷', 'Ruby': '🔻', 'Top': '▲', 'Bott': '▼',
             'A': '🅰️', 'B': '🅱️', 'ManualOrder': '📝', 'ManualClose': '✂️',
+            'ManualOpen': '➕', 'Pending': '⏳',
         };
         const csMap = {
             'Bull': '𝒟_Bull', 'Bear': '𝒟_Bear', 'Whisky': '𝒲_Whisky',
@@ -1484,10 +1519,10 @@ function pushToast(toast) {
             'Hawk': 'ℋ_Hawk', 'Dove': '𝒟_Dove', 'Diamond': '𝒟_Diamond',
             'Ruby': 'ℛ_Ruby', 'Top': '𝒯_Top', 'Bott': 'ℬ_Bott',
             'A': '𝒜', 'B': 'ℬ_Close', 'ManualOrder': 'ℳ_Order',
-            'ManualClose': 'ℳ_Close',
+            'ManualClose': 'ℳ_Close', 'ManualOpen': 'ℳ_Open', 'Pending': '𝒫_Pending',
         };
         const emoji = execMap[toast.event] || '⚡';
-        const csEvent = csMap[toast.event] || toast.event;
+        const csEvent = csMap[toast.event] || ('ℰ_' + toast.event);
         if (toast.side === 'BUY') el.classList.add('exec-buy');
         else if (toast.side === 'SELL') el.classList.add('exec-sell');
         else if (toast.side === 'CLOSE') el.classList.add('exec-close');
@@ -1495,7 +1530,7 @@ function pushToast(toast) {
         const reason = toast.reason ? (' · ' + escapeHtml(toast.reason)) : '';
         el.innerHTML =
             '<div class="toast-title">' + emoji + ' ' + escapeHtml(csEvent) + '</div>' +
-            '<div class="toast-line">' + escapeHtml(toast.side || 'NONE') + ' · <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
+            '<div class="toast-line">' + escapeHtml(csVal(toast.side) || '𝒩') + ' · <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
             '<div class="toast-line">ticket ' + escapeHtml(String(toast.ticket ?? '—')) + ' · tick ' + escapeHtml(String(toast.tick ?? '—')) + reason + '</div>';
     }
     el.addEventListener('click', () => dismissToast(el));
@@ -1581,16 +1616,14 @@ const INDICATOR_RANGES = {
 };
 
 /* ============================================================
-   v4.5.6 SYMBOL UNIVERSE — FIVE GROUPS
+   A-C1: CRYPTO SYMBOL LIST — exact intersection with the
+   patched worker CRYPTO_MAP.
    ============================================================
-   Five collapsible sections:
-     • Crypto (Kraken-primary)       — ~200 pairs including GRAM-USD
-     • Futures (Stooq-primary)       — ~70 contracts
-     • Equities/ETFs (Stooq-primary) — ~500 instruments
-     • Forex (Yahoo)                 — ~50 pairs
-     • Indices (Yahoo)               — ~18 indices
-   A search box at the top filters across all five. Each item
-   shows the canonical form. The active symbol is highlighted.
+   Every entry below resolves to a live Kraken OR Binance OR
+   CoinGecko triple in the relay's CRYPTO_MAP. Entries whose
+   triple was dead (Kraken "", Binance "", CoinGecko "") in
+   the prior vFinal have been removed. The intersection is
+   the contract.
    ============================================================ */
 const SYMBOLS_CRYPTO = [
     'BTC-USD', 'ETH-USD', 'XRP-USD', 'ADA-USD', 'SOL-USD', 'DOGE-USD',
@@ -1609,14 +1642,14 @@ const SYMBOLS_CRYPTO = [
     'MANA-USD', 'SAND-USD', 'AXS-USD', 'GALA-USD', 'CHZ-USD', 'APE-USD',
     'GMT-USD', 'LRC-USD', 'STORJ-USD', 'ANKR-USD', 'CVC-USD', 'OMG-USD',
     'REN-USD', 'LDO-USD', 'RPL-USD', 'GMX-USD', 'DYDX-USD', 'PENDLE-USD',
-    'LQTY-USD', 'ENS-USD', '1INCH-USD', 'OCEAN-USD', 'FET-USD', 'GRT-USD',
-    'PEPE-USD', 'SHIB-USD', 'WIF-USD', 'BONK-USD', 'FLOKI-USD', 'MEME-USD',
+    'LQTY-USD', 'ENS-USD', '1INCH-USD', 'FET-USD', 'GRT-USD',
+    'PEPE-USD', 'SHIB-USD', 'WIF-USD', 'BONK-USD', 'FLOKI-USD',
     'BOME-USD', 'MOG-USD',
     'JUP-USD', 'PYTH-USD', 'JTO-USD', 'RNDR-USD',
     'WLD-USD', 'ARKM-USD', 'AI-USD', 'TAO-USD',
-    'BCH-USD', 'BSV-USD', 'XMR-USD', 'DASH-USD', 'ZEC-USD', 'EOS-USD',
-    'TRX-USD', 'NEO-USD', 'WAVES-USD', 'IOTA-USD', 'QTUM-USD', 'DGB-USD',
-    'LSK-USD', 'SC-USD', 'RVN-USD', 'KAS-USD',
+    'BCH-USD', 'XMR-USD', 'DASH-USD', 'ZEC-USD', 'EOS-USD',
+    'TRX-USD', 'NEO-USD', 'IOTA-USD', 'QTUM-USD', 'DGB-USD',
+    'SC-USD', 'RVN-USD', 'KAS-USD',
     'USDT-USD', 'USDC-USD', 'DAI-USD',
     'BNB-USD', 'OKB-USD', 'HT-USD', 'KCS-USD',
     'W-USD', 'OMNI-USD', 'REZ-USD', 'ETHFI-USD', 'ENA-USD', 'EIGEN-USD',
@@ -1774,6 +1807,19 @@ const SYMBOLS_INDICES = [
 const SYMBOLS = SYMBOLS_CRYPTO.concat(SYMBOLS_FUTURES).concat(SYMBOLS_EQUITIES).concat(SYMBOLS_FOREX).concat(SYMBOLS_INDICES);
 
 /* ============================================================
+   REGIME CS MAP
+   ============================================================ */
+function regimeToCS(r) {
+    const map = {
+        'sRange': '𝒮_Range', 'tRange': '𝒯_Range',
+        'sVolatile': '𝒮_Volatile', 'tVolatile': '𝒯_Volatile',
+        'sTrend': '𝒮_Trend', 'tTrend': '𝒯_Trend',
+        'Stable': '𝒮_Stable', 'Unknown': '𝒰',
+    };
+    return map[r] || r;
+}
+
+/* ============================================================
    STATE
    ============================================================ */
 const state = {
@@ -1805,7 +1851,8 @@ const state = {
     trailing_stop_price: 0,
     trailing_take_profit: 0,
     trailing_stop_entry: 0,
-    trailing_stop_side: '',    has_open_long: false, has_open_short: false,
+    trailing_stop_side: '',
+    has_open_long: false, has_open_short: false,
     lOrder_id: -1, kOrder_id: -1,
     orders: [],
 
@@ -2125,13 +2172,7 @@ document.getElementById('arcLegendTitle').addEventListener('click', (e) => {
 syncArcToggleUi();
 
 /* ============================================================
-   SYMBOL PICKER — v4.5.6 FIVE-SECTION EXPANDED
-   ============================================================
-   Five collapsible sections: Crypto / Futures / Equities /
-   Forex / Indices. A search box at the top filters across all
-   five. Each item is a clickable button that POSTs /symbol.
-   The active symbol is highlighted. If a section has no
-   matches under the current filter, it is hidden entirely.
+   SYMBOL PICKER — vFinal FIVE-SECTION EXPANDED (PRUNED)
    ============================================================ */
 function openSymbolPicker() {
     const total = SYMBOLS.length;
@@ -2189,7 +2230,7 @@ function openSymbolPicker() {
             <button class="tb-btn" id="sym-cancel">Cancel</button>
         </div>
         <div class="modal-note">
-            GRAM-USD (TON) is Kraken-primary. Crypto dispatches to Kraken (free, open, no KYC, low latency) first, then Binance, then CoinGecko, then Yahoo. Futures and equities dispatch to Stooq (free, open, no KYC, CSV, low latency) first, then Yahoo. Forex and indices dispatch to Yahoo only.
+            GRAM-USD (TON) is Kraken-primary. Crypto dispatches to Kraken (free, open, no KYC, low latency) first, then Binance, then CoinGecko, then Yahoo. Futures and equities dispatch to Stooq (free, open, no KYC, CSV, low latency) first, then Yahoo. Forex and indices dispatch to Yahoo only. Every crypto pair listed above resolves to a live Kraken OR Binance OR CoinGecko triple in the relay. CoinGecko-only entries (BNB-USD, OKB-USD, HT-USD, KCS-USD, USDT-USD) serve a 24-hour rolling USD volume, not exchange tick volume, under the 𝒱 column.
         </div>
     `;
     openModal(html, {
@@ -2609,7 +2650,7 @@ function renderGridBody(container) {
             <b>Thresholds:</b> Π^{>θ} = f + g_f = 200/3 + 40/15 ≈ <span style="color:#ffaa44;">66.6</span> · Π^{<θ} = g − g_f = 100/3 − 40/15 ≈ <span style="color:#4488ff;">33.3</span><br>
             <b>M() count:</b> number of indicators > 66.6 (with HH/LL boundary conditions) · <b>N() count:</b> number of indicators &lt; 33.3<br>
             <b>H() fires when m ≥ 12 · L() fires when n ≥ 12 → δ(m−n−2) = 1</b><br>
-            <b>Live:</b> m = <span style="color:#00ff88;">${state.market_m}</span> · n = <span style="color:#ff4466;">${state.market_n}</span> · δ = <span style="color:#ffaa44;">${state.market_imbalance}</span> · ℛ_regime = ${state.regime}<br>
+            <b>Live:</b> m = <span style="color:#00ff88;">${state.market_m}</span> · n = <span style="color:#ff4466;">${state.market_n}</span> · δ = <span style="color:#ffaa44;">${state.market_imbalance}</span> · ℛ_regime = ${regimeToCS(state.regime)}<br>
             <b>Provider:</b> <span style="color:#aa66ff;">${state.provider || '—'}</span> · <b>𝒱:</b> ${state.last_volume}<br>
             <b>𝒫_arc:</b> <span style="color:#aa66ff;">${(state.projection.meta && state.projection.meta.kind) || '—'}</span> · 𝒫_trigger = ${state.projection.trigger || '—'} · @ ${state.projection.computed_at || 'never'}
         </div>
@@ -2648,16 +2689,6 @@ function renderRegimeMap() {
         `;
     }
     container.innerHTML = html;
-}
-
-function regimeToCS(r) {
-    const map = {
-        'sRange': '𝒮_Range', 'tRange': '𝒯_Range',
-        'sVolatile': '𝒮_Volatile', 'tVolatile': '𝒯_Volatile',
-        'sTrend': '𝒮_Trend', 'tTrend': '𝒯_Trend',
-        'Stable': '𝒮_Stable', 'Unknown': '𝒰',
-    };
-    return map[r] || r;
 }
 
 /* ============================================================
@@ -2750,8 +2781,8 @@ async function openSettingsModal() {
         <div class="modal-row"><label>TakeProfit</label><input id="set-tp" type="text" inputmode="decimal" value="${asStr(s.TakeProfit)}"></div>
         <div class="modal-row"><label>lot</label><input id="set-lot" type="text" inputmode="decimal" value="${asStr(s.lot)}"></div>
         <div class="modal-row"><label>slip</label><input id="set-slip" type="number" value="${asStr(s.slip)}"></div>
-        <div class="modal-row"><label>max (X_PERIOD)</label><input id="set-max" type="number" value="${asStr(s.max)}"></div>
-        <div class="modal-row"><label>min (Y_START)</label><input id="set-min" type="number" value="${asStr(s.min)}"></div>
+        <div class="modal-row"><label>max (𝒳_PERIOD)</label><input id="set-max" type="number" value="${asStr(s.max)}"></div>
+        <div class="modal-row"><label>min (𝒴_START)</label><input id="set-min" type="number" value="${asStr(s.min)}"></div>
         <div class="modal-row"><label>Cc</label><input id="set-Cc" type="checkbox" ${s.Cc ? 'checked' : ''}></div>
         <div class="modal-row"><label>cC</label><input id="set-cC" type="checkbox" ${s.cC ? 'checked' : ''}></div>
         <div class="modal-row"><label>Memory</label><input id="set-mem" type="number" value="${asStr(s.Memory)}"></div>
@@ -2775,7 +2806,7 @@ async function openSettingsModal() {
                 const max = parseInt(maxStr, 10);
                 const min = parseInt(minStr, 10);
                 if (!isNaN(max) && !isNaN(min) && max < min + 2) {
-                    showError('Validation: max must be ≥ min + 2 (X_PERIOD > Y_START + 2)', 5000);
+                    showError('Validation: max must be ≥ min + 2 (𝒳_PERIOD > 𝒴_START + 2)', 5000);
                     return;
                 }
                 const next = {
@@ -2858,7 +2889,7 @@ function renderOrders() {
     el.innerHTML = state.orders.map(o => {
         const cls = o.side === 'BUY' ? 'long' : 'short';
         const pnl = (typeof o.pnl === 'number') ? ((o.pnl >= 0 ? '+' : '') + o.pnl.toFixed(2)) : '—';
-        const dirCs = o.side === 'BUY' ? '↑' : '↓';
+        const dirCs = csVal(o.side);
         return `<div class="pos-row">
             <span class="pos-side ${cls}">${dirCs}</span>
             <span>${o.entry}</span>
@@ -3112,7 +3143,15 @@ function computePriceRange() {
     viewport.priceMin = lo - span * 0.06;
     viewport.priceMax = hi + span * 0.06;
 }
+</script>
 
+<script>
+(function() {
+'use strict';
+
+/* ============================================================
+   BOLLINGER FAMILY — BigInt-backed exact variance
+   ============================================================ */
 const BB_MIN_PERIOD = 3;
 const BB_MAX_PERIOD = 60;
 const BB_SCALE = 1000000000000n;
@@ -4425,20 +4464,20 @@ function setText(id, text, cls) {
 }
 
 function updateEnginePanel() {
-    setText('eng-kc', state.KC);
-    setText('eng-invert', state.invert);
+    setText('eng-kc', csVal(state.KC));
+    setText('eng-invert', csVal(state.invert));
     setText('eng-tag', state.tag);
     setText('eng-prime', state.prime);
     setText('eng-dime', state.dime);
     setText('eng-mem', state.mem);
-    setText('eng-a', state.A);
-    setText('eng-b', state.B);
-    setText('eng-c', state.C);
-    setText('eng-cc', state.c);
-    setText('eng-ticktock', state.tick_tock);
-    setText('eng-signature', state.signature);
-    setText('eng-safety', state.safety);
-    setText('eng-trailing', state.trailing_stop_active ? 'active' : 'inactive',
+    setText('eng-a', csVal(state.A));
+    setText('eng-b', csVal(state.B));
+    setText('eng-c', csVal(state.C));
+    setText('eng-cc', csVal(state.c));
+    setText('eng-ticktock', csVal(state.tick_tock));
+    setText('eng-signature', csVal(state.signature));
+    setText('eng-safety', csVal(state.safety));
+    setText('eng-trailing', csVal(state.trailing_stop_active ? 'ACTIVE' : 'INACTIVE'),
             'val-warn' + (state.trailing_stop_active ? ' val-bull' : ''));
     setText('eng-trailing-price', state.trailing_stop_active ? (state.trailing_stop_price || 0).toFixed(5) : '—');
     setText('eng-ontrack', state.on_track_runs);
@@ -4446,7 +4485,7 @@ function updateEnginePanel() {
     const orders = [];
     if (state.has_open_long) orders.push(`↑(${state.lOrder_id})`);
     if (state.has_open_short) orders.push(`↓(${state.kOrder_id})`);
-    setText('eng-orders', orders.length ? orders.join(', ') : 'none');
+    setText('eng-orders', orders.length ? orders.join(', ') : '𝒩');
     setText('eng-provider', state.provider || '—');
     setText('eng-volume', formatVolume(state.last_volume || 0));
     setText('eng-lastmsg', state.last_inbound_message_id !== null && state.last_inbound_message_id !== undefined
@@ -4466,8 +4505,8 @@ function updateKroneckerPanel() {
     setText('kron-h', kroneckerFired ? state.last_kronecker_h : state.h_bar);
     setText('kron-mh', state.m_at_h);
     setText('kron-nh', state.n_at_h);
-    setText('kron-kh', state.m_at_h === 1);
-    setText('kron-lh', state.n_at_h === 1);
+    setText('kron-kh', csVal(state.m_at_h === 1));
+    setText('kron-lh', csVal(state.n_at_h === 1));
     const gate = (dispM >= 12 || dispN >= 12) ? '✅ 𝒜₃' : '𝒜₄';
     const gateEl = document.getElementById('kron-gate');
     if (gateEl) {
@@ -4608,7 +4647,7 @@ async function boot() {
     }
     startPolling();
     setInterval(fetchAll, 300000);
-    pushLog('info', 'ÆEA TWA v4.5.6 booted (GRAM/TON + expanded universe: crypto, futures, equities, forex, indices)');
+    pushLog('info', 'ÆEA TWA vFinal Edition 3 booted (pruned crypto list = exact intersection with worker CRYPTO_MAP)');
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -4618,31 +4657,27 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 }
 
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA v4.5.6');
+console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA vFinal Edition 3');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
 console.log('TMA active:', tmaActive);
-console.log('v4.5.6 (Expanded-Universe Edition):');
-console.log('  ✓ E-17: GRAM-USD (TON) is a first-class crypto symbol.');
-console.log('         Kraken lists it as TONUSD; Binance as TONUSDT;');
-console.log('         CoinGecko id is "the-open-network".');
-console.log('  ✓ E-18: Crypto universe expanded to ~200 pairs.');
-console.log('  ✓ E-19: Futures universe expanded to ~70 contracts.');
-console.log('  ✓ E-20: Equities/ETFs universe added with ~500 instruments.');
-console.log('  ✓ E-21: Forex universe added with ~50 pairs.');
-console.log('  ✓ E-22: Indices universe added with ~18 world indices.');
-console.log('  ✓ E-23: SYMBOL_DIGITS covers every new symbol with the');
-console.log('         correct digit count (2/3/4/5/6 per market).');
-console.log('  ✓ E-24: /health payload reports symbol-class counts.');
-console.log('  ✓ All v4.5.x defect resolutions and enhancements preserved:');
-console.log('         V-1 tick increment placement, V-2 Kronecker-stamp reset,');
-console.log('         E-11 reply-target hardening, E-12 Markdown escaping,');
-console.log('         E-13 plain-text fallback, E-10 cross-thread async send,');
-console.log('         E-4 execution-gated projection, E-5 scroll-ahead,');
-console.log('         E-6 threaded bot replies, E-7 bounded push dispatch,');
-console.log('         E-8 FVG merge by idx, E-9 legend stacking.');
-console.log('  ✓ CS translation layer preserved across all user-facing');
-console.log('         labels, headers, toast titles, and log lines.');
+console.log('vFinal Edition 3 (Audit-Patched):');
+console.log('  ✓ A-C1: SYMBOLS_CRYPTO pruned to the exact intersection with');
+console.log('         the patched worker CRYPTO_MAP. Every listed pair');
+console.log('         resolves to a live Kraken OR Binance OR CoinGecko triple.');
+console.log('         Dead entries removed. CoinGecko-only entries documented.');
+console.log('  ✓ A-M6: BB×58 legend now states that the final Math.sqrt is');
+console.log('         float64 (the BigInt accumulators themselves are exact).');
+console.log('  ✓ A-m3: Help panel universe-count line corrected.');
+console.log('  ✓ All prior vFinal fixes preserved:');
+console.log('         C-2 csVal() helper, C-3 ULP-safe _M/_N, M-1 guard,');
+console.log('         M-2 tick reorder, M-3 15-digit π, M-4 send path,');
+console.log('         m-2 version unify, m-4 OnGaurd note, m-5 dead field,');
+console.log('         m-6 extended cs_map, D-49..D-52 relay parsers,');
+console.log('         E-11..E-13 send hardening, E-4..E-9 projection/');
+console.log('         scroll-ahead/threading, E-10 cross-thread send,');
+console.log('         E-14..E-16 Kraken/Stooq/expanded universe,');
+console.log('         V-1 tick placement, V-2 Kronecker stamp reset.');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
