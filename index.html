@@ -1220,7 +1220,7 @@ function getCssVar(name, fallback) {
 }
 
 /* ============================================================
-   C-2: CS VALUE TRANSLATION
+   CS VALUE TRANSLATION
    ============================================================ */
 const CS_VALUE_MAP = {
     'BUY': '↑',
@@ -1271,31 +1271,58 @@ const DEFAULT_BACKENDS = [
 ];
 
 function normalizeBackend(u) {
-    if (!u) return '';
-    u = String(u).trim();
-    if (!/^https?:\/\//i.test(u)) return '';
-    return u.replace(/\/+$/, '') + '/';
+    if (u === null || u === undefined) return '';
+    let s = String(u).trim();
+    if (!s) return '';
+    // Accept percent-encoded forms (Telegram bots, URL shorteners, and some
+    // WebView paste paths re-encode the value). Decode up to twice.
+    if (/%3A%2F%2F/i.test(s) || /^https?%3A/i.test(s)) {
+        try { s = decodeURIComponent(s); } catch (e) {}
+        if (/%3A%2F%2F/i.test(s)) {
+            try { s = decodeURIComponent(s); } catch (e) {}
+        }
+    }
+    if (!/^https?:\/\//i.test(s)) return '';
+    return s.replace(/\/+$/, '') + '/';
 }
+
+// The query string is authoritative. It wins over window.__AEEA_BACKEND_URL__
+// and localStorage, because the user's most recent explicit instruction is the
+// query string in the URL they just opened. If the query string is present but
+// malformed, we do NOT silently fall through to same-origin (that is the
+// "GitHub Pages 404 loop" failure mode); we return a sentinel that boot() can
+// detect and surface.
+const BACKEND_QS_MALFORMED = '__BACKEND_QS_MALFORMED__';
+
 function resolveBackendUrl() {
     try {
-        if (typeof window.__AEEA_BACKEND_URL__ === 'string' && window.__AEEA_BACKEND_URL__.length > 0) {
-            const n = normalizeBackend(window.__AEEA_BACKEND_URL__);
-            if (n) return n;
-        }
-        const qs = new URLSearchParams(window.location.search);
-        const q = qs.get('backend');
-        if (q) {
+        // Step 1 (authoritative): ?backend= query string.
+        let q = null;
+        try {
+            const qs = new URLSearchParams(window.location.search);
+            q = qs.get('backend');
+        } catch (e) { q = null; }
+        if (q !== null && q !== '') {
             const n = normalizeBackend(q);
             if (n) {
                 try { localStorage.setItem('aeea_backend_url', n); } catch (e) {}
                 return n;
             }
+            // Query string present but malformed — fail loudly, do not fall through.
+            return BACKEND_QS_MALFORMED;
         }
+        // Step 2: window override.
+        if (typeof window.__AEEA_BACKEND_URL__ === 'string' && window.__AEEA_BACKEND_URL__.length > 0) {
+            const n = normalizeBackend(window.__AEEA_BACKEND_URL__);
+            if (n) return n;
+        }
+        // Step 3: persisted.
         try {
             const ls = localStorage.getItem('aeea_backend_url');
             const n = normalizeBackend(ls);
             if (n) return n;
         } catch (e) {}
+        // Step 4: DEFAULT_BACKENDS.
         for (const candidate of DEFAULT_BACKENDS) {
             const n = normalizeBackend(candidate);
             if (n) return n;
@@ -1303,8 +1330,50 @@ function resolveBackendUrl() {
     } catch (e) {}
     return '';
 }
-const BACKEND_URL = resolveBackendUrl();
-const HAS_BACKEND = BACKEND_URL.length > 0;
+
+let BACKEND_URL = resolveBackendUrl();
+const BACKEND_QS_WAS_MALFORMED = (BACKEND_URL === BACKEND_QS_MALFORMED);
+let HAS_BACKEND = (!BACKEND_QS_WAS_MALFORMED) && BACKEND_URL.length > 0;
+
+// Log the resolution outcome once, so the user can see in DevTools (and in
+// the log bar) exactly which URL was chosen and why.
+(function logBackendResolution() {
+    const qs = (function() {
+        try { return new URLSearchParams(window.location.search).get('backend'); }
+        catch (e) { return null; }
+    })();
+    if (BACKEND_QS_WAS_MALFORMED) {
+        console.error('[ÆEA] ?backend= present but malformed:', qs);
+        console.error('[ÆEA] Expected a value like https://your-app.herokuapp.com/');
+    } else if (HAS_BACKEND) {
+        console.log('[ÆEA] Backend resolved:', BACKEND_URL,
+            '(source:', qs ? 'query string'
+                : (typeof window.__AEEA_BACKEND_URL__ === 'string' ? 'window override' : 'localStorage or DEFAULT_BACKENDS'),
+            ')');
+    } else {
+        console.warn('[ÆEA] No backend URL resolved. window.location.search =', window.location.search);
+    }
+})();
+
+// Some Telegram WebViews (notably iOS) strip the ?backend= query on the first
+// navigation but preserve localStorage. Others strip both. Re-resolve once on
+// the first visibilitychange after boot, and if the backend URL newly
+// resolves, re-run fetchAll() without a full reload.
+let _backendReresolved = false;
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (_backendReresolved) return;
+    _backendReresolved = true;
+    const fresh = resolveBackendUrl();
+    if (fresh === BACKEND_QS_MALFORMED) return;
+    if (fresh && fresh !== BACKEND_URL) {
+        BACKEND_URL = fresh;
+        HAS_BACKEND = true;
+        try { setConnBadge('wait', 'connecting…'); } catch (e) {}
+        fetchAll();
+        startPolling();
+    }
+});
 
 /* ============================================================
    TELEGRAM WEB APP BOOTSTRAP
@@ -1616,8 +1685,8 @@ const INDICATOR_RANGES = {
 };
 
 /* ============================================================
-   A-C1: CRYPTO SYMBOL LIST — exact intersection with the
-   patched worker CRYPTO_MAP.
+   CRYPTO SYMBOL LIST — exact intersection with the patched
+   worker CRYPTO_MAP.
    ============================================================
    Every entry below resolves to a live Kraken OR Binance OR
    CoinGecko triple in the relay's CRYPTO_MAP. Entries whose
@@ -4426,6 +4495,10 @@ async function fetchLogs() {
 }
 
 async function fetchAll() {
+    if (BACKEND_QS_WAS_MALFORMED) {
+        setConnBadge('err', 'bad ?backend=');
+        return;
+    }
     if (!HAS_BACKEND) {
         setConnBadge('err', 'no backend');
         showError('Backend URL not configured. Append ?backend=https://your-app.herokuapp.com/ to the Mini App URL.', 8000);
@@ -4433,6 +4506,37 @@ async function fetchAll() {
     }
     if (isBackedOff()) return;
     hideError();
+    // Probe /health first so a 404 (GitHub Pages) or a 401 (auth) is surfaced
+    // as a distinct badge state instead of a generic "unreachable".
+    const health = await apiJson('/health', { timeoutMs: 6000 });
+    if (health && health.__error) {
+        noteFailure();
+        const status = health.__status || (health.__network ? 'network' : '?');
+        if (status === 404) {
+            setConnBadge('err', 'backend 404');
+            showError('Backend ' + BACKEND_URL + ' returned 404 for /health. This usually means the TWA is polling GitHub Pages, not Heroku — check that ?backend= points at your Heroku origin.', 12000);
+        } else if (status === 401 || status === 403) {
+            setConnBadge('err', 'auth failed');
+            showError('Backend ' + BACKEND_URL + ' rejected the request (HTTP ' + status + '). If REQUIRE_AUTH=1, open the TWA from inside Telegram (not a browser) so initData is present.', 12000);
+        } else if (status === 'network') {
+            setConnBadge('err', 'CORS/network');
+            showError('Cannot reach ' + BACKEND_URL + '. Check CORS_ORIGIN on Heroku and that the dyno is running.', 12000);
+        } else {
+            setConnBadge('err', 'health ' + status);
+        }
+        return;
+    }
+    // /health can return 200 with engine_initialized=false (bot is running,
+    // but /start_feed has not been called). In that case
+    // fetchMiniAppState() will 503 on every poll while the badge would
+    // otherwise show green. Treat "engine not ready" as a distinct yellow
+    // state so the user knows the backend is reachable and what to do.
+    if (health.engine_initialized === false) {
+        setConnBadge('wait', 'engine not ready');
+        showError('Backend is reachable but the engine has not been initialized. Send /start_feed to the bot.', 8000);
+    } else {
+        noteSuccess();
+    }
     await fetchMiniAppState();
     await Promise.all([
         fetchOhlcv(),
@@ -4628,12 +4732,18 @@ async function boot() {
     }
     switchView('chart');
     syncVolToggleUi();
+    if (BACKEND_QS_WAS_MALFORMED) {
+        setConnBadge('err', 'bad ?backend=');
+        showError('The ?backend= query string is present but is not a valid https:// URL. Expected: ?backend=https://your-app.herokuapp.com/ — received: ' + String((function(){try{return new URLSearchParams(window.location.search).get('backend');}catch(e){return '?';}})()).slice(0, 80), 15000);
+        return;
+    }
     if (!HAS_BACKEND) {
         setConnBadge('err', 'no backend');
         showError('Backend URL not configured. Append ?backend=https://your-app.herokuapp.com/ to the Mini App URL, or set window.__AEEA_BACKEND_URL__ before load.', 10000);
-    } else {
-        setConnBadge('wait', 'connecting…');
+        return;
     }
+    setConnBadge('wait', 'connecting…');
+    pushLog('info', 'Backend: ' + BACKEND_URL);
     await fetchAll();
     if (tmaActive && HAS_BACKEND) {
         const r = await postHandshake();
@@ -4659,7 +4769,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA vFinal Edition 3');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : '(not configured)');
+console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : (BACKEND_QS_WAS_MALFORMED ? '(malformed ?backend=)' : '(not configured)'));
 console.log('TMA active:', tmaActive);
 console.log('vFinal Edition 3 (Audit-Patched):');
 console.log('  ✓ A-C1: SYMBOLS_CRYPTO pruned to the exact intersection with');
@@ -4669,6 +4779,18 @@ console.log('         Dead entries removed. CoinGecko-only entries documented.')
 console.log('  ✓ A-M6: BB×58 legend now states that the final Math.sqrt is');
 console.log('         float64 (the BigInt accumulators themselves are exact).');
 console.log('  ✓ A-m3: Help panel universe-count line corrected.');
+console.log('  ✓ Q-1: normalizeBackend accepts percent-encoded forms (double-decode);');
+console.log('         resolveBackendUrl makes ?backend= authoritative and returns');
+console.log('         BACKEND_QS_MALFORMED on malformed input instead of falling');
+console.log('         through to same-origin.');
+console.log('  ✓ Q-2: BACKEND_QS_WAS_MALFORMED constant; one-time resolution log;');
+console.log('         visibilitychange re-resolution hook retained.');
+console.log('  ✓ Q-3: boot() surfaces malformed ?backend= as a distinct badge state');
+console.log('         and logs the resolved backend URL to the log bar.');
+console.log('  ✓ Q-4: fetchAll() probes /health first and maps 404/401/403/network/');
+console.log('         5xx to distinct badge states with actionable error messages.');
+console.log('  ✓ Q-B: engine_initialized === false → yellow "engine not ready"');
+console.log('         instead of green "connected" (user is told to /start_feed).');
 console.log('  ✓ All prior vFinal fixes preserved:');
 console.log('         C-2 csVal() helper, C-3 ULP-safe _M/_N, M-1 guard,');
 console.log('         M-2 tick reorder, M-3 15-digit π, M-4 send path,');
