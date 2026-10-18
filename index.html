@@ -1445,20 +1445,6 @@ function authHeaders(extra) {
 
 /* ============================================================
    Q-5: NATIVE AbortSignal TIMEOUT
-   ============================================================
-   The previous apiFetch raced three overlapping promises
-   (the fetch, a setTimeout abort, and a macrotask deadline poller).
-   In a mobile WebView, the JS thread can stall for a fraction of a
-   second during layout or rendering. When it wakes up, the deadline
-   poller sees Date.now() >= deadline, fires the AbortController, and
-   kills the request even though the network layer already received
-   the successful 200 OK. This caused "Backend unreachable; backing
-   off 30s" immediately after a 200 response.
-
-   The fix is to let the WebView's native network layer handle the
-   timeout via AbortSignal.timeout(). The AbortSignal is processed
-   by the browser's network thread, not the JS thread, so a JS
-   thread stall cannot trigger a spurious abort.
    ============================================================ */
 async function apiFetch(path, opts) {
     opts = opts || {};
@@ -3196,11 +3182,15 @@ function computePriceRange() {
     let lo = Infinity, hi = -Infinity;
     const realRight = Math.min(rightEdge, totalBars);
     const realLeft = Math.max(0, leftEdge);
+    // C-5: skip bars whose OHLC fields are null or non-finite.
     for (let i = realLeft; i < realRight; i++) {
         const b = state.bars[i];
         if (!b) continue;
-        if (b.low < lo) lo = b.low;
-        if (b.high > hi) hi = b.high;
+        const h = (typeof b.high === 'number' && isFinite(b.high)) ? b.high : null;
+        const l = (typeof b.low === 'number' && isFinite(b.low)) ? b.low : null;
+        if (h === null || l === null) continue;
+        if (l < lo) lo = l;
+        if (h > hi) hi = h;
     }
     if (state.projection.enabled && state.projection.path && state.projection.path.length > 0) {
         for (const step_k of state.projection.path) {
@@ -3357,6 +3347,9 @@ function drawBollingerFamily() {
         ctx.beginPath();
         let started = false;
         for (let i = realLeft; i < realRight; i++) {
+            // C-5: skip bars whose close is null/zero.
+            const bar = state.bars[i];
+            if (!bar || typeof bar.close !== 'number' || !isFinite(bar.close) || bar.close <= 0) { started = false; continue; }
             const v = upArr[i];
             if (!isFinite(v)) { started = false; continue; }
             const x = baseX + (i - leftEdge) * step;
@@ -3369,6 +3362,8 @@ function drawBollingerFamily() {
         ctx.beginPath();
         started = false;
         for (let i = realLeft; i < realRight; i++) {
+            const bar = state.bars[i];
+            if (!bar || typeof bar.close !== 'number' || !isFinite(bar.close) || bar.close <= 0) { started = false; continue; }
             const v = loArr[i];
             if (!isFinite(v)) { started = false; continue; }
             const x = baseX + (i - leftEdge) * step;
@@ -3504,7 +3499,7 @@ function drawVolumeOverlay() {
     for (let i = realLeft; i < realRight; i++) {
         const b = state.bars[i];
         if (!b) continue;
-        const v = Number(b.volume) || 0;
+        const v = (typeof b.volume === 'number' && isFinite(b.volume)) ? b.volume : 0;
         if (v > maxV) maxV = v;
     }
     if (maxV <= 0) maxV = 1;
@@ -3517,7 +3512,9 @@ function drawVolumeOverlay() {
     for (let i = realLeft; i < realRight; i++) {
         const b = state.bars[i];
         if (!b) continue;
-        const v = Number(b.volume) || 0;
+        // C-5: skip bars whose close is null/zero.
+        if (typeof b.close !== 'number' || !isFinite(b.close) || b.close <= 0) continue;
+        const v = (typeof b.volume === 'number' && isFinite(b.volume)) ? b.volume : 0;
         if (v <= 0) continue;
         const barH = Math.max(1, Math.floor((v / maxV) * (paneH - 4)));
         const x = PADDING.left + (i - leftEdge) * step + step / 2;
@@ -3686,6 +3683,7 @@ function drawCandles() {
         let firstY = null;
         for (let i = realLeft; i < realRight; i++) {
             const bar = state.bars[i];
+            if (!bar || typeof bar.close !== 'number' || !isFinite(bar.close) || bar.close <= 0) continue;
             const x = PADDING.left + (i - leftEdge) * step + step / 2;
             const y = priceToY(bar.close);
             if (firstY === null) { firstY = y; ctx.moveTo(x, y); }
@@ -3710,6 +3708,12 @@ function drawCandles() {
     }
     for (let i = realLeft; i < realRight; i++) {
         const bar = state.bars[i];
+        if (!bar) continue;
+        // C-5: skip bars with null/zero OHLC.
+        if (typeof bar.open !== 'number' || !isFinite(bar.open) || bar.open <= 0) continue;
+        if (typeof bar.high !== 'number' || !isFinite(bar.high) || bar.high <= 0) continue;
+        if (typeof bar.low !== 'number' || !isFinite(bar.low) || bar.low <= 0) continue;
+        if (typeof bar.close !== 'number' || !isFinite(bar.close) || bar.close <= 0) continue;
         const x = PADDING.left + (i - leftEdge) * step + step / 2;
         const yOpen = priceToY(bar.open);
         const yClose = priceToY(bar.close);
@@ -3915,9 +3919,20 @@ function updateChartHeader() {
     }
     const luEl = document.getElementById('chart-lastupdate');
     if (luEl) {
-        if (state.lastUpdate) {
-            const d = new Date(state.lastUpdate);
-            luEl.textContent = `Updated: ${d.toLocaleTimeString()}`;
+        // C-7: state.lastUpdate can be null, a non-ISO string, or a
+        // malformed date. new Date(null) is 1970-01-01T00:00:00Z, and
+        // toLocaleTimeString() renders 1:00:00 AM — a false positive.
+        if (typeof state.lastUpdate === 'string' && state.lastUpdate.length > 0) {
+            try {
+                const d = new Date(state.lastUpdate);
+                if (!isNaN(d.getTime())) {
+                    luEl.textContent = `Updated: ${d.toLocaleTimeString()}`;
+                } else {
+                    luEl.textContent = `Updated: ${state.lastUpdate}`;
+                }
+            } catch (e) {
+                luEl.textContent = `Updated: ${state.lastUpdate}`;
+            }
         } else {
             luEl.textContent = 'Updated: —';
         }
@@ -4092,19 +4107,29 @@ function updateCrosshairReadout(x, y) {
     if (!el) return;
     const barIdx = xToBarIndex(x);
     const bar = state.bars[barIdx];
-    if (!bar) { el.style.display = 'none'; return; }
+    // C-6: bar can be undefined (state.bars.length can shrink mid-poll);
+    // bar.close can be null (filtered by fetchOhlcv's close-check); and
+    // bar.open/high/low can be null even when close is real. A null OHLC
+    // field previously produced `null.toFixed(5)` → TypeError, silently
+    // swallowed by the canvas event loop, leaving the readout blank. The
+    // patch suppresses the readout when the bar has no close, and renders
+    // "—" for individual null fields.
+    if (!bar || typeof bar.close !== 'number' || !isFinite(bar.close) || bar.close <= 0) {
+        el.style.display = 'none';
+        return;
+    }
     el.style.display = 'block';
     el.style.left = Math.min(x + 12, window.innerWidth - 180) + 'px';
     el.style.top = Math.min(y + 12, window.innerHeight - 100) + 'px';
-    const volRaw = Number(bar.volume);
-    const volStr = isFinite(volRaw) && volRaw > 0
-        ? formatVolume(volRaw) + ' (' + volRaw.toFixed(0) + ')'
-        : '0';
+    const fmt = (v) => (typeof v === 'number' && isFinite(v)) ? v.toFixed(5) : '—';
+    const volStr = (typeof bar.volume === 'number' && isFinite(bar.volume) && bar.volume >= 0)
+        ? (formatVolume(bar.volume) + ' (' + bar.volume.toFixed(0) + ')')
+        : '—';
     el.innerHTML = `
-        <div><span class="lbl">O</span> <span class="val">${bar.open.toFixed(5)}</span></div>
-        <div><span class="lbl">H</span> <span class="val">${bar.high.toFixed(5)}</span></div>
-        <div><span class="lbl">L</span> <span class="val">${bar.low.toFixed(5)}</span></div>
-        <div><span class="lbl">C</span> <span class="val">${bar.close.toFixed(5)}</span></div>
+        <div><span class="lbl">O</span> <span class="val">${fmt(bar.open)}</span></div>
+        <div><span class="lbl">H</span> <span class="val">${fmt(bar.high)}</span></div>
+        <div><span class="lbl">L</span> <span class="val">${fmt(bar.low)}</span></div>
+        <div><span class="lbl">C</span> <span class="val">${fmt(bar.close)}</span></div>
         <div><span class="lbl">𝒱</span> <span class="val">${volStr}</span></div>
     `;
 }
@@ -4142,16 +4167,35 @@ async function fetchOhlcv() {
     const r = await apiJson('/ohlcv?limit=200&interval=' + encodeURIComponent(tf));
     if (!r || r.__error) { noteFailure(); return; }
     noteSuccess();
-    const rawBars = r.bars || [];
-    state.bars = rawBars.map(b => ({
-        timestamp: b.timestamp,
-        open: Number(b.open) || 0,
-        high: Number(b.high) || 0,
-        low: Number(b.low) || 0,
-        close: Number(b.close) || 0,
-        volume: Number(b.volume) || 0,
-        provider: b.provider || '',
-    }));
+    const rawBars = Array.isArray(r.bars) ? r.bars : [];
+    // C-5: preserve null for absent OHLC fields. A bar is only admitted if
+    // its close is a finite positive number. This is the single client-side
+    // gate that keeps the cursor readout honest: a null field renders as
+    // "—", a genuine zero renders as "0.00000".
+    const toNumOrNull = (v) => {
+        if (v === null || v === undefined) return null;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+    };
+    state.bars = rawBars
+        .map(b => {
+            const open = toNumOrNull(b.open);
+            const high = toNumOrNull(b.high);
+            const low = toNumOrNull(b.low);
+            const close = toNumOrNull(b.close);
+            const volume = toNumOrNull(b.volume);
+            if (close === null || close <= 0) return null;
+            return {
+                timestamp: b.timestamp,
+                open: open,
+                high: high,
+                low: low,
+                close: close,
+                volume: (volume === null ? 0 : volume),
+                provider: b.provider || '',
+            };
+        })
+        .filter(b => b !== null);
     state.ohlcv_count = r.count || state.bars.length;
     if (r.symbol) state.symbol = r.symbol;
     if (r.provider) state.provider = r.provider;
@@ -4864,6 +4908,19 @@ console.log('  ✓ Q-8: non-blocking boot — startPolling() runs BEFORE the ini
 console.log('         fetchAll(), so a hung cold-start fetch cannot deadlock boot.');
 console.log('  ✓ B-2: pollHandles hoisted above the visibilitychange listener,');
 console.log('         eliminating the temporal-dead-zone ReferenceError.');
+console.log('  ✓ C-5 (Cursor OHLC Zero Readout Audit): fetchOhlcv preserves null');
+console.log('         for absent OHLC fields; only bars with finite positive close');
+console.log('         are admitted. computePriceRange, drawBollingerFamily,');
+console.log('         drawVolumeOverlay, and drawCandles all skip null/zero OHLC');
+console.log('         bars. The cursor readout now renders "—" for absent fields');
+console.log('         and "0.00000" only for genuine zeros.');
+console.log('  ✓ C-6: updateCrosshairReadout suppresses the readout when the');
+console.log('         hovered bar has no finite positive close, and renders "—"');
+console.log('         for individual null OHLC fields (previously threw TypeError');
+console.log('         on null.toFixed(5), silently swallowing the readout).');
+console.log('  ✓ C-7: updateChartHeader guards on typeof lastUpdate === "string"');
+console.log('         and !isNaN(d.getTime()) before rendering "Updated: <time>",');
+console.log('         eliminating new Date(null).toLocaleTimeString() → 1:00:00 AM.');
 console.log('  ✓ All prior vFinal fixes preserved:');
 console.log('         C-2 csVal() helper, C-3 ULP-safe _M/_N, M-1 guard,');
 console.log('         M-2 tick reorder, M-3 15-digit π, M-4 send path,');
