@@ -1614,7 +1614,8 @@ async function apiJson(path, opts) {
     } catch (e) {
         return {
             __error: true,
-            __network: true,
+            __network: (e && e.name !== 'AbortError'), // False if it's a timeout
+            __timeout: (e && e.name === 'AbortError'), // True if it's a timeout
             __body: null,
             error: (e && e.name === 'AbortError') ? 'timeout' : (e && e.message) || String(e),
         };
@@ -4669,6 +4670,12 @@ async function fetchAll() {
     }
 
     if (health && health.__error) {
+        if (health.__timeout) {
+            setConnBadge('wait', 'waking dyno…');
+            pushLog('warn', 'Health probe timed out. The backend is cold-starting or the WebView is throttling the request.');
+            return; // Don't throw the CORS error, just wait for the 45s Stage 2 probe
+        }
+        
         noteFailure();
         const status = health.__status || (health.__network ? 'network' : '?');
         if (status === 404) {
