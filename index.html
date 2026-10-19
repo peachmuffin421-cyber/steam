@@ -379,10 +379,6 @@ html, body {
 .toast.exec-close  { border-left-color: var(--purple); }
 .toast.fvg-top     { border-left-color: var(--blue); }
 .toast.fvg-bott    { border-left-color: var(--pink); }
-.toast.alert-long  { border-left-color: var(--green); }
-.toast.alert-short { border-left-color: var(--red); }
-.toast.alert-sin   { border-left-color: var(--gold); }
-.toast.alert-sine  { border-left-color: var(--gold); }
 .toast.dismissing  { transform: translateX(110%); opacity: 0; }
 .toast .toast-title {
     font-weight: bold;
@@ -399,10 +395,6 @@ html, body {
 .toast.exec-close .toast-title { color: var(--purple); }
 .toast.fvg-top   .toast-title { color: var(--blue); }
 .toast.fvg-bott  .toast-title { color: var(--pink); }
-.toast.alert-long  .toast-title { color: var(--green); }
-.toast.alert-short .toast-title { color: var(--red); }
-.toast.alert-sin   .toast-title { color: var(--gold); }
-.toast.alert-sine  .toast-title { color: var(--gold); }
 .toast .toast-line { color: var(--text-dim); }
 .toast .toast-line .v { color: var(--text-bright); font-weight: bold; }
 @keyframes toast-in {
@@ -1168,7 +1160,9 @@ html, body {
     <div class="item"><b>BOLLINGER FAMILY</b> <span>— All 58 BB pairs for periods <b>3..60</b> (MQL4 <code>iBands</code> parity: dev=2, close, shift=0, population σ). Upper bands: green gradient. Lower bands: white gradient. SMA and variance accumulators are BigInt-backed at 1e12 scale; the final <code>Math.sqrt</code> is float64.</span></div>
     <div class="item"><b>𝒫_arc PROJECTION</b> <span>— Forward price path derived from the s=r coherence condition. Three branches: <b>range</b> (cosine arc from price to signal), <b>trend</b> (linear extension along slope), <b>volatile</b> (damped oscillation across Π^{>θ}/Π^{<θ} band). The cosine is evaluated with a 15-digit exact-rational Taylor series (π ≈ 3.141592653589793 as the fraction 3141592653589793/1000000000000000). Drawn dashed ahead of the last bar. Recomputed only when a 𝒟_Bull/𝒟_Bear/ℋ_Hawk/𝒟_Dove/𝒲_Whisky/𝒲_Wine/𝒲_Watter/ℬ_Blood/𝒟_Diamond/ℛ_Ruby execution fires, plus once on engine init, once on symbol change, and on explicit refresh.</span></div>
     <div class="item"><b>SCROLL-AHEAD</b> <span>— Drag the chart left past the last bar to scroll into the projected region. The projected endpoint (likely take-profit level) is reachable directly on the chart.</span></div>
-    <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; ℱ_VG toasts fire on every anchor commit/remove. <b>vFinal Edition 4:</b> the four FF edge-case alerts (<code>Alert("Long:", …)</code>, <code>Alert("Short:", …)</code>, <code>Alert("Sin.", …)</code>, <code>Alert("Sine.", …)</code>) are now surfaced as <b>𝒮_Long</b>, <b>𝒮_Short</b>, <b>𝒮_sin</b>, and <b>𝒮_sine</b> toasts and Telegram pushes. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat, <b>threaded as a reply to your most recent command</b>.</span></div>
+    <div class="item"><b>TOASTS + PUSH</b> <span>— Signal toasts fire on every <code>_signal()</code>; execution toasts fire on every dispatch; ℱ_VG toasts fire on every anchor commit/remove. Each toast triggers a Telegram <code>sendMessage</code> push to the bound chat, <b>threaded as a reply to your most recent command</b>.</span></div>
+    <div class="item"><b>ALERT RULE (E-25)</b> <span>— A <b>long</b> alert is emitted only when the signal direction is <b>↑ BUY</b> and the price has not simultaneously breached the short threshold. A <b>short</b> alert is emitted only when the signal direction is <b>↓ SELL</b> and the price has not simultaneously breached the long threshold. If both long and short thresholds are breached on the same tick (both triggered), <b>neither</b> alert is emitted — the engine records the tick, resets the signal, and re-evaluates from the next bar. A <b>⊙ NEUTRAL</b> signal (neither m ≥ 12 nor n ≥ 12) is recorded in history and logged, but is <b>not</b> pushed as a long/short alert.</span></div>
+    <div class="item"><b>COUNT / TOLL (E-26)</b> <span>— <code>count</code> is incremented on the <b>signal bar itself</b> (the same tick <code>_signal()</code> anchors the signal), matching the FF's <code>if(price &gt;= signal + com)</code> / <code>if(price &lt;= signal - com)</code> blocks. <code>toll</code> is incremented on the <b>first bar after</b> the signal bar, matching the FF's coherence blocks. Both the <code>count == 1</code> branch (ℋ_Hawk / 𝒟_Dove) and the <code>toll == 1</code> branch (𝒟_Bull / 𝒟_Bear via 𝒟_Diamond / ℛ_Ruby) are gated on <code>tick &gt; signal_tick</code>. On the first-after-bar pass the toll block is evaluated <b>before</b> the count block (FF order), so Bull/Bear takes precedence, and Hawk/Dove fires only if the toll block did not consume the signal. This is the only structural difference between Hawk and Bull (or Dove and Bear): the source bar of the increment.</span></div>
     <div class="item"><b>𝒫 (Provider)</b> <span>— <b>vFinal:</b> crypto symbols dispatch to <b>Kraken</b> first (free, open, no KYC, low latency), then Binance, then CoinGecko, then Yahoo. Futures and equities dispatch to <b>Stooq</b> first (free, open, no KYC, CSV, low latency), then Yahoo. Forex and indices dispatch to <b>Yahoo</b> only. The current provider is shown in the Engine Panel and the 𝒫_arc Panel.</span></div>
     <div class="item"><b>SYMBOL UNIVERSE</b> <span>— <b>GRAM-USD (TON)</b> is a first-class crypto symbol. The picker's crypto section is pruned to the exact intersection with the relay's live Kraken/Binance/Gecko coverage — every listed symbol resolves to a real price on at least one provider. CoinGecko-only entries (BNB-USD, OKB-USD, HT-USD, KCS-USD, USDT-USD) serve a 24-hour rolling USD volume, not exchange tick volume, under the 𝒱 column. The universe additionally spans <b>~70 futures contracts</b> (including micros MES/MNQ/MYM/M2K and CME crypto futures BTC=F, ETH=F), <b>~500 US equities and ETFs</b>, <b>~50 forex pairs</b>, and <b>~18 world indices</b>. The picker groups them into five collapsible sections and includes a search filter.</span></div>
     <div class="item"><b>CHART</b> <span>— Interactive candlestick chart with crosshair, pan, zoom, tap-to-inspect. Overlays: BB family, topological anchors (Π^{>θ}/Π^{<θ}), ℱ_VG lines, signal markers, 𝒯_trail line, 𝒫_arc projection, 𝒱 histogram.</span></div>
@@ -1268,25 +1262,6 @@ function csVal(value) {
         return CS_VALUE_MAP[upper];
     }
     return s;
-}
-
-/* ============================================================
-   C-A3: ALERT SUB-KIND CS TRANSLATION
-   ============================================================ */
-const CS_ALERT_MAP = {
-    'long': '𝒮_Long',
-    'short': '𝒮_Short',
-    'sin': '𝒮_sin',
-    'sine': '𝒮_sine',
-};
-
-function csAlert(sub) {
-    if (sub === null || sub === undefined) return '𝒮_alert';
-    const key = String(sub).toLowerCase().trim();
-    if (Object.prototype.hasOwnProperty.call(CS_ALERT_MAP, key)) {
-        return CS_ALERT_MAP[key];
-    }
-    return '𝒮_' + key;
 }
 
 /* ============================================================
@@ -1620,11 +1595,12 @@ function pushToast(toast) {
         else if (toast.type === 'SELL') el.classList.add('signal-sell');
         else el.classList.add('signal-neutral');
         const dirCs = csVal(toast.type);
+        const suppressedNote = toast.alert_suppressed ? ' · suppressed' : '';
         el.innerHTML =
             '<div class="toast-title">🎯 𝒮_signal · ' + escapeHtml(dirCs) + '</div>' +
             '<div class="toast-line">Price <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
             '<div class="toast-line">m <span class="v">' + escapeHtml(String(toast.m ?? '—')) + '</span> · n <span class="v">' + escapeHtml(String(toast.n ?? '—')) + '</span> · h <span class="v">' + escapeHtml(String(toast.h ?? '—')) + '</span></div>' +
-            '<div class="toast-line">' + escapeHtml(regimeToCS(toast.regime || '')) + ' · tick ' + escapeHtml(String(toast.tick ?? '—')) + '</div>';
+            '<div class="toast-line">' + escapeHtml(regimeToCS(toast.regime || '')) + ' · tick ' + escapeHtml(String(toast.tick ?? '—')) + suppressedNote + '</div>';
     } else if (toast.kind === 'fvg') {
         const isTop = (toast.type === 'top');
         el.classList.add(isTop ? 'fvg-top' : 'fvg-bott');
@@ -1635,34 +1611,6 @@ function pushToast(toast) {
             '<div class="toast-title">📐 ℱ_VG ' + escapeHtml(action.toUpperCase()) + ' · ' + arrow + ' ' + escapeHtml(csType) + '</div>' +
             '<div class="toast-line">Price <span class="v">' + escapeHtml(String(toast.price || '—')) + '</span></div>' +
             '<div class="toast-line">idx <span class="v">' + escapeHtml(String(toast.idx ?? '—')) + '</span> · tick ' + escapeHtml(String(toast.tick ?? '—')) + '</div>';
-    } else if (toast.kind === 'alert') {
-        // C-A3: the FF's edge-case alerts (Long, Short, Sin., Sine.) surface
-        // as a distinct toast class with the 𝒮_ prefix CS glyph.
-        const sub = String(toast.sub || 'alert').toLowerCase();
-        const cls = (sub === 'long') ? 'alert-long'
-                  : (sub === 'short') ? 'alert-short'
-                  : (sub === 'sin') ? 'alert-sin'
-                  : 'alert-sine';
-        el.classList.add(cls);
-        const csSub = csAlert(sub);
-        const titleGlyph = (sub === 'long') ? '↟' : ((sub === 'short') ? '↡' : '🎯');
-        const titleEmoji = (sub === 'long') ? '🔵' : ((sub === 'short') ? '🔴' : '⚠️');
-        let body = '';
-        if (toast.price !== undefined && toast.price !== null) {
-            body += '<div class="toast-line">Price <span class="v">' + escapeHtml(String(toast.price)) + '</span></div>';
-        }
-        if (sub === 'sin' || sub === 'sine') {
-            const oVal = (toast.O !== undefined) ? toast.O : (toast.o !== undefined ? toast.o : '—');
-            body += '<div class="toast-line">O <span class="v">' + escapeHtml(String(oVal)) + '</span>'
-                 +  ' · 𝒞 <span class="v">' + escapeHtml(csVal(toast.C)) + '</span>'
-                 +  ' · 𝒸 <span class="v">' + escapeHtml(csVal(toast.c)) + '</span></div>';
-        }
-        if (toast.tick !== undefined) {
-            body += '<div class="toast-line">tick ' + escapeHtml(String(toast.tick)) + '</div>';
-        }
-        el.innerHTML =
-            '<div class="toast-title">' + titleEmoji + ' ' + escapeHtml(csSub) + ' ' + titleGlyph + '</div>'
-            + body;
     } else {
         const execMap = {
             'Bull': '🐂', 'Bear': '🐻', 'Whisky': '🥃', 'Wine': '🍷',
@@ -1702,7 +1650,7 @@ function pushToast(toast) {
     });
     toastStack.appendChild(el);
     setTimeout(() => dismissToast(el), TOAST_AUTODISMISS_MS);
-    haptic(toast.kind === 'signal' || toast.kind === 'alert' ? 'success' : 'impact');
+    haptic(toast.kind === 'signal' ? 'success' : 'impact');
 }
 
 function escapeHtml(s) {
@@ -2037,6 +1985,7 @@ const state = {
     provider: '',
     last_volume: 0,
     last_inbound_message_id: null,
+    signal_tick: -1,
 
     projection: {
         path: [],
@@ -4369,6 +4318,7 @@ function absorbMiniAppState(ma) {
     if (ma.provider !== undefined) state.provider = ma.provider || '';
     if (ma.last_volume !== undefined) state.last_volume = parseFloat(ma.last_volume) || 0;
     if (ma.last_inbound_message_id !== undefined) state.last_inbound_message_id = ma.last_inbound_message_id;
+    if (ma.signal_tick !== undefined) state.signal_tick = ma.signal_tick;
 
     if (Array.isArray(ma.fvg_anchors)) {
         const serverByIdx = new Map();
@@ -4569,6 +4519,7 @@ function absorbDiagnostics(d) {
     if (d.provider !== undefined) state.provider = d.provider || '';
     if (d.projection_meta) state.projection.meta = d.projection_meta;
     if (d.projection_trigger !== undefined) state.projection.trigger = d.projection_trigger;
+    if (d.signal_tick !== undefined) state.signal_tick = d.signal_tick;
 }
 
 async function fetchOrders() {
@@ -4931,42 +4882,76 @@ console.log('⚡ ÆEA ENGINE · MQL4-PARITY PORT · TWA vFinal Edition 4');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Backend URL:', HAS_BACKEND ? BACKEND_URL : (BACKEND_QS_WAS_MALFORMED ? '(malformed ?backend=)' : '(not configured)'));
 console.log('TMA active:', tmaActive);
-console.log('vFinal Edition 4 (Dime/Count/Toll + Alert + Commission Patched):');
-console.log('  ✓ D-1: All four dispatch helpers (Diamond/Ruby/Hawk/Dove) perform');
-console.log('         the FF `dime = mem;` pre-stamp as their first statement.');
-console.log('         The `else if((mem==1)||(dime==1))` and `(mem==0)||(dime==0)`');
-console.log('         branches now read the pre-stamp, not a stale dime from the');
-console.log('         previous tick’s _on_gaurd(0).');
-console.log('  ✓ D-2: _execute_kronecker_block no longer short-circuits after the');
-console.log('         toll block. The FF toll block and count block are independent');
-console.log('         `if` statements in the same tick; both fire when both');
-console.log('         counters are 1. Toll-buy → toll-sell → count-buy → count-sell,');
-console.log('         all four evaluated in order.');
-console.log('  ✓ D-3: No caller-side reset of st.toll / st.count. The helpers own');
-console.log('         the reset (matching the FF’s `toll = 0; tally = "";` and');
-console.log('         `count = 0; tally = "";` placement inside each subblock).');
-console.log('  ✓ D-4: The `signal = 0; toll = 0; tally = ""; GF = true;');
-console.log('         signature = true;` reset is at the end of each subblock,');
-console.log('         not in the caller. The subblock body reads `signal` at');
-console.log('         its pre-dispatch value during the branch chain.');
-console.log('  ✓ D-11: _S() and _execute_kronecker_block now use the frozen');
-console.log('         self._com_price_frozen (the FF’s `com` constant at OnInit).');
-console.log('         Re-frozen on settings apply and on symbol change.');
-console.log('  ✓ C-A1: FF’s Alert("Long:", …), Alert("Short:", …),');
-console.log('         Alert("Sin.", …), Alert("Sine.", …) are now surfaced as');
-console.log('         𝒮_Long / 𝒮_Short / 𝒮_sin / 𝒮_sine UI toasts + Telegram pushes.');
-console.log('  ✓ C-A2: _format_push_message handles kind="alert" with sub-kinds');
-console.log('         long, short, sin, sine. Dedup key includes sub. PUSH_ON_SIGNAL');
-console.log('         gate reused.');
-console.log('  ✓ C-A3: pushToast in index.html renders the "alert" kind with the');
-console.log('         new alert-long / alert-short / alert-sin / alert-sine classes.');
+console.log('vFinal Edition 4 (Alert-Gated + Count/Toll-Separated):');
+console.log('  ✓ E-28: Help panel documents the mutual-exclusion alert rule');
+console.log('         and the count/toll bar separation (label-only change).');
+console.log('  ✓ E-25 (app.py): a long alert is emitted only when the signal');
+console.log('         direction is ↑ BUY; a short alert only when it is ↓ SELL;');
+console.log('         if both long and short trigger on the same tick, neither');
+console.log('         is emitted; a ⊙ NEUTRAL signal is recorded but not pushed.');
+console.log('  ✓ E-26 (app.py): count is incremented on the signal bar itself;');
+console.log('         toll on the first bar after. Both the count==1 branch');
+console.log('         (ℋ_Hawk / 𝒟_Dove) and the toll==1 branch (𝒟_Bull /');
+console.log('         𝒟_Bear via 𝒟_Diamond / ℛ_Ruby) are gated on');
+console.log('         tick > signal_tick. The toll block precedes the count');
+console.log('         block (FF order), so Bull/Bear takes precedence on the');
+console.log('         first-after-bar pass, and Hawk/Dove fires only if the');
+console.log('         toll block did not consume the signal.');
+console.log('  ✓ E-27 (app.py): _on_gaurd unreachable branch converted to a');
+console.log('         reachable elif (matches FF intent when D < E).');
+console.log('  ✓ A-C1: SYMBOLS_CRYPTO pruned to the exact intersection with');
+console.log('         the patched worker CRYPTO_MAP. Every listed pair');
+console.log('         resolves to a live Kraken OR Binance OR CoinGecko triple.');
+console.log('         Dead entries removed. CoinGecko-only entries documented.');
+console.log('  ✓ A-M6: BB×58 legend now states that the final Math.sqrt is');
+console.log('         float64 (the BigInt accumulators themselves are exact).');
+console.log('  ✓ A-m3: Help panel universe-count line corrected.');
+console.log('  ✓ Q-1: normalizeBackend accepts percent-encoded forms (double-decode);');
+console.log('         resolveBackendUrl makes ?backend= authoritative and returns');
+console.log('         BACKEND_QS_MALFORMED on malformed input instead of falling');
+console.log('         through to same-origin.');
+console.log('  ✓ Q-2: BACKEND_QS_WAS_MALFORMED constant; one-time resolution log;');
+console.log('         visibilitychange re-resolution hook retained.');
+console.log('  ✓ Q-3: boot() surfaces malformed ?backend= as a distinct badge state');
+console.log('         and logs the resolved backend URL to the log bar.');
+console.log('  ✓ Q-4: fetchAll() probes /health first and maps 404/401/403/network/');
+console.log('         5xx to distinct badge states with actionable error messages.');
+console.log('  ✓ Q-B: engine_initialized === false → yellow "engine not ready"');
+console.log('         instead of green "connected" (user is told to /start_feed).');
+console.log('  ✓ Q-5 (B-1): apiFetch hard-settles via native AbortController +');
+console.log('         setTimeout abort. No macrotask deadline poller — the');
+console.log('         WebView\'s native network layer handles the timeout, so');
+console.log('         a JS thread stall cannot trigger a spurious abort.');
+console.log('  ✓ Q-6: two-stage /health probe (6 s fast + 45 s cold-start retry),');
+console.log('         Promise.allSettled for the nine sub-fetches.');
+console.log('  ✓ Q-7: unconditional fetchAll() on visibilitychange resume for the');
+console.log('         first 5 min; restarts polling if boot() never reached it.');
+console.log('  ✓ Q-8: non-blocking boot — startPolling() runs BEFORE the initial');
+console.log('         fetchAll(), so a hung cold-start fetch cannot deadlock boot.');
+console.log('  ✓ B-2: pollHandles hoisted above the visibilitychange listener,');
+console.log('         eliminating the temporal-dead-zone ReferenceError.');
+console.log('  ✓ C-5 (Cursor OHLC Zero Readout Audit): fetchOhlcv preserves null');
+console.log('         for absent OHLC fields; only bars with finite positive close');
+console.log('         are admitted. computePriceRange, drawBollingerFamily,');
+console.log('         drawVolumeOverlay, and drawCandles all skip null/zero OHLC');
+console.log('         bars. The cursor readout now renders "—" for absent fields');
+console.log('         and "0.00000" only for genuine zeros.');
+console.log('  ✓ C-6: updateCrosshairReadout suppresses the readout when the');
+console.log('         hovered bar has no finite positive close, and renders "—"');
+console.log('         for individual null OHLC fields (previously threw TypeError');
+console.log('         on null.toFixed(5), silently swallowing the readout).');
+console.log('  ✓ C-7: updateChartHeader guards on typeof lastUpdate === "string"');
+console.log('         and !isNaN(d.getTime()) before rendering "Updated: <time>",');
+console.log('         eliminating new Date(null).toLocaleTimeString() → 1:00:00 AM.');
 console.log('  ✓ All prior vFinal fixes preserved:');
-console.log('         A-C1 (picker prune), A-C2 (ADX single count), A-C3 (stale');
-console.log('         l_order_id guard), A-M6 (BB×58 legend), A-m1 (_rational_cos');
-console.log('         docstring), A-m3 (help count), C-2 csVal(), C-3 ULP-safe');
-console.log('         _M/_N, C-5 OHLC zero-readout, C-6 crosshair null guard,');
-console.log('         C-7 lastUpdate null guard, M-1..M-4, m-2..m-6,');
-console.log('         D-49..D-52 relay parsers, E-4..E-16, V-1/V-2.');
+console.log('         C-2 csVal() helper, C-3 ULP-safe _M/_N, M-1 guard,');
+console.log('         M-2 tick reorder, M-3 15-digit π, M-4 send path,');
+console.log('         m-2 version unify, m-4 OnGaurd note, m-5 dead field,');
+console.log('         m-6 extended cs_map, D-49..D-52 relay parsers,');
+console.log('         E-11..E-13 send hardening, E-4..E-9 projection/');
+console.log('         scroll-ahead/threading, E-10 cross-thread send,');
+console.log('         E-14..E-16 Kraken/Stooq/expanded universe,');
+console.log('         V-1 tick placement, V-2 Kronecker stamp reset.');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🌌 Q.E.D. — LOGOS = Φ = Truth = Path = Origin');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
